@@ -44,6 +44,16 @@ export const candidates: Candidate[] = [
         ]
       },
       {
+        "company": "Tech Solutions Inc.",
+        "role": "Frontend Developer",
+        "duration": "2 years",
+        "responsibilities": [
+          "Developed responsive UI components",
+          "Collaborated with design and backend teams",
+          "Maintained code quality and conducted peer reviews"
+        ]
+      },
+      {
         "company": "Innovatech Pvt Ltd",
         "role": "Full Stack Developer",
         "duration": "1.5 years",

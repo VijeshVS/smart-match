@@ -70,7 +70,7 @@ function App() {
 
   if (isDone) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 flex flex-col items-center justify-center p-8">
+      <div className="min-h-screen bg-[#faf6f0] flex flex-col items-center justify-center p-8">
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -88,7 +88,7 @@ function App() {
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.4 }}
-            className="text-4xl font-bold text-gray-800 mb-4"
+            className="text-4xl font-bold text-gray-700 mb-4"
           >
             All Done!
           </motion.h2>
@@ -101,7 +101,7 @@ function App() {
             <p className="text-xl text-gray-600">
               You've reviewed all {candidates.length} candidates
             </p>
-            <div className="flex items-center justify-center gap-2 text-yellow-600">
+            <div className="flex items-center justify-center gap-2 text-amber-600">
               <Coins className="w-6 h-6" />
               <p className="text-lg font-semibold">
                 Total Coins Earned: {userStats.coins}
@@ -118,7 +118,7 @@ function App() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleStartOver}
-            className="px-8 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold shadow-lg hover:from-purple-700 hover:to-pink-700 transition-all"
+            className="px-8 py-3 bg-gradient-to-r from-amber-400 to-amber-500 text-white rounded-lg font-semibold shadow-lg hover:from-amber-500 hover:to-amber-600 transition-all"
           >
             Review Again
           </motion.button>
@@ -128,112 +128,118 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 flex flex-col items-center py-8">
-      <div className="flex items-center gap-2 text-yellow-600 mb-4">
+    <div className="min-h-screen bg-[#faf6f0] flex flex-col items-center py-8">
+      <div className="flex items-center gap-2 text-amber-600 mb-4">
         <Coins className="w-6 h-6" />
         <span className="text-lg font-semibold">{userStats.coins} coins</span>
       </div>
       
-      <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-2">
+      <h1 className="text-4xl font-bold text-gray-700 mb-2">
         Candidate Review
       </h1>
-      <p className="text-gray-600 mb-8">Swipe right to approve, left to reject, or skip to review later</p>
+      <p className="text-gray-500 mb-8">Swipe right to approve, left to reject, or skip to review later</p>
       
-      <div className="flex items-center justify-center gap-4">
-        {/* Education Card */}
-        <div className="w-[250px] h-[600px] bg-white rounded-2xl shadow-xl overflow-hidden">
-          <div className="p-4 bg-gradient-to-br from-blue-500 to-indigo-600">
-            <h3 className="text-xl font-bold text-white">Education</h3>
-          </div>
-          <div className="p-4 space-y-4 max-h-[520px] overflow-y-auto">
-            {currentCandidate.education?.map((edu, index) => (
-              <div key={index} className="p-3 bg-blue-50 rounded-lg">
-                <h4 className="font-semibold text-gray-800">{edu.college}</h4>
-                <p className="text-sm text-gray-700">{edu.degree}</p>
-                <p className="text-sm text-gray-600">{edu.branchOfStudy}</p>
-                <div className="flex justify-between mt-2 text-xs text-gray-500">
-                  <span>Graduated: {edu.yearOfGraduation}</span>
-                  <span>GPA: {edu.gpa}</span>
+      <div className="flex flex-col items-center justify-center">
+        {/* Main row with three cards and buttons */}
+        <div className="relative flex items-start justify-center gap-6">
+          {/* Education Card */}
+          <div className="w-[250px] h-[600px] bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col">
+            <div className="p-4 bg-gradient-to-br from-blue-400 to-indigo-500">
+              <h3 className="text-xl font-bold text-white">Education</h3>
+            </div>
+            <div className="p-4 space-y-4 overflow-y-auto scrollbar-hide" style={{ height: 'calc(600px - 60px)' }}>
+              {currentCandidate.education?.map((edu, index) => (
+                <div key={index} className="p-3 bg-blue-50 rounded-lg">
+                  <h4 className="font-semibold text-gray-700">{edu.college}</h4>
+                  <p className="text-sm text-gray-600">{edu.degree}</p>
+                  <p className="text-sm text-gray-500">{edu.branchOfStudy}</p>
+                  <div className="flex justify-between mt-2 text-xs text-gray-400">
+                    <span>Graduated: {edu.yearOfGraduation}</span>
+                    <span>GPA: {edu.gpa}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+          </div>
+
+          {/* Main Candidate Card with Buttons */}
+          <div className="flex flex-col items-center">
+            <div className="relative w-[600px] h-[600px]">
+              <AnimatePresence mode="wait">
+                {currentCandidate && (
+                  <CandidateCard
+                    key={currentCandidate.id}
+                    candidate={currentCandidate}
+                    onSwipe={handleSwipe}
+                  />
+                )}
+              </AnimatePresence>
+            </div>
+            
+            {/* Action Buttons - Positioned absolutely */}
+            <div className="absolute -bottom-5 flex items-center gap-8 z-10">
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="p-4 bg-red-400 rounded-full text-white shadow-lg hover:bg-red-500 transition-colors"
+                onClick={() => handleSwipe(-1)}
+              >
+                <ThumbsDown className="w-6 h-6" />
+              </motion.button>
+
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="p-4 bg-gray-400 rounded-full text-white shadow-lg hover:bg-gray-500 transition-colors"
+                onClick={handleSkip}
+              >
+                <ScrollText className="w-6 h-6" />
+              </motion.button>
+
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="p-4 bg-green-400 rounded-full text-white shadow-lg hover:bg-green-500 transition-colors"
+                onClick={() => handleSwipe(1)}
+              >
+                <ThumbsUp className="w-6 h-6" />
+              </motion.button>
+
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="p-4 bg-blue-400 rounded-full text-white shadow-lg hover:bg-blue-500 transition-colors"
+                onClick={handleReviewClick}
+              >
+                <MessageSquare className="w-6 h-6" />
+              </motion.button>
+            </div>
+          </div>
+
+          {/* Experience Card */}
+          <div className="w-[250px] h-[600px] bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col">
+            <div className="p-4 bg-gradient-to-br from-green-400 to-emerald-500">
+              <h3 className="text-xl font-bold text-white">Previous Experience</h3>
+            </div>
+            <div className="p-4 space-y-4 overflow-y-auto scrollbar-hide" style={{ height: 'calc(600px - 60px)' }}>
+              {currentCandidate.previousExperience?.map((exp, index) => (
+                <div key={index} className="p-3 bg-green-50 rounded-lg">
+                  <h4 className="font-semibold text-gray-700">{exp.company}</h4>
+                  <p className="text-sm text-gray-600">{exp.role}</p>
+                  <p className="text-xs text-gray-500 mt-1">{exp.duration}</p>
+                  <ul className="mt-2 space-y-1">
+                    {exp.responsibilities.slice(0, 2).map((resp, i) => (
+                      <li key={i} className="text-xs text-gray-500 flex items-start">
+                        <span className="mt-1 mr-1 w-1 h-1 bg-green-400 rounded-full flex-shrink-0" />
+                        {resp}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-
-        {/* Main Candidate Card */}
-        <div className="relative w-[600px] h-[600px]">
-          <AnimatePresence mode="wait">
-            {currentCandidate && (
-              <CandidateCard
-                key={currentCandidate.id}
-                candidate={currentCandidate}
-                onSwipe={handleSwipe}
-              />
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* Experience Card */}
-        <div className="w-[250px] h-[600px] bg-white rounded-2xl shadow-xl overflow-hidden">
-          <div className="p-4 bg-gradient-to-br from-green-500 to-emerald-600">
-            <h3 className="text-xl font-bold text-white">Previous Experience</h3>
-          </div>
-          <div className="p-4 space-y-4 max-h-[520px] overflow-y-auto">
-            {currentCandidate.previousExperience?.map((exp, index) => (
-              <div key={index} className="p-3 bg-green-50 rounded-lg">
-                <h4 className="font-semibold text-gray-800">{exp.company}</h4>
-                <p className="text-sm text-gray-700">{exp.role}</p>
-                <p className="text-xs text-gray-500 mt-1">{exp.duration}</p>
-                <ul className="mt-2 space-y-1">
-                  {exp.responsibilities.slice(0, 2).map((resp, i) => (
-                    <li key={i} className="text-xs text-gray-600 flex items-start">
-                      <span className="mt-1 mr-1 w-1 h-1 bg-green-500 rounded-full flex-shrink-0" />
-                      {resp}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-8 flex items-center gap-8">
-        <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          className="p-4 bg-red-500 rounded-full text-white shadow-lg hover:bg-red-600 transition-colors"
-          onClick={() => handleSwipe(-1)}
-        >
-          <ThumbsDown className="w-6 h-6" />
-        </motion.button>
-
-        <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          className="p-4 bg-gray-600 rounded-full text-white shadow-lg hover:bg-gray-700 transition-colors"
-          onClick={handleSkip}
-        >
-          <ScrollText className="w-6 h-6" />
-        </motion.button>
-
-        <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          className="p-4 bg-green-500 rounded-full text-white shadow-lg hover:bg-green-600 transition-colors"
-          onClick={() => handleSwipe(1)}
-        >
-          <ThumbsUp className="w-6 h-6" />
-        </motion.button>
-
-        <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          className="p-4 bg-blue-500 rounded-full text-white shadow-lg hover:bg-blue-600 transition-colors"
-          onClick={handleReviewClick}
-        >
-          <MessageSquare className="w-6 h-6" />
-        </motion.button>
       </div>
 
       <AnimatePresence>
