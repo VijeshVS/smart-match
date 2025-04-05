@@ -15,6 +15,7 @@ const PORT = 3000;
 app.use(cors({
     origin: "*",
 }));
+
 app.use(json());
 
 connectDB();

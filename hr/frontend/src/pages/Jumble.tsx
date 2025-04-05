@@ -28,7 +28,7 @@ function Jumble() {
   useEffect(() => {
     const fetchCandidates = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/candidates"); // update port if needed
+        const res = await fetch("http://localhost:3000/api/candidates"); // update port if needed
         const data = await res.json();
         setCandidates(data);
         setLoading(false);
@@ -59,7 +59,7 @@ function Jumble() {
     // Update swipe count (lefts or rights)
     const swipeEndpoint = direction > 0 ? 'rights' : 'lefts';
     try {
-      await fetch(`http://localhost:5000/api/candidates/${currentCandidate._id}/${swipeEndpoint}`, {
+      await fetch(`http://localhost:3000/api/candidates/${currentCandidate._id}/${swipeEndpoint}`, {
         method: 'PATCH',
       });
     } catch (error) {
@@ -98,7 +98,7 @@ function Jumble() {
       reviewsWithFeedback: prev.reviewsWithFeedback + (review.feedback ? 1 : 0),
       totalReviews: prev.totalReviews + 1,
     }));
-    fetch(`http://localhost:5000/api/candidates/${currentCandidate._id}/reviews`, {
+    fetch(`http://localhost:3000/api/candidates/${currentCandidate._id}/reviews`, {
       method: 'POST',
       body: JSON.stringify(review),
       headers: { 'Content-Type': 'application/json' }
@@ -193,7 +193,7 @@ function Jumble() {
         {/* Main row with three cards and buttons */}
         <div className="relative flex items-start justify-center gap-6">
           {/* Education Card */}
-          <div className="w-[250px] h-[50vh] bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col">
+          <div className="w-[350px] h-[50vh] bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col">
             <div className="p-4 bg-gradient-to-br from-blue-400 to-indigo-500">
               <h3 className="text-xl font-bold text-white">Education</h3>
             </div>
@@ -267,7 +267,7 @@ function Jumble() {
           </div>
 
           {/* Experience Card */}
-          <div className="w-[250px] h-[50vh] bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col">
+          <div className="w-[350px] h-[50vh] bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col">
             <div className="p-4 bg-gradient-to-br from-green-400 to-emerald-500">
               <h3 className="text-xl font-bold text-white">Previous Experience</h3>
             </div>
@@ -276,7 +276,7 @@ function Jumble() {
                 <div key={index} className="p-3 bg-green-50 rounded-lg">
                   <h4 className="font-semibold text-gray-700">{exp.company}</h4>
                   <p className="text-sm text-gray-600">{exp.role}</p>
-                  <p className="text-xs text-gray-500 mt-1">{exp.duration}</p>
+                  <p className="text-xs text-gray-500 mt-1">{exp.duration}+ years of experience</p>
                   <ul className="mt-2 space-y-1">
                     {exp.responsibilities.slice(0, 2).map((resp, i) => (
                       <li key={i} className="text-xs text-gray-500 flex items-start">
