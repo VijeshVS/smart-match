@@ -32,7 +32,7 @@ export const CandidateCard: React.FC<Props> = ({ candidate, onSwipe }) => {
 
   return (
     <motion.div
-      className="absolute w-[600px] h-[35vh] bg-white rounded-2xl shadow-xl overflow-hidden"
+      className="w-[600px] h-[35vh] bg-white rounded-2xl shadow-xl overflow-hidden"
       drag="x"
       dragConstraints={{ left: 0, right: 0 }}
       onDragEnd={handleDragEnd}
@@ -63,13 +63,13 @@ export const CandidateCard: React.FC<Props> = ({ candidate, onSwipe }) => {
           </div>
           <div className="flex items-center space-x-3">
             <div className="flex items-center space-x-2 p-3 bg-blue-50 rounded-lg">
-              <Clock className="w-5 h-5 text-blue-500" />
+              {/* <Clock className="w-5 h-5 text-blue-500" /> */}
               <span className="text-gray-700 font-medium">
                 {candidate.experience} years
               </span>
             </div>
             <div className="flex items-center space-x-2 p-3 bg-green-50 rounded-lg">
-              <GraduationCap className="w-5 h-5 text-green-500" />
+              {/* <GraduationCap className="w-5 h-5 text-green-500" /> */}
               <span className="text-gray-700 font-medium">
                 {getLevel(candidate.experience)}
               </span>

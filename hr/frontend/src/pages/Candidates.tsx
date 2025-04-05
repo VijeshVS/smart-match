@@ -10,7 +10,8 @@ function Candidates() {
   useEffect(() => {
     const fetchCandidates = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/candidates"); // update port if needed
+        const res = await fetch("http://localhost:3000/api/candidates"); // update port if needed
+        console.log(res)
         const data = await res.json();
         setCandidates(data);
         setLoading(false);
