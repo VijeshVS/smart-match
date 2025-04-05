@@ -285,6 +285,7 @@
         }
       ]
     },
+    
     {
       "name": "Devika Balan",
       "email": "devika.balan.devops@gmail.com",
@@ -316,6 +317,373 @@
           ]
         }
       ]
-    }
-  ]
+    },
+      {
+        "name": "Ravi Deshmukh",
+        "email": "ravi.deshmukh.cybersec@gmail.com",
+        "phone": "+91-9812367845",
+        "field": "Cybersecurity Engineer",
+        "skills": ["Penetration Testing", "SIEM", "OWASP", "Firewalls"],
+        "experience": 12,
+        "rightSwipes": 20,
+        "leftSwipes": 5,
+        "reviews": ["Deep knowledge of threat mitigation", "Takes initiative"],
+        "level": 3,
+        "education": [
+          {
+            "college": "IIT Bombay",
+            "degree": "M.Tech",
+            "branchOfStudy": "Information Security",
+            "yearOfGraduation": 2010,
+            "gpa": 9.0
+          }
+        ],
+        "previousExperience": [
+          {
+            "company": "TCS",
+            "role": "Senior Cybersecurity Analyst",
+            "duration": "6 years",
+            "responsibilities": [
+              "Managed SOC operations",
+              "Performed threat intelligence analysis"
+            ]
+          },
+          {
+            "company": "Infosys",
+            "role": "Cybersecurity Engineer",
+            "duration": "6 years",
+            "responsibilities": [
+              "Designed secure infrastructure",
+              "Conducted vulnerability assessments"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Kajal Banerjee",
+        "email": "kajal.banerjee.network@gmail.com",
+        "phone": "+91-9876543241",
+        "field": "Network Engineer",
+        "skills": ["Cisco Routers", "BGP", "Firewall", "VPN"],
+        "experience": 10,
+        "rightSwipes": 15,
+        "leftSwipes": 4,
+        "reviews": ["Reliable in crises", "Expert in routing"],
+        "level": 3,
+        "education": [
+          {
+            "college": "Jadavpur University",
+            "degree": "B.Tech",
+            "branchOfStudy": "Electronics and Telecommunication",
+            "yearOfGraduation": 2013,
+            "gpa": 8.7
+          }
+        ],
+        "previousExperience": [
+          {
+            "company": "Cognizant",
+            "role": "Network Engineer",
+            "duration": "5 years",
+            "responsibilities": [
+              "Maintained WAN/LAN infra",
+              "Configured Cisco switches"
+            ]
+          },
+          {
+            "company": "Wipro",
+            "role": "Senior Network Analyst",
+            "duration": "5 years",
+            "responsibilities": [
+              "Led global network upgrades",
+              "Managed NOC team"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Aditya Kher",
+        "email": "aditya.kher.fullstack@gmail.com",
+        "phone": "+91-9988776655",
+        "field": "Full-Stack Developer",
+        "skills": ["JavaScript", "React", "Node.js", "MongoDB"],
+        "experience": 8,
+        "rightSwipes": 18,
+        "leftSwipes": 4,
+        "reviews": ["Full ownership of products", "Strong problem-solver"],
+        "level": 3,
+        "education": [
+          {
+            "college": "VIT Vellore",
+            "degree": "B.Tech",
+            "branchOfStudy": "Computer Science",
+            "yearOfGraduation": 2015,
+            "gpa": 8.6
+          }
+        ],
+        "previousExperience": [
+          {
+            "company": "Amazon",
+            "role": "Full-Stack Developer",
+            "duration": "4 years",
+            "responsibilities": [
+              "Built user dashboards",
+              "Worked on scalable microservices"
+            ]
+          },
+          {
+            "company": "Rapido",
+            "role": "Lead Engineer",
+            "duration": "4 years",
+            "responsibilities": [
+              "Led development for payment systems",
+              "Mentored junior developers"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Pooja Shah",
+        "email": "pooja.shah.uiux@gmail.com",
+        "phone": "+91-9845637289",
+        "field": "UI/UX Designer",
+        "skills": ["Figma", "Sketch", "Adobe XD", "UX Research"],
+        "experience": 7,
+        "rightSwipes": 19,
+        "leftSwipes": 6,
+        "reviews": ["Creative thinker", "Empathic design approach"],
+        "level": 2,
+        "education": [
+          {
+            "college": "NID Ahmedabad",
+            "degree": "B.Des",
+            "branchOfStudy": "Interaction Design",
+            "yearOfGraduation": 2016,
+            "gpa": 8.8
+          }
+        ],
+        "previousExperience": [
+          {
+            "company": "Zomato",
+            "role": "Product Designer",
+            "duration": "4 years",
+            "responsibilities": [
+              "Redesigned food order UI",
+              "Conducted A/B testing"
+            ]
+          },
+          {
+            "company": "Google",
+            "role": "UX Designer",
+            "duration": "3 years",
+            "responsibilities": [
+              "Worked on Material Design systems",
+              "Led design sprints"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Nitin Bhatt",
+        "email": "nitin.bhatt.embedded@gmail.com",
+        "phone": "+91-9877604321",
+        "field": "Embedded Software Engineer",
+        "skills": ["C", "Embedded C", "RTOS", "ARM Cortex"],
+        "experience": 11,
+        "rightSwipes": 14,
+        "leftSwipes": 5,
+        "reviews": ["Great at debugging hardware", "Firmware expert"],
+        "level": 3,
+        "education": [
+          {
+            "college": "BITS Pilani",
+            "degree": "M.Tech",
+            "branchOfStudy": "Embedded Systems",
+            "yearOfGraduation": 2011,
+            "gpa": 8.9
+          }
+        ],
+        "previousExperience": [
+          {
+            "company": "Bosch",
+            "role": "Embedded Software Engineer",
+            "duration": "6 years",
+            "responsibilities": [
+              "Developed automotive firmware",
+              "Optimized CAN bus systems"
+            ]
+          },
+          {
+            "company": "Tata Elxsi",
+            "role": "Technical Lead",
+            "duration": "5 years",
+            "responsibilities": [
+              "Led firmware team for IoT",
+              "Designed device bootloaders"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Anjali Rao",
+        "email": "anjali.rao.cyber@gmail.com",
+        "phone": "+91-9812360001",
+        "field": "Cybersecurity Engineer",
+        "skills": ["IDS/IPS", "Threat Modeling", "SOC"],
+        "experience": 6,
+        "rightSwipes": 16,
+        "leftSwipes": 2,
+        "reviews": ["Calm under pressure", "Analytical mindset"],
+        "level": 2,
+        "education": [
+          {
+            "college": "IIT Delhi",
+            "degree": "M.Tech",
+            "branchOfStudy": "Cybersecurity",
+            "yearOfGraduation": 2017,
+            "gpa": 8.8
+          }
+        ],
+        "previousExperience": [
+          {
+            "company": "Accenture",
+            "role": "Security Analyst",
+            "duration": "6 years",
+            "responsibilities": [
+              "Conducted threat analysis",
+              "Maintained intrusion prevention tools"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Harsh Singh",
+        "email": "harsh.network@gmail.com",
+        "phone": "+91-9876071234",
+        "field": "Network Engineer",
+        "skills": ["TCP/IP", "Cisco", "Linux Networking"],
+        "experience": 7,
+        "rightSwipes": 11,
+        "leftSwipes": 3,
+        "reviews": ["Takes ownership", "Good documentation"],
+        "level": 2,
+        "education": [
+          {
+            "college": "Delhi Technological University",
+            "degree": "B.Tech",
+            "branchOfStudy": "ECE",
+            "yearOfGraduation": 2015,
+            "gpa": 8.2
+          }
+        ],
+        "previousExperience": [
+          {
+            "company": "Airtel",
+            "role": "Network Engineer",
+            "duration": "7 years",
+            "responsibilities": [
+              "Handled B2B network infra",
+              "Configured VPN tunnels"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Sheetal Menon",
+        "email": "sheetal.fullstack@gmail.com",
+        "phone": "+91-9945881233",
+        "field": "Full-Stack Developer",
+        "skills": ["Angular", "Java", "Spring Boot", "MySQL"],
+        "experience": 9,
+        "rightSwipes": 17,
+        "leftSwipes": 4,
+        "reviews": ["Code quality is top-notch", "Excellent architectural thinking"],
+        "level": 3,
+        "education": [
+          {
+            "college": "PES University",
+            "degree": "B.Tech",
+            "branchOfStudy": "Computer Science",
+            "yearOfGraduation": 2014,
+            "gpa": 8.5
+          }
+        ],
+        "previousExperience": [
+          {
+            "company": "Infosys",
+            "role": "Senior Full-Stack Developer",
+            "duration": "9 years",
+            "responsibilities": [
+              "Built HRMS systems",
+              "Led front and backend development"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Rupal Khanna",
+        "email": "rupal.khanna.uiux@gmail.com",
+        "phone": "+91-9845901234",
+        "field": "UI/UX Designer",
+        "skills": ["Wireframing", "UX Writing", "Usability Testing"],
+        "experience": 5,
+        "rightSwipes": 13,
+        "leftSwipes": 6,
+        "reviews": ["Understands user intent", "Communicates ideas visually"],
+        "level": 2,
+        "education": [
+          {
+            "college": "Srishti Institute of Art, Design and Technology",
+            "degree": "B.Des",
+            "branchOfStudy": "User Experience Design",
+            "yearOfGraduation": 2018,
+            "gpa": 8.7
+          }
+        ],
+        "previousExperience": [
+          {
+            "company": "Zoho",
+            "role": "UX Designer",
+            "duration": "5 years",
+            "responsibilities": [
+              "Conducted user research",
+              "Designed onboarding flows"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Karthik Iyer",
+        "email": "karthik.iyer.embedded@gmail.com",
+        "phone": "+91-9988775566",
+        "field": "Embedded Software Engineer",
+        "skills": ["C++", "UART", "I2C", "Bare Metal Programming"],
+        "experience": 8,
+        "rightSwipes": 12,
+        "leftSwipes": 4,
+        "reviews": ["Precise and efficient", "Low-level systems expert"],
+        "level": 3,
+        "education": [
+          {
+            "college": "NIT Trichy",
+            "degree": "B.Tech",
+            "branchOfStudy": "Electronics Engineering",
+            "yearOfGraduation": 2014,
+            "gpa": 8.4
+          }
+        ],
+        "previousExperience": [
+          {
+            "company": "Qualcomm",
+            "role": "Embedded Software Engineer",
+            "duration": "8 years",
+            "responsibilities": [
+              "Built firmware for mobile modems",
+              "Handled power management modules"
+            ]
+          }
+        ]
+      }
+    ]
+    
+  
   
