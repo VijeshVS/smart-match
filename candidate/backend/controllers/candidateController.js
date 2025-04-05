@@ -6,6 +6,7 @@ export const createCandidate = async (req, res) => {
 		await candidate.save();
 		res.status(201).json(candidate);
 	} catch (error) {
+		console.log(error);
 		res.status(400).json({ error: error.message });
 	}
 };

@@ -13,16 +13,13 @@ export interface Experience {
   responsibilities: string[];
 }
 
-export interface UserData {
+export interface CandidateData {
   name: string;
-  role: string;
-  yearsOfExperience: number;
   email: string;
   phone: string;
   field: string;
   skills: string[];
-  experience: string[];
-  level: number;
+  experience: number;
   education: Education[];
   previousExperience: Experience[];
 }

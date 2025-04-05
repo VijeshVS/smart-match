@@ -1,10 +1,10 @@
-import React from 'react';
-import OnboardingForm from './components/OnboardingForm';
+import { FC } from 'react';
+import CandidateForm from './components/CandidateForm';
 
-function App() {
+const App: FC = () => {
   return (
     <div className="min-h-screen bg-[#faf9f7]">
-      <OnboardingForm />
+      <CandidateForm/>
     </div>
   );
 }
