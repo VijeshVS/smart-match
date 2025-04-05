@@ -69,13 +69,13 @@ export const CandidateCard: React.FC<Props> = ({ candidate, onSwipe }) => {
             <div className="flex items-center space-x-2 p-3 bg-blue-50 rounded-lg">
               <Clock className="w-5 h-5 text-blue-500" />
               <span className="text-gray-700 font-medium">
-                {candidate.yearsOfExperience} years
+                {candidate.experience} years
               </span>
             </div>
             <div className="flex items-center space-x-2 p-3 bg-green-50 rounded-lg">
               <GraduationCap className="w-5 h-5 text-green-500" />
               <span className="text-gray-700 font-medium">
-                {getLevel(candidate.yearsOfExperience)}
+                {getLevel(candidate.experience)}
               </span>
             </div>
           </div>
@@ -104,16 +104,16 @@ export const CandidateCard: React.FC<Props> = ({ candidate, onSwipe }) => {
               <Building className="w-5 h-5 text-green-500" />
               <h3 className="font-semibold text-gray-800">Professional Experience</h3>
             </div>
-            <div className="space-y-3 max-h-[450px] overflow-y-auto pr-2">
-              {candidate.experience.map((exp, index) => (
-                <div 
-                  key={index} 
-                  className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  <p className="text-sm text-gray-700 leading-relaxed">{exp}</p>
-                </div>
-              ))}
-            </div>
+              {/* <div className="space-y-3 max-h-[450px] overflow-y-auto pr-2">
+                {candidate.experience.map((exp, index) => (
+                  <div 
+                    key={index} 
+                    className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    <p className="text-sm text-gray-700 leading-relaxed">{exp}</p>
+                  </div>
+                ))}
+              </div> */}
           </div>
         </div>
       </div>

@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ThumbsUp, ThumbsDown, ScrollText, CheckCircle, Coins, MessageSquare } from 'lucide-react';
 import { CandidateCard } from './components/CandidateCard';
 import { ReviewModal } from './components/ReviewModal';
-import { candidates } from './data';
 import type { Review, UserStats } from './types';
+
+import { useEffect } from 'react';
+
+
 
 function App() {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -19,11 +22,38 @@ function App() {
     totalReviews: 0,
   });
 
+  const [candidates, setCandidates] = useState<{ id: number; education?: { college: string; degree: string; branchOfStudy: string; yearOfGraduation: string; gpa: string; }[]; previousExperience?: { company: string; role: string; duration: string; responsibilities: string[]; }[]; name: string; }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCandidates = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/api/candidates"); // update port if needed
+        const data = await res.json();
+        setCandidates(data);
+        setLoading(false);
+      } catch (err) {
+        console.error("Failed to fetch candidates", err);
+      }
+    };
+
+    fetchCandidates();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-600 text-xl">
+        Loading candidates...
+      </div>
+    );
+  }
+  
+
   const handleSwipe = (direction: number) => {
     if (direction !== 0) {
       setDirection(direction);
       setCurrentDecision(direction > 0 ? 'approve' : 'reject');
-      
+
       // Submit review without feedback
       handleReviewSubmit({
         candidateId: currentCandidate.id,
@@ -53,7 +83,7 @@ function App() {
       reviewsWithFeedback: prev.reviewsWithFeedback + (review.feedback ? 1 : 0),
       totalReviews: prev.totalReviews + 1,
     }));
-    
+
     if (currentIndex === candidates.length - 1) {
       setIsDone(true);
     } else {
@@ -133,12 +163,12 @@ function App() {
         <Coins className="w-6 h-6" />
         <span className="text-lg font-semibold">{userStats.coins} coins</span>
       </div>
-      
+
       <h1 className="text-4xl font-bold text-gray-700 mb-2">
         Candidate Review
       </h1>
       <p className="text-gray-500 mb-8">Swipe right to approve, left to reject, or skip to review later</p>
-      
+
       <div className="flex flex-col items-center justify-center">
         {/* Main row with three cards and buttons */}
         <div className="relative flex items-start justify-center gap-6">
@@ -175,7 +205,7 @@ function App() {
                 )}
               </AnimatePresence>
             </div>
-            
+
             {/* Action Buttons - Positioned absolutely */}
             <div className="absolute -bottom-5 flex items-center gap-8 z-10">
               <motion.button

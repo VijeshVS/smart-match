@@ -6,11 +6,13 @@ import {
 	addRightSwipe,
 	addLeftSwipe,
 	addReview,
+	getAllCandidates,
 } from "../controllers/candidateController.js";
 
 const router = express.Router();
 
 router.post("/", createCandidate);
+router.get("/", getAllCandidates)
 router.get("/:id", getCandidateById);
 router.put("/:id", updateCandidate);
 router.patch("/:id/rights", addRightSwipe);
