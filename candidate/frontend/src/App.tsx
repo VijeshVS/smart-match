@@ -1,5 +1,6 @@
 import { FC } from 'react';
 import CandidateForm from './components/CandidateForm';
+import './index.css';
 
 const App: FC = () => {
   return (
