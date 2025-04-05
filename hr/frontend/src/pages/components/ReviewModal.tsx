@@ -21,27 +21,26 @@ export const ReviewModal: React.FC<Props> = ({
   candidateId,
 }) => {
   const [feedback, setFeedback] = useState('');
+  const [reviewStatus, setReviewStatus] = useState<'approve' | 'reject' | ''>('');
+
 
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!reviewStatus) return;
+  
     onSubmit({
       candidateId,
-      decision,
+      decision: reviewStatus,
       ...(feedback.trim() && { feedback: feedback.trim() }),
     });
+  
     setFeedback('');
+    setReviewStatus('');
     onClose();
   };
-
-  const handleSkip = () => {
-    onSubmit({
-      candidateId,
-      decision,
-    });
-    onClose();
-  };
+  
 
   return (
     <motion.div
@@ -66,7 +65,7 @@ export const ReviewModal: React.FC<Props> = ({
         <h3 className="text-2xl font-bold text-gray-800 mb-2">
           {decision === 'approve' ? 'Approved' : 'Rejected'}: {candidateName}
         </h3>
-        
+
         <div className="flex items-center gap-2 text-yellow-600 mb-4">
           <Coins className="w-5 h-5" />
           <p className="text-sm font-medium">Earn 5 coins by providing feedback!</p>
@@ -80,22 +79,36 @@ export const ReviewModal: React.FC<Props> = ({
             className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
           />
 
-          <div className="flex justify-end gap-3 mt-4">
-            <button
-              type="button"
-              onClick={handleSkip}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              Skip
-            </button>
+          <div className="flex justify-between gap-3 mt-4">
+          <div className="flex gap-3">
+  <button
+    type="button"
+    onClick={() => setReviewStatus('approve')}
+    className={`border rounded-md px-4 py-2 transition-colors ${
+      reviewStatus === 'approve' ? 'bg-green-100 border-green-600 text-green-700' : 'border-green-600 text-green-600 hover:text-green-800'
+    }`}
+  >
+    Accept
+  </button>
+  <button
+    type="button"
+    onClick={() => setReviewStatus('reject')}
+    className={`border rounded-md px-4 py-2 transition-colors ${
+      reviewStatus === 'reject' ? 'bg-red-100 border-red-600 text-red-700' : 'border-red-600 text-red-600 hover:text-red-800'
+    }`}
+  >
+    Reject
+  </button>
+</div>
+
+
             <button
               type="submit"
               disabled={!feedback.trim()}
-              className={`px-4 py-2 rounded-lg font-semibold shadow-md transition-all ${
-                feedback.trim()
-                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700'
-                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              }`}
+              className={`px-4 py-2 rounded-lg font-semibold shadow-md transition-all ${feedback.trim()
+                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                }`}
             >
               Submit Feedback
             </button>

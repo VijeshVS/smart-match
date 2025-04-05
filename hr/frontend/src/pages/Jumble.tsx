@@ -48,33 +48,30 @@ function Jumble() {
     );
   }
 
-
   const handleSwipe = async (direction: number, currentCandidate: CandidateType) => {
     if (direction === 0) return;
-
+  
     setDirection(direction);
     const decision = direction > 0 ? 'approve' : 'reject';
     setCurrentDecision(decision);
-
-    // Update swipe count (lefts or rights)
+  
     const swipeEndpoint = direction > 0 ? 'rights' : 'lefts';
+  
     try {
       await fetch(`http://localhost:3000/api/candidates/${currentCandidate._id}/${swipeEndpoint}`, {
         method: 'PATCH',
       });
+  
+      if (currentIndex === candidates.length - 1) {
+        setIsDone(true);
+      } else {
+        setCurrentIndex((prev) => prev + 1);
+      }
     } catch (error) {
       console.error("Error updating swipe count:", error);
     }
-
-    // Submit review without feedback
-    const review: Review = {
-      candidateId: currentCandidate._id,
-      decision,
-      feedback: "", // no feedback on direct swipe
-    };
-
-    await handleReviewSubmit(review);
   };
+  
 
 
   const handleSkip = () => {
@@ -91,26 +88,34 @@ function Jumble() {
     setReviews([]);
   };
 
-  const handleReviewSubmit = (review: Review) => {
+  const handleReviewSubmit = async (review: Review) => {
     setReviews((prev) => [...prev, review]);
     setUserStats((prev) => ({
       coins: prev.coins + (review.feedback ? 5 : 0),
       reviewsWithFeedback: prev.reviewsWithFeedback + (review.feedback ? 1 : 0),
       totalReviews: prev.totalReviews + 1,
     }));
-    fetch(`http://localhost:3000/api/candidates/${currentCandidate._id}/reviews`, {
-      method: 'POST',
-      body: JSON.stringify(review),
-      headers: { 'Content-Type': 'application/json' }
-    })
-
+  
+    try {
+      await fetch(`http://localhost:3000/api/candidates/${review.candidateId}/reviews`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(review),
+      });
+    } catch (error) {
+      console.error("Failed to submit review:", error);
+    }
+  
     if (currentIndex === candidates.length - 1) {
       setIsDone(true);
     } else {
       setCurrentIndex((prev) => prev + 1);
     }
+  
     setDirection(0);
   };
+  
+
 
   const handleReviewClick = () => {
     setShowReviewModal(true);
@@ -295,15 +300,14 @@ function Jumble() {
       <AnimatePresence>
         {showReviewModal && currentCandidate && (
           <ReviewModal
-            isOpen={showReviewModal}
-            candidateName={currentCandidate.name}
-            decision={currentDecision || 'approve'}
-            onClose={() => {
-              setShowReviewModal(false);
-            }}
-            onSubmit={handleReviewSubmit}
-            candidateId={currentCandidate.id}
-          />
+          isOpen={showReviewModal}
+          candidateName={candidates[currentIndex]?.name || ''}
+          candidateId={candidates[currentIndex]?._id}
+          decision={currentDecision || 'approve'} // default, can be overridden in modal
+          onClose={() => setShowReviewModal(false)}
+          onSubmit={handleReviewSubmit}
+        />
+        
         )}
       </AnimatePresence>
     </div>
