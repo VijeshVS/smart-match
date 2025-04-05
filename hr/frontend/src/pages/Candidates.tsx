@@ -46,7 +46,7 @@ function Candidates() {
           <div key={candidate.id} className="bg-white rounded-xl shadow-lg overflow-hidden">
             <div className="p-6">
               <div className="flex items-center space-x-4">
-                <div className='w-12 h-12 rounded-full bg-green- flex justify-center text-center items-center text-white font-semibold text-lg'>{getInitials(candidate.name)}</div>
+                <div className='w-12 h-12 rounded-full bg-teal-700 flex justify-center text-center items-center text-white font-semibold text-lg'>{getInitials(candidate.name)}</div>
                 <div>
                   <h2 className="text-lg font-semibold text-gray-800">{candidate.name}</h2>
                   <p className="text-sm text-gray-500">{candidate.position}</p>
@@ -63,15 +63,15 @@ function Candidates() {
                 </div>
                 <div className="flex items-center text-gray-600">
                   <Briefcase className="h-5 w-5 mr-3" />
-                  <span className="text-sm">{candidate.field}</span>
+                  <span className="text-sm font-semibold text-teal-800">{candidate.field}</span>
                 </div>
                 <div className="flex items-center text-gray-600">
                   <Calendar className="h-5 w-5 mr-3" />
-                  <span className="text-sm">{candidate.experience} experience</span>
+                  <span className="text-sm">{candidate.experience}+ years of experience</span>
                 </div>
               </div>
               <div className="mt-6">
-                <button className="w-full bg-teal-500 text-white py-2 px-4 rounded-lg hover:bg-purple-950 transition-colors">
+                <button className="w-full bg-teal-500 text-white py-2 px-4 rounded-lg hover:bg-teal-600 transition-colors">
                   View Profile
                 </button>
               </div>
