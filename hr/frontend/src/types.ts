@@ -3,9 +3,8 @@ export interface Candidate {
   name: string;
   photo: string;
   role: string;
-  experience: string[];
   skills: string[];
-  yearsOfExperience: number;
+  experience: number;
   email?: string;
   phone?: string;
   field?: string;
