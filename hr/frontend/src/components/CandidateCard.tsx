@@ -24,7 +24,6 @@ export const CandidateCard: React.FC<Props> = ({ candidate, onSwipe }) => {
       .toUpperCase();
   };
 
-  // Determine level based on years of experience
   const getLevel = (years: number) => {
     if (years > 8) return 'Level 3';
     if (years > 4) return 'Level 2';
@@ -33,7 +32,7 @@ export const CandidateCard: React.FC<Props> = ({ candidate, onSwipe }) => {
 
   return (
     <motion.div
-      className="absolute w-[600px] bg-white rounded-2xl shadow-xl overflow-hidden"
+      className="absolute w-[600px] h-[35vh] bg-white rounded-2xl shadow-xl overflow-hidden"
       drag="x"
       dragConstraints={{ left: 0, right: 0 }}
       onDragEnd={handleDragEnd}
@@ -55,13 +54,10 @@ export const CandidateCard: React.FC<Props> = ({ candidate, onSwipe }) => {
               <span className="text-3xl font-bold text-white">{getInitials(candidate.name)}</span>
             </div>
             <div>
+              <div className='text-purple-950 text-xl font-semibold'>{candidate.name}</div>
               <div className="flex items-center space-x-2 text-gray-600 mb-1">
                 <Briefcase className="w-4 h-4" />
-                <span className="font-medium">{candidate.role}</span>
-              </div>
-              <div className="flex items-center space-x-2 text-gray-500">
-                <MapPin className="w-4 h-4" />
-                <span className="text-sm">Remote</span>
+                <span className="font-medium">{candidate.field}</span>
               </div>
             </div>
           </div>
@@ -99,12 +95,12 @@ export const CandidateCard: React.FC<Props> = ({ candidate, onSwipe }) => {
             </div>
           </div>
 
-          <div className="space-y-3">
+          {/* <div className="space-y-3">
             <div className="flex items-center space-x-2">
               <Building className="w-5 h-5 text-green-500" />
               <h3 className="font-semibold text-gray-800">Professional Experience</h3>
             </div>
-              {/* <div className="space-y-3 max-h-[450px] overflow-y-auto pr-2">
+              <div className="space-y-3 max-h-[450px] overflow-y-auto pr-2">
                 {candidate.experience.map((exp, index) => (
                   <div 
                     key={index} 
@@ -113,8 +109,8 @@ export const CandidateCard: React.FC<Props> = ({ candidate, onSwipe }) => {
                     <p className="text-sm text-gray-700 leading-relaxed">{exp}</p>
                   </div>
                 ))}
-              </div> */}
-          </div>
+              </div>
+          </div> */}
         </div>
       </div>
     </motion.div>

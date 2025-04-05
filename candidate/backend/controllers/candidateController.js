@@ -78,18 +78,25 @@ export const addLeftSwipe = async (req, res) => {
 
 export const addReview = async (req, res) => {
 	try {
-		const { review } = req.body;
-		if (!review) return res.status(400).json({ message: "Review is required" });
-
+		const { candidateId, feedback, decision } = req.body;
+		if (!decision) {
+			return res.status(400).json({ message: "Swipe decision is required" });
+		}
+		const review = {
+			comment: feedback || "No feedback provided",
+			swipe: decision,
+		};
 		const candidate = await Candidate.findByIdAndUpdate(
 			req.params.id,
 			{ $push: { reviews: review } },
 			{ new: true }
 		);
-		if (!candidate)
+		if (!candidate) {
 			return res.status(404).json({ message: "Candidate not found" });
+		}
 		res.status(200).json(candidate);
 	} catch (error) {
-		res.status(400).json({ error: error.message });
+		res.status(500).json({ error: error.message });
 	}
 };
+

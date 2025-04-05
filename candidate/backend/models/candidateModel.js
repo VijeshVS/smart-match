@@ -9,7 +9,10 @@ const candidateSchema = new mongoose.Schema({
 	experience: { type: Number, required: true },
 	rightSwipes: { type: Number, default: 0 },
 	leftSwipes: { type: Number, default: 0 },
-	reviews: { type: [String], default: [] },
+	reviews: { type: [{
+		comment: { type: String, required: true },
+		swipe: { type: String, required: true}
+	}], default: [] },
 	level: { type: Number, default: 1 },
 	education: [
 		{

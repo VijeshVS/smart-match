@@ -47,20 +47,35 @@ function App() {
       </div>
     );
   }
-  
 
-  const handleSwipe = (direction: number) => {
-    if (direction !== 0) {
-      setDirection(direction);
-      setCurrentDecision(direction > 0 ? 'approve' : 'reject');
 
-      // Submit review without feedback
-      handleReviewSubmit({
-        candidateId: currentCandidate.id,
-        decision: direction > 0 ? 'approve' : 'reject',
+  const handleSwipe = async (direction: number, currentCandidate: CandidateType) => {
+    if (direction === 0) return;
+
+    setDirection(direction);
+    const decision = direction > 0 ? 'approve' : 'reject';
+    setCurrentDecision(decision);
+
+    // Update swipe count (lefts or rights)
+    const swipeEndpoint = direction > 0 ? 'rights' : 'lefts';
+    try {
+      await fetch(`http://localhost:5000/api/candidates/${currentCandidate._id}/${swipeEndpoint}`, {
+        method: 'PATCH',
       });
+    } catch (error) {
+      console.error("Error updating swipe count:", error);
     }
+
+    // Submit review without feedback
+    const review: Review = {
+      candidateId: currentCandidate._id,
+      decision,
+      feedback: "", // no feedback on direct swipe
+    };
+
+    await handleReviewSubmit(review);
   };
+
 
   const handleSkip = () => {
     if (currentIndex === candidates.length - 1) {
@@ -83,6 +98,11 @@ function App() {
       reviewsWithFeedback: prev.reviewsWithFeedback + (review.feedback ? 1 : 0),
       totalReviews: prev.totalReviews + 1,
     }));
+    fetch(`http://localhost:5000/api/candidates/${currentCandidate._id}/reviews`, {
+      method: 'POST',
+      body: JSON.stringify(review),
+      headers: { 'Content-Type': 'application/json' }
+    })
 
     if (currentIndex === candidates.length - 1) {
       setIsDone(true);
@@ -173,7 +193,7 @@ function App() {
         {/* Main row with three cards and buttons */}
         <div className="relative flex items-start justify-center gap-6">
           {/* Education Card */}
-          <div className="w-[250px] h-[600px] bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col">
+          <div className="w-[250px] h-[50vh] bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col">
             <div className="p-4 bg-gradient-to-br from-blue-400 to-indigo-500">
               <h3 className="text-xl font-bold text-white">Education</h3>
             </div>
@@ -194,25 +214,25 @@ function App() {
 
           {/* Main Candidate Card with Buttons */}
           <div className="flex flex-col items-center">
-            <div className="relative w-[600px] h-[600px]">
+            <div className="relative w-[600px] h-[40vh]">
               <AnimatePresence mode="wait">
                 {currentCandidate && (
                   <CandidateCard
                     key={currentCandidate.id}
                     candidate={currentCandidate}
-                    onSwipe={handleSwipe}
+                    onSwipe={(direction) => handleSwipe(direction, currentCandidate)}
                   />
                 )}
               </AnimatePresence>
             </div>
 
             {/* Action Buttons - Positioned absolutely */}
-            <div className="absolute -bottom-5 flex items-center gap-8 z-10">
+            <div className="flex items-center gap-8 z-10 bg-white px-12 py-4 rounded-full shadow-lg">
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 className="p-4 bg-red-400 rounded-full text-white shadow-lg hover:bg-red-500 transition-colors"
-                onClick={() => handleSwipe(-1)}
+                onClick={() => handleSwipe(-1, currentCandidate)}
               >
                 <ThumbsDown className="w-6 h-6" />
               </motion.button>
@@ -230,7 +250,7 @@ function App() {
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 className="p-4 bg-green-400 rounded-full text-white shadow-lg hover:bg-green-500 transition-colors"
-                onClick={() => handleSwipe(1)}
+                onClick={() => handleSwipe(1, currentCandidate)}
               >
                 <ThumbsUp className="w-6 h-6" />
               </motion.button>
@@ -247,7 +267,7 @@ function App() {
           </div>
 
           {/* Experience Card */}
-          <div className="w-[250px] h-[600px] bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col">
+          <div className="w-[250px] h-[50vh] bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col">
             <div className="p-4 bg-gradient-to-br from-green-400 to-emerald-500">
               <h3 className="text-xl font-bold text-white">Previous Experience</h3>
             </div>
