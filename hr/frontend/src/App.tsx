@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ThumbsUp, ThumbsDown, ScrollText, CheckCircle, Coins } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, ScrollText, CheckCircle, Coins, MessageSquare } from 'lucide-react';
 import { CandidateCard } from './components/CandidateCard';
 import { ReviewModal } from './components/ReviewModal';
 import { candidates } from './data';
@@ -23,7 +23,12 @@ function App() {
     if (direction !== 0) {
       setDirection(direction);
       setCurrentDecision(direction > 0 ? 'approve' : 'reject');
-      setShowReviewModal(true);
+      
+      // Submit review without feedback
+      handleReviewSubmit({
+        candidateId: currentCandidate.id,
+        decision: direction > 0 ? 'approve' : 'reject',
+      });
     }
   };
 
@@ -55,6 +60,10 @@ function App() {
       setCurrentIndex((prev) => prev + 1);
     }
     setDirection(0);
+  };
+
+  const handleReviewClick = () => {
+    setShowReviewModal(true);
   };
 
   const currentCandidate = candidates[currentIndex];
@@ -130,16 +139,63 @@ function App() {
       </h1>
       <p className="text-gray-600 mb-8">Swipe right to approve, left to reject, or skip to review later</p>
       
-      <div className="relative w-[340px] h-[600px]">
-        <AnimatePresence mode="wait">
-          {currentCandidate && (
-            <CandidateCard
-              key={currentCandidate.id}
-              candidate={currentCandidate}
-              onSwipe={handleSwipe}
-            />
-          )}
-        </AnimatePresence>
+      <div className="flex items-center justify-center gap-4">
+        {/* Education Card */}
+        <div className="w-[250px] h-[600px] bg-white rounded-2xl shadow-xl overflow-hidden">
+          <div className="p-4 bg-gradient-to-br from-blue-500 to-indigo-600">
+            <h3 className="text-xl font-bold text-white">Education</h3>
+          </div>
+          <div className="p-4 space-y-4 max-h-[520px] overflow-y-auto">
+            {currentCandidate.education?.map((edu, index) => (
+              <div key={index} className="p-3 bg-blue-50 rounded-lg">
+                <h4 className="font-semibold text-gray-800">{edu.college}</h4>
+                <p className="text-sm text-gray-700">{edu.degree}</p>
+                <p className="text-sm text-gray-600">{edu.branchOfStudy}</p>
+                <div className="flex justify-between mt-2 text-xs text-gray-500">
+                  <span>Graduated: {edu.yearOfGraduation}</span>
+                  <span>GPA: {edu.gpa}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Main Candidate Card */}
+        <div className="relative w-[600px] h-[600px]">
+          <AnimatePresence mode="wait">
+            {currentCandidate && (
+              <CandidateCard
+                key={currentCandidate.id}
+                candidate={currentCandidate}
+                onSwipe={handleSwipe}
+              />
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Experience Card */}
+        <div className="w-[250px] h-[600px] bg-white rounded-2xl shadow-xl overflow-hidden">
+          <div className="p-4 bg-gradient-to-br from-green-500 to-emerald-600">
+            <h3 className="text-xl font-bold text-white">Previous Experience</h3>
+          </div>
+          <div className="p-4 space-y-4 max-h-[520px] overflow-y-auto">
+            {currentCandidate.previousExperience?.map((exp, index) => (
+              <div key={index} className="p-3 bg-green-50 rounded-lg">
+                <h4 className="font-semibold text-gray-800">{exp.company}</h4>
+                <p className="text-sm text-gray-700">{exp.role}</p>
+                <p className="text-xs text-gray-500 mt-1">{exp.duration}</p>
+                <ul className="mt-2 space-y-1">
+                  {exp.responsibilities.slice(0, 2).map((resp, i) => (
+                    <li key={i} className="text-xs text-gray-600 flex items-start">
+                      <span className="mt-1 mr-1 w-1 h-1 bg-green-500 rounded-full flex-shrink-0" />
+                      {resp}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="mt-8 flex items-center gap-8">
@@ -169,20 +225,25 @@ function App() {
         >
           <ThumbsUp className="w-6 h-6" />
         </motion.button>
+
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          className="p-4 bg-blue-500 rounded-full text-white shadow-lg hover:bg-blue-600 transition-colors"
+          onClick={handleReviewClick}
+        >
+          <MessageSquare className="w-6 h-6" />
+        </motion.button>
       </div>
 
       <AnimatePresence>
-        {showReviewModal && currentCandidate && currentDecision && (
+        {showReviewModal && currentCandidate && (
           <ReviewModal
             isOpen={showReviewModal}
             candidateName={currentCandidate.name}
-            decision={currentDecision}
+            decision={currentDecision || 'approve'}
             onClose={() => {
               setShowReviewModal(false);
-              handleReviewSubmit({
-                candidateId: currentCandidate.id,
-                decision: currentDecision,
-              });
             }}
             onSubmit={handleReviewSubmit}
             candidateId={currentCandidate.id}

@@ -6,6 +6,26 @@ export interface Candidate {
   experience: string[];
   skills: string[];
   yearsOfExperience: number;
+  email?: string;
+  phone?: string;
+  field?: string;
+  rightSwipes?: number;
+  leftSwipes?: number;
+  reviews?: string[];
+  level?: number;
+  education?: {
+    college: string;
+    degree: string;
+    branchOfStudy: string;
+    yearOfGraduation: number;
+    gpa: number;
+  }[];
+  previousExperience?: {
+    company: string;
+    role: string;
+    duration: string;
+    responsibilities: string[];
+  }[];
 }
 
 export interface Review {
