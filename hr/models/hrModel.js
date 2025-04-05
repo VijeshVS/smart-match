@@ -27,3 +27,5 @@ const hrSchema = new mongoose.Schema({
         default: false
     }
 });
+
+export const Hr = mongoose.model("Hr", hrSchema);
