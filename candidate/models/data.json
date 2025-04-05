@@ -1,0 +1,321 @@
+[
+    {
+      "name": "Neha Chatterjee",
+      "email": "neha.devops23@gmail.com",
+      "phone": "+91-9123456780",
+      "field": "DevOps Engineer",
+      "skills": ["Docker", "Kubernetes", "Jenkins", "AWS"],
+      "experience": 2,
+      "rightSwipes": 10,
+      "leftSwipes": 1,
+      "reviews": ["Quick learner", "Understands CI/CD well"],
+      "level": 1,
+      "education": [
+        {
+          "college": "MIT Academy of Engineering, Pune",
+          "degree": "B.E.",
+          "branchOfStudy": "Information Technology",
+          "yearOfGraduation": 2021,
+          "gpa": 8.2
+        }
+      ],
+      "previousExperience": [
+        {
+          "company": "Zensar Technologies",
+          "role": "Junior DevOps Engineer",
+          "duration": "2 years",
+          "responsibilities": [
+            "Managed CI/CD pipelines",
+            "Worked on deployment automation"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Saurabh Tiwari",
+      "email": "saurabh.tiwari.devops@gmail.com",
+      "phone": "+91-9934667890",
+      "field": "DevOps Engineer",
+      "skills": ["Terraform", "Azure", "Linux", "Shell Scripting"],
+      "experience": 4,
+      "rightSwipes": 9,
+      "leftSwipes": 3,
+      "reviews": ["Efficient with cloud tools", "Reliable under pressure"],
+      "level": 2,
+      "education": [
+        {
+          "college": "SRM Institute of Science and Technology",
+          "degree": "B.Tech",
+          "branchOfStudy": "Computer Science",
+          "yearOfGraduation": 2019,
+          "gpa": 8.3
+        }
+      ],
+      "previousExperience": [
+        {
+          "company": "Wipro",
+          "role": "DevOps Associate",
+          "duration": "2 years",
+          "responsibilities": [
+            "Maintained Dockerized services",
+            "Wrote shell scripts for deployments"
+          ]
+        },
+        {
+          "company": "TCS",
+          "role": "DevOps Engineer",
+          "duration": "2 years",
+          "responsibilities": [
+            "Worked on Azure pipelines",
+            "Automated build and release processes"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Mehak Verma",
+      "email": "mehak.dataeng@gmail.com",
+      "phone": "+91-9012347890",
+      "field": "Data Engineer",
+      "skills": ["SQL", "Python", "Airflow", "Spark"],
+      "experience": 3,
+      "rightSwipes": 8,
+      "leftSwipes": 2,
+      "reviews": ["Good with data pipelines", "Quick at debugging"],
+      "level": 2,
+      "education": [
+        {
+          "college": "LNCT Bhopal",
+          "degree": "B.Tech",
+          "branchOfStudy": "Computer Science",
+          "yearOfGraduation": 2020,
+          "gpa": 8.5
+        }
+      ],
+      "previousExperience": [
+        {
+          "company": "Cognizant",
+          "role": "Data Engineer",
+          "duration": "3 years",
+          "responsibilities": [
+            "Built and maintained ETL workflows",
+            "Worked on Apache Airflow DAGs"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Ankit Shetty",
+      "email": "ankit.shetty.de23@gmail.com",
+      "phone": "+91-9812349876",
+      "field": "Data Engineer",
+      "skills": ["Hadoop", "Scala", "Kafka", "NoSQL"],
+      "experience": 1,
+      "rightSwipes": 6,
+      "leftSwipes": 4,
+      "reviews": ["Good fundamentals", "Eager to learn"],
+      "level": 1,
+      "education": [
+        {
+          "college": "Dayananda Sagar College of Engineering, Bangalore",
+          "degree": "B.E.",
+          "branchOfStudy": "Information Science",
+          "yearOfGraduation": 2022,
+          "gpa": 8.1
+        }
+      ],
+      "previousExperience": [
+        {
+          "company": "LTIMindtree",
+          "role": "Data Engineering Intern",
+          "duration": "1 year",
+          "responsibilities": [
+            "Worked on real-time ingestion pipelines",
+            "Maintained Kafka topics"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Shalini Roy",
+      "email": "shalini.roy.pm@gmail.com",
+      "phone": "+91-9954321678",
+      "field": "Product Manager",
+      "skills": ["Roadmap Planning", "JIRA", "Agile", "User Research"],
+      "experience": 5,
+      "rightSwipes": 13,
+      "leftSwipes": 3,
+      "reviews": ["Visionary thinker", "Great at stakeholder communication"],
+      "level": 2,
+      "education": [
+        {
+          "college": "IIM Kozhikode",
+          "degree": "MBA",
+          "branchOfStudy": "Operations and Systems",
+          "yearOfGraduation": 2018,
+          "gpa": 8.9
+        }
+      ],
+      "previousExperience": [
+        {
+          "company": "Zomato",
+          "role": "Associate Product Manager",
+          "duration": "2 years",
+          "responsibilities": [
+            "Managed user retention features",
+            "Worked with analytics team"
+          ]
+        },
+        {
+          "company": "Swiggy",
+          "role": "Product Manager",
+          "duration": "3 years",
+          "responsibilities": [
+            "Led order tracking improvements",
+            "Defined key product metrics"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Faizan Ahmed",
+      "email": "faizan.pm.bangalore@gmail.com",
+      "phone": "+91-9021436677",
+      "field": "Product Manager",
+      "skills": ["Product Strategy", "PRD Writing", "Market Research"],
+      "experience": 2,
+      "rightSwipes": 7,
+      "leftSwipes": 1,
+      "reviews": ["Strong communication", "Thinks long-term"],
+      "level": 1,
+      "education": [
+        {
+          "college": "Christ University, Bangalore",
+          "degree": "MBA",
+          "branchOfStudy": "Marketing and Analytics",
+          "yearOfGraduation": 2021,
+          "gpa": 8.4
+        }
+      ],
+      "previousExperience": [
+        {
+          "company": "Freshworks",
+          "role": "Junior Product Manager",
+          "duration": "2 years",
+          "responsibilities": [
+            "Coordinated sprint planning",
+            "Conducted competitor analysis"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Kiran Kumar",
+      "email": "kiran.devops.0xp@gmail.com",
+      "phone": "+91-9988770011",
+      "field": "DevOps Engineer",
+      "skills": ["Git", "Jenkins", "Linux"],
+      "experience": 0,
+      "rightSwipes": 5,
+      "leftSwipes": 2,
+      "reviews": ["Fresh, but enthusiastic", "Good grasp of basics"],
+      "level": 0,
+      "education": [
+        {
+          "college": "Lovely Professional University",
+          "degree": "B.Tech",
+          "branchOfStudy": "Computer Science",
+          "yearOfGraduation": 2023,
+          "gpa": 8.0
+        }
+      ],
+      "previousExperience": []
+    },
+    {
+      "name": "Nivedita Sen",
+      "email": "nivedita.dataengineer@gmail.com",
+      "phone": "+91-9899981123",
+      "field": "Data Engineer",
+      "skills": ["Python", "SQL", "Pandas"],
+      "experience": 0,
+      "rightSwipes": 3,
+      "leftSwipes": 1,
+      "reviews": ["Good academic projects", "Fast learner"],
+      "level": 0,
+      "education": [
+        {
+          "college": "Graphic Era University, Dehradun",
+          "degree": "B.Tech",
+          "branchOfStudy": "Information Technology",
+          "yearOfGraduation": 2023,
+          "gpa": 8.6
+        }
+      ],
+      "previousExperience": []
+    },
+    {
+      "name": "Rahul Patil",
+      "email": "rahul.patil.pm@gmail.com",
+      "phone": "+91-9090901234",
+      "field": "Product Manager",
+      "skills": ["User Stories", "JIRA", "Wireframing"],
+      "experience": 1,
+      "rightSwipes": 4,
+      "leftSwipes": 1,
+      "reviews": ["Good with customer interviews", "Has potential"],
+      "level": 1,
+      "education": [
+        {
+          "college": "Symbiosis Institute of Business Management",
+          "degree": "MBA",
+          "branchOfStudy": "Product & Strategy",
+          "yearOfGraduation": 2022,
+          "gpa": 8.3
+        }
+      ],
+      "previousExperience": [
+        {
+          "company": "Meesho",
+          "role": "Product Intern",
+          "duration": "1 year",
+          "responsibilities": [
+            "Created product flowcharts",
+            "Analyzed user journeys"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Devika Balan",
+      "email": "devika.balan.devops@gmail.com",
+      "phone": "+91-9001122334",
+      "field": "DevOps Engineer",
+      "skills": ["Docker", "GitHub Actions", "Monitoring"],
+      "experience": 1,
+      "rightSwipes": 6,
+      "leftSwipes": 1,
+      "reviews": ["Promising DevOps skillset", "Team player"],
+      "level": 1,
+      "education": [
+        {
+          "college": "Kalinga Institute of Industrial Technology",
+          "degree": "B.Tech",
+          "branchOfStudy": "Computer Science",
+          "yearOfGraduation": 2022,
+          "gpa": 8.5
+        }
+      ],
+      "previousExperience": [
+        {
+          "company": "Zoho",
+          "role": "DevOps Intern",
+          "duration": "1 year",
+          "responsibilities": [
+            "Worked with containers",
+            "Maintained CI pipelines"
+          ]
+        }
+      ]
+    }
+  ]
+  
