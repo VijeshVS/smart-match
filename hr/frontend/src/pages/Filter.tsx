@@ -1,5 +1,14 @@
-import React, { useState } from 'react';
-import { Search, Briefcase, Mail, Phone, School, Star, ThumbsUp, ThumbsDown } from 'lucide-react';
+import React, { useState } from "react";
+import {
+  Search,
+  Briefcase,
+  Mail,
+  Phone,
+  School,
+  Star,
+  ThumbsUp,
+  ThumbsDown,
+} from "lucide-react";
 
 interface Education {
   college: string;
@@ -18,7 +27,7 @@ interface Experience {
 
 interface Review {
   comment: string;
-  swipe: 'approve' | 'reject';
+  swipe: "approve" | "reject";
 }
 
 interface Candidate {
@@ -40,34 +49,34 @@ interface ApiResponse {
   results: Candidate[];
 }
 
-function App() {
-  const [prompt, setPrompt] = useState('');
+function Filter() {
+  const [prompt, setPrompt] = useState("");
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
-      const response = await fetch('http://localhost:3001/evaluate', {
-        method: 'POST',
+      const response = await fetch("http://localhost:3001/evaluate", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ message: prompt }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch candidates');
+        throw new Error("Failed to fetch candidates");
       }
 
       const data: ApiResponse = await response.json();
       setCandidates(data.results);
     } catch (err) {
-      setError('Failed to fetch candidates. Please try again.');
+      setError("Failed to fetch candidates. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -77,7 +86,16 @@ function App() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Smart Match - Candidate Filter</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">
+            Smart Match -{" "}
+            <span className="relative inline-block text-blue-600 animate-lightning font-extrabold">
+              hiring at speed of thoughts⚡
+              <span className="absolute inset-0 blur-md opacity-75 animate-pulse text-blue-400">
+                hiring at speed of thoughts⚡
+              </span>
+            </span>
+          </h1>
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="relative">
               <textarea
@@ -93,7 +111,7 @@ function App() {
               disabled={loading}
               className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-400"
             >
-              {loading ? 'Searching...' : 'Search Candidates'}
+              {loading ? "Searching..." : "Search Candidates"}
             </button>
           </form>
           {error && <p className="mt-4 text-red-600">{error}</p>}
@@ -101,11 +119,16 @@ function App() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {candidates.map((candidate, index) => (
-            <div key={index} className="bg-white rounded-xl shadow-md overflow-hidden">
+            <div
+              key={index}
+              className="bg-white rounded-xl shadow-md overflow-hidden"
+            >
               <div className="p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">{candidate.name}</h2>
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                  {candidate.name}
+                </h2>
                 <p className="text-gray-600 mb-4">{candidate.field}</p>
-                
+
                 <div className="space-y-2 mb-4">
                   <div className="flex items-center text-gray-600">
                     <Mail className="w-4 h-4 mr-2" />
@@ -117,12 +140,16 @@ function App() {
                   </div>
                   <div className="flex items-center text-gray-600">
                     <Briefcase className="w-4 h-4 mr-2" />
-                    <span className="text-sm">{candidate.experience} years experience</span>
+                    <span className="text-sm">
+                      {candidate.experience} years experience
+                    </span>
                   </div>
                 </div>
 
                 <div className="mb-4">
-                  <h3 className="text-sm font-semibold text-gray-900 mb-2">Skills</h3>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2">
+                    Skills
+                  </h3>
                   <div className="flex flex-wrap gap-2">
                     {candidate.skills.map((skill, idx) => (
                       <span
@@ -136,14 +163,17 @@ function App() {
                 </div>
 
                 <div className="mb-4">
-                  <h3 className="text-sm font-semibold text-gray-900 mb-2">Education</h3>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2">
+                    Education
+                  </h3>
                   {candidate.education.map((edu, idx) => (
                     <div key={idx} className="flex items-start space-x-2">
                       <School className="w-4 h-4 text-gray-600 mt-1" />
                       <div>
                         <p className="text-sm font-medium">{edu.college}</p>
                         <p className="text-xs text-gray-600">
-                          {edu.degree} in {edu.branchOfStudy} ({edu.yearOfGraduation})
+                          {edu.degree} in {edu.branchOfStudy} (
+                          {edu.yearOfGraduation})
                         </p>
                         <p className="text-xs text-gray-600">GPA: {edu.gpa}</p>
                       </div>
@@ -174,4 +204,4 @@ function App() {
   );
 }
 
-export default App;
+export default Filter;

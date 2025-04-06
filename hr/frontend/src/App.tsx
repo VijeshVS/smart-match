@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar';
 import Home from './pages/Home';
 import Candidates from './pages/Candidates';
 import Jumble from './pages/Jumble';
+import Filter from './pages/Filter';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -39,6 +40,14 @@ function App() {
               element={
                 isAuthenticated ? 
                 <Jumble /> : 
+                <Navigate to="/" replace />
+              } 
+            />
+            <Route 
+              path="/filter" 
+              element={
+                isAuthenticated ? 
+                <Filter /> : 
                 <Navigate to="/" replace />
               } 
             />
