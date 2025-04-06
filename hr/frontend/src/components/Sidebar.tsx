@@ -24,19 +24,7 @@ function Sidebar() {
             <Home className="h-5 w-5" />
             <span>Home</span>
           </NavLink>
-          <NavLink
-            to="/candidates"
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                isActive
-                  ? 'bg-blue-50 text-blue-600'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`
-            }
-          >
-            <Users className="h-5 w-5" />
-            <span>Candidates</span>
-          </NavLink>
+          
           <NavLink
             to="/jumble"
             className={({ isActive }) =>
@@ -48,7 +36,7 @@ function Sidebar() {
             }
           >
             <Shuffle className="h-5 w-5" />
-            <span>Jumble</span>
+            <span>Jobify</span>
           </NavLink>
         </nav>
       </div>

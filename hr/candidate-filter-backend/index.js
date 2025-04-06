@@ -3,7 +3,7 @@ import fetch from "node-fetch"; // if using CommonJS: const fetch = require('nod
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import cors from "cors";
 
-const genAI = new GoogleGenerativeAI("AIzaSyBDUEpfF_2Ar-wKnDiVoyGuZxaN2D8aTJA");
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 const app = express();

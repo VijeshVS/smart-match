@@ -63,7 +63,7 @@ export const ReviewModal: React.FC<Props> = ({
         </button>
 
         <h3 className="text-2xl font-bold text-gray-800 mb-2">
-          {decision === 'approve' ? 'Approved' : 'Rejected'}: {candidateName}
+          {candidateName}
         </h3>
 
         <div className="flex items-center gap-2 text-yellow-600 mb-4">
