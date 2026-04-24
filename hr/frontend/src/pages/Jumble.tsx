@@ -1,39 +1,37 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ThumbsUp, ThumbsDown, ScrollText, CheckCircle, Coins, MessageSquare } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, ScrollText, CheckCircle, Coins, MessageSquare, Loader2 } from 'lucide-react';
 import { CandidateCard } from './components/CandidateCard';
 import { ReviewModal } from './components/ReviewModal';
-import type { Review, UserStats } from './types';
-
-import { useEffect } from 'react';
-
-
+import type { Candidate, Review, UserStats } from './types';
 
 function Jumble() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [direction, setDirection] = useState(0);
   const [isDone, setIsDone] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [currentDecision, setCurrentDecision] = useState<'approve' | 'reject' | null>(null);
-  const [reviews, setReviews] = useState<Review[]>([]);
   const [userStats, setUserStats] = useState<UserStats>({
     coins: 0,
     reviewsWithFeedback: 0,
     totalReviews: 0,
   });
 
-  const [candidates, setCandidates] = useState<{ id: number; education?: { college: string; degree: string; branchOfStudy: string; yearOfGraduation: string; gpa: string; }[]; previousExperience?: { company: string; role: string; duration: string; responsibilities: string[]; }[]; name: string; }[]>([]);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchCandidates = async () => {
       try {
-        const res = await fetch("http://localhost:3000/api/candidates"); // update port if needed
+        const res = await fetch('http://localhost:3000/api/candidates');
         const data = await res.json();
         setCandidates(data);
+        setError('');
         setLoading(false);
       } catch (err) {
-        console.error("Failed to fetch candidates", err);
+        console.error('Failed to fetch candidates', err);
+        setError('Unable to load candidates right now. Please try again.');
+        setLoading(false);
       }
     };
 
@@ -42,37 +40,61 @@ function Jumble() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-gray-600 text-xl">
-        Loading candidates...
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center animate-fade-in">
+          <Loader2 size={44} className="mx-auto mb-4 text-accent-violet animate-spin" />
+          <p className="text-slate-400">Loading candidates...</p>
+        </div>
       </div>
     );
   }
 
-  const handleSwipe = async (direction: number, currentCandidate: CandidateType) => {
-    if (direction === 0) return;
-  
-    setDirection(direction);
-    const decision = direction > 0 ? 'approve' : 'reject';
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-8">
+        <div className="glass-strong rounded-2xl p-8 text-center max-w-md">
+          <p className="text-white font-semibold mb-2">Failed to load candidates</p>
+          <p className="text-slate-400 text-sm">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (candidates.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-8">
+        <div className="glass-strong rounded-2xl p-8 text-center max-w-md">
+          <p className="text-white font-semibold mb-2">No candidates to review</p>
+          <p className="text-slate-400 text-sm">Add candidates first and come back to start swiping.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const handleSwipe = async (nextDirection: number, currentCandidate: Candidate) => {
+    if (!currentCandidate) return;
+
+    if (nextDirection === 0) return;
+
+    const decision = nextDirection > 0 ? 'approve' : 'reject';
     setCurrentDecision(decision);
-  
-    const swipeEndpoint = direction > 0 ? 'rights' : 'lefts';
-  
+
+    const swipeEndpoint = nextDirection > 0 ? 'rights' : 'lefts';
+
     try {
       await fetch(`http://localhost:3000/api/candidates/${currentCandidate._id}/${swipeEndpoint}`, {
         method: 'PATCH',
       });
-  
+
       if (currentIndex === candidates.length - 1) {
         setIsDone(true);
       } else {
         setCurrentIndex((prev) => prev + 1);
       }
     } catch (error) {
-      console.error("Error updating swipe count:", error);
+      console.error('Error updating swipe count:', error);
     }
   };
-  
-
 
   const handleSkip = () => {
     if (currentIndex === candidates.length - 1) {
@@ -85,11 +107,9 @@ function Jumble() {
   const handleStartOver = () => {
     setCurrentIndex(0);
     setIsDone(false);
-    setReviews([]);
   };
 
   const handleReviewSubmit = async (review: Review) => {
-    setReviews((prev) => [...prev, review]);
     setUserStats((prev) => ({
       coins: prev.coins + (review.feedback ? 5 : 0),
       reviewsWithFeedback: prev.reviewsWithFeedback + (review.feedback ? 1 : 0),
@@ -103,47 +123,40 @@ function Jumble() {
         body: JSON.stringify(review),
       });
     } catch (error) {
-      console.error("Failed to submit review:", error);
+      console.error('Failed to submit review:', error);
     }
-  
+
     if (currentIndex === candidates.length - 1) {
       setIsDone(true);
     } else {
       setCurrentIndex((prev) => prev + 1);
     }
-  
-    setDirection(0);
-  };
-  
 
-
-  const handleReviewClick = () => {
-    setShowReviewModal(true);
   };
 
   const currentCandidate = candidates[currentIndex];
 
   if (isDone) {
     return (
-      <div className="min-h-screen bg-[#faf6f0] flex flex-col items-center justify-center p-8">
+      <div className="min-h-screen flex flex-col items-center justify-center p-8">
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="text-center"
+          className="text-center glass-strong rounded-3xl p-10 max-w-2xl"
         >
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-            className="inline-block mb-8"
+            className="inline-block mb-6"
           >
-            <CheckCircle className="w-24 h-24 text-green-500" />
+            <CheckCircle className="w-20 h-20 text-emerald-400" />
           </motion.div>
           <motion.h2
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.4 }}
-            className="text-4xl font-bold text-gray-700 mb-4"
+            className="text-4xl font-bold text-white mb-4"
           >
             All Done!
           </motion.h2>
@@ -153,16 +166,16 @@ function Jumble() {
             transition={{ delay: 0.6 }}
             className="space-y-2 mb-8"
           >
-            <p className="text-xl text-gray-600">
+            <p className="text-xl text-slate-300">
               You've reviewed all {candidates.length} candidates
             </p>
-            <div className="flex items-center justify-center gap-2 text-amber-600">
+            <div className="flex items-center justify-center gap-2 text-amber-400">
               <Coins className="w-6 h-6" />
               <p className="text-lg font-semibold">
                 Total Coins Earned: {userStats.coins}
               </p>
             </div>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-slate-400">
               Feedback provided: {userStats.reviewsWithFeedback} of {userStats.totalReviews} reviews
             </p>
           </motion.div>
@@ -173,7 +186,7 @@ function Jumble() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleStartOver}
-            className="px-8 py-3 bg-gradient-to-r from-amber-400 to-amber-500 text-white rounded-lg font-semibold shadow-lg hover:from-amber-500 hover:to-amber-600 transition-all"
+            className="px-8 py-3 rounded-xl gradient-btn text-white font-semibold"
           >
             Review Again
           </motion.button>
@@ -183,109 +196,97 @@ function Jumble() {
   }
 
   return (
-    <div className="min-h-screen bg-[#faf6f0] flex flex-col items-center py-8">
-      <div className="flex items-center gap-2 text-amber-600 mb-4">
-        <Coins className="w-6 h-6" />
-        <span className="text-lg font-semibold">{userStats.coins} coins</span>
-      </div>
+    <div className="p-6 lg:p-10 min-h-screen">
+      <div className="max-w-[1400px] mx-auto">
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-1">Candidate Review</h1>
+            <p className="text-slate-400">Swipe right to approve, left to reject, or skip for later.</p>
+          </div>
+          <div className="glass rounded-xl px-4 py-2 flex items-center gap-2 text-amber-400">
+            <Coins className="w-5 h-5" />
+            <span className="text-sm font-semibold">{userStats.coins} coins</span>
+          </div>
+        </div>
 
-      <h1 className="text-4xl font-bold text-gray-700 mb-2">
-        Candidate Review
-      </h1>
-      <p className="text-gray-500 mb-8">Swipe right to approve, left to reject, or skip to review later</p>
-
-      <div className="flex flex-col items-center justify-center">
-        {/* Main row with three cards and buttons */}
-        <div className="relative flex items-start justify-center gap-6">
-          {/* Education Card */}
-          <div className="w-[350px] h-[50vh] bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col">
-            <div className="p-4 bg-gradient-to-br from-blue-400 to-indigo-500">
-              <h3 className="text-xl font-bold text-white">Education</h3>
-            </div>
-            <div className="p-4 space-y-4 overflow-y-auto scrollbar-hide" style={{ height: 'calc(600px - 60px)' }}>
+        <div className="grid grid-cols-1 xl:grid-cols-[320px_minmax(520px,1fr)_320px] gap-6 items-start">
+          <div className="glass rounded-2xl p-5">
+            <h3 className="text-lg font-semibold text-white mb-4">Education</h3>
+            <div className="space-y-3 max-h-[58vh] overflow-y-auto pr-1">
               {currentCandidate.education?.map((edu, index) => (
-                <div key={index} className="p-3 bg-blue-50 rounded-lg">
-                  <h4 className="font-semibold text-gray-700">{edu.college}</h4>
-                  <p className="text-sm text-gray-600">{edu.degree}</p>
-                  <p className="text-sm text-gray-500">{edu.branchOfStudy}</p>
-                  <div className="flex justify-between mt-2 text-xs text-gray-400">
-                    <span>Graduated: {edu.yearOfGraduation}</span>
-                    <span>GPA: {edu.gpa}</span>
+                <div key={index} className="rounded-xl border border-white/10 bg-white/5 p-3">
+                  <h4 className="font-medium text-white">{edu.college}</h4>
+                  <p className="text-sm text-slate-300">{edu.degree}</p>
+                  <p className="text-sm text-slate-400">{edu.branchOfStudy}</p>
+                  <div className="flex justify-between mt-2 text-xs text-slate-400">
+                    <span>{edu.yearOfGraduation}</span>
+                    <span>GPA {edu.gpa}</span>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Main Candidate Card with Buttons */}
           <div className="flex flex-col items-center">
-            <div className="relative w-[600px] h-[40vh]">
+            <div className="relative w-full max-w-3xl">
               <AnimatePresence mode="wait">
                 {currentCandidate && (
                   <CandidateCard
-                    key={currentCandidate.id}
+                    key={currentCandidate._id}
                     candidate={currentCandidate}
-                    onSwipe={(direction) => handleSwipe(direction, currentCandidate)}
+                    onSwipe={(nextDirection) => handleSwipe(nextDirection, currentCandidate)}
                   />
                 )}
               </AnimatePresence>
             </div>
-
-            {/* Action Buttons - Positioned absolutely */}
-            <div className="flex items-center gap-8 z-10 bg-white px-12 py-4 rounded-full shadow-lg">
+            <div className="mt-6 glass rounded-2xl p-4 flex items-center gap-3">
               <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                className="p-4 bg-red-400 rounded-full text-white shadow-lg hover:bg-red-500 transition-colors"
+                whileHover={{ scale: 1.08 }}
+                whileTap={{ scale: 0.95 }}
+                className="action-btn p-3 rounded-full bg-rose-500/85 text-white"
                 onClick={() => handleSwipe(-1, currentCandidate)}
               >
-                <ThumbsDown className="w-6 h-6" />
+                <ThumbsDown className="w-5 h-5" />
               </motion.button>
-
               <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                className="p-4 bg-gray-400 rounded-full text-white shadow-lg hover:bg-gray-500 transition-colors"
+                whileHover={{ scale: 1.08 }}
+                whileTap={{ scale: 0.95 }}
+                className="action-btn p-3 rounded-full bg-slate-500/85 text-white"
                 onClick={handleSkip}
               >
-                <ScrollText className="w-6 h-6" />
+                <ScrollText className="w-5 h-5" />
               </motion.button>
-
               <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                className="p-4 bg-green-400 rounded-full text-white shadow-lg hover:bg-green-500 transition-colors"
+                whileHover={{ scale: 1.08 }}
+                whileTap={{ scale: 0.95 }}
+                className="action-btn p-3 rounded-full bg-emerald-500/85 text-white"
                 onClick={() => handleSwipe(1, currentCandidate)}
               >
-                <ThumbsUp className="w-6 h-6" />
+                <ThumbsUp className="w-5 h-5" />
               </motion.button>
-
               <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                className="p-4 bg-blue-400 rounded-full text-white shadow-lg hover:bg-blue-500 transition-colors"
-                onClick={handleReviewClick}
+                whileHover={{ scale: 1.08 }}
+                whileTap={{ scale: 0.95 }}
+                className="action-btn p-3 rounded-full bg-sky-500/85 text-white"
+                onClick={() => setShowReviewModal(true)}
               >
-                <MessageSquare className="w-6 h-6" />
+                <MessageSquare className="w-5 h-5" />
               </motion.button>
             </div>
           </div>
 
-          {/* Experience Card */}
-          <div className="w-[350px] h-[50vh] bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col">
-            <div className="p-4 bg-gradient-to-br from-green-400 to-emerald-500">
-              <h3 className="text-xl font-bold text-white">Previous Experience</h3>
-            </div>
-            <div className="p-4 space-y-4 overflow-y-auto scrollbar-hide" style={{ height: 'calc(600px - 60px)' }}>
+          <div className="glass rounded-2xl p-5">
+            <h3 className="text-lg font-semibold text-white mb-4">Previous Experience</h3>
+            <div className="space-y-3 max-h-[58vh] overflow-y-auto pr-1">
               {currentCandidate.previousExperience?.map((exp, index) => (
-                <div key={index} className="p-3 bg-green-50 rounded-lg">
-                  <h4 className="font-semibold text-gray-700">{exp.company}</h4>
-                  <p className="text-sm text-gray-600">{exp.role}</p>
-                  <p className="text-xs text-gray-500 mt-1">{exp.duration}+ years of experience</p>
+                <div key={index} className="rounded-xl border border-white/10 bg-white/5 p-3">
+                  <h4 className="font-medium text-white">{exp.company}</h4>
+                  <p className="text-sm text-slate-300">{exp.role}</p>
+                  <p className="text-xs text-slate-400 mt-1">{exp.duration}+ years</p>
                   <ul className="mt-2 space-y-1">
                     {exp.responsibilities.slice(0, 2).map((resp, i) => (
-                      <li key={i} className="text-xs text-gray-500 flex items-start">
-                        <span className="mt-1 mr-1 w-1 h-1 bg-green-400 rounded-full flex-shrink-0" />
+                      <li key={i} className="text-xs text-slate-400 flex items-start">
+                        <span className="mt-1 mr-2 w-1 h-1 bg-emerald-400 rounded-full flex-shrink-0" />
                         {resp}
                       </li>
                     ))}
@@ -297,17 +298,16 @@ function Jumble() {
         </div>
       </div>
 
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {showReviewModal && currentCandidate && (
           <ReviewModal
-          isOpen={showReviewModal}
-          candidateName={candidates[currentIndex]?.name || ''}
-          candidateId={candidates[currentIndex]?._id}
-          decision={currentDecision || 'approve'} // default, can be overridden in modal
-          onClose={() => setShowReviewModal(false)}
-          onSubmit={handleReviewSubmit}
-        />
-        
+            isOpen={showReviewModal}
+            candidateName={candidates[currentIndex]?.name || ''}
+            candidateId={candidates[currentIndex]?._id}
+            decision={currentDecision || 'approve'}
+            onClose={() => setShowReviewModal(false)}
+            onSubmit={handleReviewSubmit}
+          />
         )}
       </AnimatePresence>
     </div>

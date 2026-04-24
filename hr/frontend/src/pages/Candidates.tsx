@@ -1,87 +1,128 @@
-import React, { useEffect, useState } from 'react';
-import { Mail, Phone, Briefcase, Calendar } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Mail, Phone, Briefcase, Calendar, Loader2, Users } from 'lucide-react';
+import type { Candidate } from './types';
 
 function Candidates() {
-
-  const [candidates, setCandidates] = useState<{ id: number; education?: { college: string; degree: string; branchOfStudy: string; yearOfGraduation: string; gpa: string; }[]; previousExperience?: { company: string; role: string; duration: string; responsibilities: string[]; }[]; name: string; }[]>([]);
-
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchCandidates = async () => {
       try {
-        const res = await fetch("http://localhost:3000/api/candidates"); // update port if needed
-        console.log(res)
+        const res = await fetch('http://localhost:3000/api/candidates');
         const data = await res.json();
         setCandidates(data);
         setLoading(false);
       } catch (err) {
-        console.error("Failed to fetch candidates", err);
+        console.error('Failed to fetch candidates', err);
       }
     };
 
     fetchCandidates();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-gray-600 text-xl">
-        Loading candidates...
-      </div>
-    );
-  }
-
   const getInitials = (name: string) => {
     return name
       .split(' ')
-      .map(word => word[0])
+      .map((word) => word[0])
       .join('')
       .toUpperCase();
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center animate-fade-in">
+          <Loader2 size={48} className="text-accent-violet mx-auto mb-4 animate-spin" />
+          <p className="text-slate-400">Loading candidates...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">Candidates</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {candidates.map((candidate) => (
-          <div key={candidate.id} className="bg-white rounded-xl shadow-lg overflow-hidden">
+    <div className="p-6 lg:p-10 animate-fade-in">
+      <div className="max-w-7xl mx-auto">
+      <div className="mb-8">
+        <h1 className="text-3xl font-extrabold text-white mb-1 flex items-center gap-3">
+          <Users size={28} className="text-accent-violet" />
+          Candidates
+        </h1>
+        <p className="text-slate-400">
+          {candidates.length} candidate{candidates.length !== 1 ? 's' : ''} in the talent pool
+        </p>
+      </div>
+
+      {candidates.length === 0 ? (
+        <div className="glass-strong rounded-2xl p-10 text-center">
+          <p className="text-lg text-white font-semibold mb-2">No candidates yet</p>
+          <p className="text-slate-400">Candidates will appear here once onboarding submissions arrive.</p>
+        </div>
+      ) : (
+      <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6">
+        {candidates.map((candidate, i) => (
+          <div
+            key={candidate._id || i}
+            className="glass rounded-2xl overflow-hidden card-hover animate-slide-up"
+            style={{ animationDelay: `${i * 0.05}s`, animationFillMode: 'both' }}
+          >
             <div className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className='w-12 h-12 rounded-full bg-teal-700 flex justify-center text-center items-center text-white font-semibold text-lg'>{getInitials(candidate.name)}</div>
+              <div className="flex items-center gap-4 mb-5">
+                <div className="w-14 h-14 rounded-xl gradient-btn flex items-center justify-center shrink-0 text-lg font-bold">
+                  <span className="relative z-10">{getInitials(candidate.name)}</span>
+                </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-800">{candidate.name}</h2>
-                  <p className="text-sm text-gray-500">{candidate.position}</p>
+                  <h2 className="text-lg font-semibold text-white">{candidate.name}</h2>
+                  <p className="text-sm text-slate-500">{candidate.field}</p>
                 </div>
               </div>
-              <div className="mt-6 space-y-4">
-                <div className="flex items-center text-gray-600">
-                  <Mail className="h-5 w-5 mr-3" />
-                  <span className="text-sm">{candidate.email}</span>
+
+              <div className="space-y-3 mb-5">
+                <div className="flex items-center gap-3 text-sm text-slate-400">
+                  <Mail size={15} className="text-accent-violet shrink-0" />
+                  <span className="truncate">{candidate.email}</span>
                 </div>
-                <div className="flex items-center text-gray-600">
-                  <Phone className="h-5 w-5 mr-3" />
-                  <span className="text-sm">{candidate.phone}</span>
+                <div className="flex items-center gap-3 text-sm text-slate-400">
+                  <Phone size={15} className="text-accent-violet shrink-0" />
+                  <span>{candidate.phone}</span>
                 </div>
-                <div className="flex items-center text-gray-600">
-                  <Briefcase className="h-5 w-5 mr-3" />
-                  <span className="text-sm font-semibold text-teal-800">{candidate.field}</span>
+                <div className="flex items-center gap-3 text-sm text-slate-400">
+                  <Briefcase size={15} className="text-accent-cyan shrink-0" />
+                  <span className="font-medium text-accent-cyan">{candidate.field}</span>
                 </div>
-                <div className="flex items-center text-gray-600">
-                  <Calendar className="h-5 w-5 mr-3" />
-                  <span className="text-sm">{candidate.experience}+ years of experience</span>
+                <div className="flex items-center gap-3 text-sm text-slate-400">
+                  <Calendar size={15} className="text-accent-violet shrink-0" />
+                  <span>{candidate.experience}+ years experience</span>
                 </div>
               </div>
-              <div className="mt-6">
-                <button className="w-full bg-teal-500 text-white py-2 px-4 rounded-lg hover:bg-teal-600 transition-colors">
-                  View Profile
-                </button>
-              </div>
+
+              {/* Skills */}
+              {candidate.skills && candidate.skills.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-5">
+                  {candidate.skills.slice(0, 5).map((skill, idx) => (
+                    <span key={idx} className="px-2.5 py-1 rounded-full text-xs font-medium skill-chip-active">
+                      {skill}
+                    </span>
+                  ))}
+                  {candidate.skills.length > 5 && (
+                    <span className="px-2.5 py-1 rounded-full text-xs font-medium skill-chip">
+                      +{candidate.skills.length - 5}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              <button className="w-full py-2.5 rounded-xl gradient-btn text-sm">
+                <span>View Profile</span>
+              </button>
             </div>
           </div>
         ))}
+      </div>
+      )}
       </div>
     </div>
   );
 }
 
-export default Candidates
+export default Candidates;

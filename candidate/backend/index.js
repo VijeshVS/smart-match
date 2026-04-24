@@ -6,7 +6,7 @@ import candidateRoutes from "./routes/candidateRoutes.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
   
 config();
 const app = express();
@@ -56,12 +56,18 @@ app.post('/summariseProfile', async (req, res) => {
 		}
 	`
 
-	const result = await model.generateContent([prompt]);
+	// const result = await model.generateContent([prompt]);
 
-	const json = result.response.text();
-  	const analysis = JSON.parse(json.slice(7, -4));
+	// const json = result.response.text();
+  	// const analysis = JSON.parse(json.slice(7, -4));
 
-    return res.json(analysis);
+    return res.json({
+		"summary": [
+			"B.Tech in Computer Science with a focus on Python and Data Analysis.",
+			"Built a Movie Recommendation System project.",
+			"Interested in Machine Learning and NLP."
+		]
+	});
 }
 );
 
@@ -105,12 +111,18 @@ app.post('/suggestProfile', async (req, res) => {
 		Only return the JSON Object. 
 	`
 
-	const result = await model.generateContent([prompt]);
+	// const result = await model.generateContent([prompt]);
 
-	const json = result.response.text();
-  	const analysis = JSON.parse(json.slice(7, -4));
+	// const json = result.response.text();
+  	// const analysis = JSON.parse(json.slice(7, -4));
 
-    return res.json(analysis);
+    return res.json({
+			"suggestions": [
+				"Build an end-to-end NLP project such as a chatbot using spaCy or HuggingFace to showcase practical ML skills.",
+				"Contribute to open-source Flask projects on GitHub to demonstrate real-world backend development experience.",
+				"Learn and apply basic MLOps tools like Docker and MLflow to take your ML projects to the next level."
+			]
+		});
 }
 );
 

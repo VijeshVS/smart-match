@@ -75,7 +75,7 @@ function Filter() {
 
       const data: ApiResponse = await response.json();
       setCandidates(data.results);
-    } catch (err) {
+    } catch {
       setError("Failed to fetch candidates. Please try again.");
     } finally {
       setLoading(false);
@@ -83,63 +83,58 @@ function Filter() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="p-6 lg:p-10 min-h-screen animate-fade-in">
+      <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">
-            Smart Match -{" "}
-            <span className="relative inline-block text-blue-600 animate-lightning font-extrabold">
-              hiring at speed of thoughts⚡
-              <span className="absolute inset-0 blur-md opacity-75 animate-pulse text-blue-400">
-                hiring at speed of thoughts⚡
-              </span>
-            </span>
+          <h1 className="text-3xl font-bold text-white mb-2">
+            Filterify
           </h1>
+          <p className="text-slate-400 mb-6">Describe your hiring criteria and let AI shortlist matching candidates.</p>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4 glass-strong rounded-2xl p-6">
             <div className="relative">
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Enter your requirements..."
-                className="w-full h-32 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                placeholder="Example: Need React + Node candidates with 3+ years experience, strong communication and startup background."
+                className="w-full h-32 px-4 py-3 rounded-xl glass-input resize-none"
               />
-              <Search className="absolute right-3 top-3 text-gray-400" />
+              <Search className="absolute right-3 top-3 text-slate-500" />
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-400"
+              className="px-6 py-3 rounded-xl gradient-btn disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {loading ? "Searching..." : "Search Candidates"}
             </button>
           </form>
-          {error && <p className="mt-4 text-red-600">{error}</p>}
+          {error && <p className="mt-4 text-rose-400">{error}</p>}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6">
           {candidates.map((candidate, index) => (
             <div
               key={index}
-              className="bg-white rounded-xl shadow-md overflow-hidden"
+              className="glass rounded-2xl overflow-hidden card-hover"
             >
               <div className="p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                <h2 className="text-xl font-semibold text-white mb-2">
                   {candidate.name}
                 </h2>
-                <p className="text-gray-600 mb-4">{candidate.field}</p>
+                <p className="text-slate-400 mb-4">{candidate.field}</p>
 
                 <div className="space-y-2 mb-4">
-                  <div className="flex items-center text-gray-600">
-                    <Mail className="w-4 h-4 mr-2" />
+                  <div className="flex items-center text-slate-400">
+                    <Mail className="w-4 h-4 mr-2 text-accent-violet" />
                     <span className="text-sm">{candidate.email}</span>
                   </div>
-                  <div className="flex items-center text-gray-600">
-                    <Phone className="w-4 h-4 mr-2" />
+                  <div className="flex items-center text-slate-400">
+                    <Phone className="w-4 h-4 mr-2 text-accent-violet" />
                     <span className="text-sm">{candidate.phone}</span>
                   </div>
-                  <div className="flex items-center text-gray-600">
-                    <Briefcase className="w-4 h-4 mr-2" />
+                  <div className="flex items-center text-slate-400">
+                    <Briefcase className="w-4 h-4 mr-2 text-accent-cyan" />
                     <span className="text-sm">
                       {candidate.experience} years experience
                     </span>
@@ -147,14 +142,14 @@ function Filter() {
                 </div>
 
                 <div className="mb-4">
-                  <h3 className="text-sm font-semibold text-gray-900 mb-2">
+                  <h3 className="text-sm font-semibold text-white mb-2">
                     Skills
                   </h3>
                   <div className="flex flex-wrap gap-2">
                     {candidate.skills.map((skill, idx) => (
                       <span
                         key={idx}
-                        className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                        className="px-2 py-1 text-xs rounded-full skill-chip-active"
                       >
                         {skill}
                       </span>
@@ -163,25 +158,25 @@ function Filter() {
                 </div>
 
                 <div className="mb-4">
-                  <h3 className="text-sm font-semibold text-gray-900 mb-2">
+                  <h3 className="text-sm font-semibold text-white mb-2">
                     Education
                   </h3>
                   {candidate.education.map((edu, idx) => (
                     <div key={idx} className="flex items-start space-x-2">
-                      <School className="w-4 h-4 text-gray-600 mt-1" />
+                      <School className="w-4 h-4 text-accent-violet mt-1" />
                       <div>
-                        <p className="text-sm font-medium">{edu.college}</p>
-                        <p className="text-xs text-gray-600">
+                        <p className="text-sm font-medium text-slate-100">{edu.college}</p>
+                        <p className="text-xs text-slate-400">
                           {edu.degree} in {edu.branchOfStudy} (
                           {edu.yearOfGraduation})
                         </p>
-                        <p className="text-xs text-gray-600">GPA: {edu.gpa}</p>
+                        <p className="text-xs text-slate-500">GPA: {edu.gpa}</p>
                       </div>
                     </div>
                   ))}
                 </div>
 
-                <div className="flex items-center justify-between text-sm text-gray-600">
+                <div className="flex items-center justify-between text-sm text-slate-400 border-t border-white/10 pt-4">
                   <div className="flex items-center">
                     <ThumbsUp className="w-4 h-4 mr-1 text-green-600" />
                     <span>{candidate.rightSwipes}</span>
@@ -199,6 +194,12 @@ function Filter() {
             </div>
           ))}
         </div>
+        {!loading && candidates.length === 0 && (
+          <div className="glass-strong rounded-2xl p-10 text-center">
+            <p className="text-white font-semibold mb-2">No matches yet</p>
+            <p className="text-slate-400">Submit a prompt above to get AI-ranked candidate recommendations.</p>
+          </div>
+        )}
       </div>
     </div>
   );

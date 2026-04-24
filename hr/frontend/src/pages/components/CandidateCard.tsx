@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, PanInfo } from 'framer-motion';
-import { Briefcase, Clock, Code2, Building, GraduationCap, MapPin } from 'lucide-react';
+import { Briefcase, Code2 } from 'lucide-react';
 import { Candidate } from '../types';
 
 interface Props {
@@ -32,7 +32,7 @@ export const CandidateCard: React.FC<Props> = ({ candidate, onSwipe }) => {
 
   return (
     <motion.div
-      className="w-[600px] h-[35vh] bg-white rounded-2xl shadow-xl overflow-hidden"
+      className="w-full max-w-3xl min-h-[340px] glass-strong rounded-2xl overflow-hidden border border-white/10"
       drag="x"
       dragConstraints={{ left: 0, right: 0 }}
       onDragEnd={handleDragEnd}
@@ -47,30 +47,28 @@ export const CandidateCard: React.FC<Props> = ({ candidate, onSwipe }) => {
       }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
     >
-      <div className="p-6">
+      <div className="p-6 lg:p-7">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4">
-            <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+            <div className="w-16 h-16 gradient-btn rounded-2xl flex items-center justify-center">
               <span className="text-3xl font-bold text-white">{getInitials(candidate.name)}</span>
             </div>
             <div>
-              <div className='text-purple-950 text-xl font-semibold'>{candidate.name}</div>
-              <div className="flex items-center space-x-2 text-gray-600 mb-1">
+              <div className="text-white text-xl font-semibold">{candidate.name}</div>
+              <div className="flex items-center space-x-2 text-slate-300 mb-1">
                 <Briefcase className="w-4 h-4" />
                 <span className="font-medium">{candidate.field}</span>
               </div>
             </div>
           </div>
           <div className="flex items-center space-x-3">
-            <div className="flex items-center space-x-2 p-3 bg-blue-50 rounded-lg">
-              {/* <Clock className="w-5 h-5 text-blue-500" /> */}
-              <span className="text-gray-700 font-medium">
+            <div className="flex items-center space-x-2 p-3 bg-white/5 border border-white/10 rounded-lg">
+              <span className="text-slate-100 font-medium">
                 {candidate.experience} years
               </span>
             </div>
-            <div className="flex items-center space-x-2 p-3 bg-green-50 rounded-lg">
-              {/* <GraduationCap className="w-5 h-5 text-green-500" /> */}
-              <span className="text-gray-700 font-medium">
+            <div className="flex items-center space-x-2 p-3 bg-white/5 border border-white/10 rounded-lg">
+              <span className="text-slate-100 font-medium">
                 {getLevel(candidate.experience)}
               </span>
             </div>
@@ -81,13 +79,13 @@ export const CandidateCard: React.FC<Props> = ({ candidate, onSwipe }) => {
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
               <Code2 className="w-5 h-5 text-purple-500" />
-              <span className="font-semibold text-gray-800">Technical Skills</span>
+              <span className="font-semibold text-white">Technical Skills</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {candidate.skills.map((skill) => (
-                <span 
+                <span
                   key={skill}
-                  className="px-3 py-1.5 bg-purple-50 text-purple-700 rounded-full text-sm font-medium"
+                  className="px-3 py-1.5 rounded-full text-sm font-medium skill-chip-active"
                 >
                   {skill}
                 </span>
