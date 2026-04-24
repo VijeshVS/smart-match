@@ -1,13 +1,11 @@
 import express from "express";
 import fetch from "node-fetch"; // if using CommonJS: const fetch = require('node-fetch');
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import Groq from "groq-sdk";
 import cors from "cors";
 import dotenv from "dotenv";
 dotenv.config();
 
-const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
-const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 const app = express();
 const PORT = 3001;
@@ -84,8 +82,12 @@ Based on the candidate profile and the HR message, return true if the candidate 
 Only return "true" or "false".
       `;
 
-      const result = await model.generateContent([candidatePrompt]);
-      const responseText = result.response.text().trim().toLowerCase();
+      const completion = await groq.chat.completions.create({
+        model: "openai/gpt-oss-120b",
+        messages: [{ role: "user", content: candidatePrompt }],
+      });
+      const responseText =
+        completion.choices[0]?.message?.content?.trim().toLowerCase() || "";
 
       const isFit = responseText.includes("true");
 

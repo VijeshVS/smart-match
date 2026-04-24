@@ -10,10 +10,10 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@google/generative-ai": "^0.24.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^5.1.0",
+    "groq-sdk": "^0.30.0",
     "node-fetch": "^3.3.2"
   }
 }

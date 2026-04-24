@@ -54,11 +54,15 @@ function Filter() {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [hasSearched, setHasSearched] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!prompt.trim()) return;
+
     setLoading(true);
     setError("");
+    setHasSearched(true);
 
     try {
       const response = await fetch("http://localhost:3001/evaluate", {
@@ -103,8 +107,14 @@ function Filter() {
             </div>
             <button
               type="submit"
-              disabled={loading}
-              className="px-6 py-3 rounded-xl gradient-btn disabled:opacity-70 disabled:cursor-not-allowed"
+              disabled={loading || !prompt.trim()}
+              className={`px-6 py-3 rounded-xl font-semibold transition-colors ${
+                loading
+                  ? "bg-violet-500/70 text-white cursor-wait"
+                  : "gradient-btn"
+              } ${
+                !prompt.trim() ? "opacity-60 cursor-not-allowed" : ""
+              }`}
             >
               {loading ? "Searching..." : "Search Candidates"}
             </button>
@@ -194,10 +204,12 @@ function Filter() {
             </div>
           ))}
         </div>
-        {!loading && candidates.length === 0 && (
+        {!loading && hasSearched && !error && candidates.length === 0 && (
           <div className="glass-strong rounded-2xl p-10 text-center">
-            <p className="text-white font-semibold mb-2">No matches yet</p>
-            <p className="text-slate-400">Submit a prompt above to get AI-ranked candidate recommendations.</p>
+            <p className="text-white font-semibold mb-2">No matches were found</p>
+            <p className="text-slate-400">
+              No matches were found for this prompt.
+            </p>
           </div>
         )}
       </div>
