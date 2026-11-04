@@ -20,6 +20,15 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml,css}\"",
     "rebrand:audit": "node scripts/audit-rebrand.mjs",
+    "infra:up": "docker compose -f infrastructure/docker/docker-compose.infra.yml up -d",
+    "infra:down": "docker compose -f infrastructure/docker/docker-compose.infra.yml down",
+    "infra:logs": "docker compose -f infrastructure/docker/docker-compose.infra.yml logs -f",
+    "infra:nuke": "docker compose -f infrastructure/docker/docker-compose.infra.yml down -v",
+    "dev:services": "turbo run dev --parallel --filter=@talent-ai/auth-service --filter=@talent-ai/api-gateway",
+    "db:auth:generate": "pnpm --filter @talent-ai/auth-service db:generate",
+    "db:auth:migrate": "pnpm --filter @talent-ai/auth-service db:migrate",
+    "db:auth:deploy": "pnpm --filter @talent-ai/auth-service db:deploy",
+    "db:auth:seed": "pnpm --filter @talent-ai/auth-service db:seed",
     "legacy:candidate": "node candidate/backend/index.js",
     "legacy:recruiter": "node hr/backend/index.js",
     "db:migrate:seed": "node scripts/migrate-monolith-to-microservices.mjs"
@@ -29,6 +38,12 @@
     "turbo": "^2.3.3"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild"]
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "argon2",
+      "prisma",
+      "@prisma/client",
+      "@prisma/engines"
+    ]
   }
 }

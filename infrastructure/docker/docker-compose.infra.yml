@@ -1,0 +1,155 @@
+name: talent-ai-infra
+
+# Phase 1.1 — backing infrastructure for the talent.ai microservices.
+#
+#   docker compose -f infrastructure/docker/docker-compose.infra.yml up -d
+#
+# Every datastore uses the `talent-ai-*` / `talent_ai_*` namespace. The legacy
+# Phase 0 `docker-compose.yml` also publishes MongoDB on 27017, so run one stack
+# at a time (or stop it before starting this one).
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: talent-ai-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-talent}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-talent}
+      POSTGRES_DB: ${POSTGRES_DB:-talent_auth}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - talent_ai_postgres_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-talent} -d ${POSTGRES_DB:-talent_auth}']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    networks:
+      - talent-ai-network
+
+  mongodb:
+    image: mongo:7
+    container_name: talent-ai-mongodb
+    restart: unless-stopped
+    command: ['--replSet', 'rs0', '--bind_ip_all']
+    ports:
+      - '${MONGODB_PORT:-27017}:27017'
+    volumes:
+      - talent_ai_mongo_data:/data/db
+    healthcheck:
+      test: ['CMD-SHELL', 'mongosh --quiet --eval "db.adminCommand(''ping'').ok"']
+      interval: 5s
+      timeout: 10s
+      retries: 20
+      start_period: 10s
+    networks:
+      - talent-ai-network
+
+  # One-shot helper that turns the standalone mongod into a single-node
+  # replica set (required for MongoDB transactions / change streams).
+  mongodb-init:
+    image: mongo:7
+    container_name: talent-ai-mongodb-init
+    restart: 'no'
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    entrypoint: ['mongosh', '--host', 'mongodb:27017', '--quiet', '/scripts/init-replica.js']
+    volumes:
+      - ./mongo/init-replica.js:/scripts/init-replica.js:ro
+    networks:
+      - talent-ai-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: talent-ai-redis
+    restart: unless-stopped
+    command:
+      [
+        'redis-server',
+        '--appendonly',
+        'yes',
+        '--maxmemory',
+        '256mb',
+        '--maxmemory-policy',
+        'allkeys-lru',
+      ]
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - talent_ai_redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+    networks:
+      - talent-ai-network
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: talent-ai-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-talent}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-talent}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:-/}
+    ports:
+      - '${RABBITMQ_PORT:-5672}:5672'
+      - '${RABBITMQ_MANAGEMENT_PORT:-15672}:15672'
+    volumes:
+      - talent_ai_rabbitmq_data:/var/lib/rabbitmq
+      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
+    healthcheck:
+      test: ['CMD', 'rabbitmq-diagnostics', '-q', 'ping']
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 20s
+    networks:
+      - talent-ai-network
+
+  qdrant:
+    image: qdrant/qdrant:v1.12.4
+    container_name: talent-ai-qdrant
+    restart: unless-stopped
+    ports:
+      - '${QDRANT_HTTP_PORT:-6333}:6333'
+      - '${QDRANT_GRPC_PORT:-6334}:6334'
+    volumes:
+      - talent_ai_qdrant_data:/qdrant/storage
+    networks:
+      - talent-ai-network
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: talent-ai-mailhog
+    restart: unless-stopped
+    ports:
+      - '${MAILHOG_SMTP_PORT:-1025}:1025'
+      - '${MAILHOG_UI_PORT:-8025}:8025'
+    networks:
+      - talent-ai-network
+
+volumes:
+  talent_ai_postgres_data:
+    name: talent_ai_postgres_data
+  talent_ai_mongo_data:
+    name: talent_ai_mongo_data
+  talent_ai_redis_data:
+    name: talent_ai_redis_data
+  talent_ai_rabbitmq_data:
+    name: talent_ai_rabbitmq_data
+  talent_ai_qdrant_data:
+    name: talent_ai_qdrant_data
+
+networks:
+  talent-ai-network:
+    name: talent-ai-network
