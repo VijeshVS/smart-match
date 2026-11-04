@@ -1,0 +1,18 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    platform: talent-ai
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Containerised services on the talent-ai-network. When running a service on
+  # the host instead, swap its target for `host.docker.internal:<port>`.
+  - job_name: talent-services
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['auth-service:5001']
+      - targets: ['api-gateway:8080']

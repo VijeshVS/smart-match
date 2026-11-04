@@ -1,0 +1,52 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: talent-ai
+  labels:
+    app.kubernetes.io/part-of: talent-ai
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 10m
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: '10'
+    nginx.ingress.kubernetes.io/proxy-read-timeout: '60'
+    nginx.ingress.kubernetes.io/ssl-redirect: 'true'
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - talent.ai
+        - recruiter.talent.ai
+        - api.talent.ai
+      secretName: talent-ai-tls
+  rules:
+    - host: api.talent.ai
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 8080
+    # Portal backends are added in Phase 8. These rules are inert until the
+    # candidate-portal / recruiter-portal Services exist.
+    - host: talent.ai
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: candidate-portal
+                port:
+                  number: 80
+    - host: recruiter.talent.ai
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: recruiter-portal
+                port:
+                  number: 80

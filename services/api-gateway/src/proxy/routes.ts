@@ -3,6 +3,7 @@ import { ServerResponse } from 'node:http';
 import type { Socket } from 'node:net';
 import type { Request, RequestHandler, Response } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
+import { context as otelContext, propagation } from '@opentelemetry/api';
 import { getCorrelationId } from '@talent-ai/logger';
 import { API_PREFIXES, INTERNAL_HEADERS } from '@talent-ai/shared-types';
 import { config } from '../config.js';
@@ -126,6 +127,11 @@ function prepareDownstreamHeaders(req: Request): void {
   delete req.headers[INTERNAL_HEADERS.correlationId];
   req.headers[INTERNAL_HEADERS.correlationId] = correlationId;
   req.headers[INTERNAL_HEADERS.requestId] = correlationId;
+
+  // Propagate the W3C trace context to the downstream service. Incoming
+  // traceparent values are replaced by the active span when tracing is on.
+  delete req.headers.traceparent;
+  propagation.inject(otelContext.active(), req.headers as Record<string, unknown>);
 
   if (req.auth) {
     req.headers[INTERNAL_HEADERS.userId] = req.auth.userId;

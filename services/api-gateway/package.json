@@ -18,7 +18,9 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@opentelemetry/api": "^1.10.0",
     "@talent-ai/logger": "workspace:*",
+    "@talent-ai/observability": "workspace:*",
     "@talent-ai/shared-types": "workspace:*",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",

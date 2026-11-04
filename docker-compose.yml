@@ -1,0 +1,14 @@
+# Unified talent.ai development stack.
+#
+#   docker compose up -d --build          # everything
+#   docker compose up -d postgres redis   # only infrastructure
+#   docker compose logs -f auth-service
+#
+# The individual files are also usable on their own:
+#   infrastructure/docker/docker-compose.infra.yml
+#   infrastructure/docker/docker-compose.app.yml
+name: talent-ai
+
+include:
+  - path: infrastructure/docker/docker-compose.infra.yml
+  - path: infrastructure/docker/docker-compose.app.yml

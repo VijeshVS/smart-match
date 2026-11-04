@@ -1,0 +1,120 @@
+# Application services for the talent.ai platform.
+#
+# Run together with the infrastructure stack:
+#
+#   docker compose \
+#     -f infrastructure/docker/docker-compose.infra.yml \
+#     -f infrastructure/docker/docker-compose.app.yml \
+#     up -d --build
+#
+# Add each new microservice to this file as it lands. The `SERVICE_NAME` and
+# `SERVICE_PATH` build args select the workspace package.
+
+services:
+  auth-service:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_NAME: auth-service
+        SERVICE_PATH: services/auth-service
+        APP_PORT: 5001
+    image: talent-ai/auth-service:local
+    container_name: talent-ai-auth-service
+    restart: unless-stopped
+    init: true
+    env_file:
+      - path: ../../.env
+        required: false
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 5001
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-talent}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/talent_auth
+      REDIS_URL: redis://redis:6379
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-talent}:${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD is required}@rabbitmq:5672
+      RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-talent.events.topic}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET is required}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET is required}
+      JWT_ISSUER: ${JWT_ISSUER:-talent.ai}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-talent.ai}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:3001}
+      OTEL_ENABLED: ${OTEL_ENABLED:-true}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      TRUST_PROXY: ${TRUST_PROXY:-true}
+    ports:
+      - '${AUTH_SERVICE_PORT:-5001}:5001'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:5001/health/liveness >/dev/null || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - talent-ai-network
+
+  api-gateway:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_NAME: api-gateway
+        SERVICE_PATH: services/api-gateway
+        APP_PORT: 8080
+    image: talent-ai/api-gateway:local
+    container_name: talent-ai-api-gateway
+    restart: unless-stopped
+    init: true
+    env_file:
+      - path: ../../.env
+        required: false
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      API_GATEWAY_PORT: 8080
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      REDIS_URL: redis://redis:6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET is required}
+      JWT_ISSUER: ${JWT_ISSUER:-talent.ai}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-talent.ai}
+      AUTH_SERVICE_URL: http://auth-service:5001
+      TALENT_SERVICE_URL: http://talent-service:5002
+      RECRUITER_SERVICE_URL: http://recruiter-service:5003
+      ENGAGEMENT_SERVICE_URL: http://engagement-service:5004
+      REWARDS_SERVICE_URL: http://rewards-service:5005
+      AI_MATCHING_SERVICE_URL: http://ai-matching-service:5006
+      NOTIFICATION_SERVICE_URL: http://notification-service:5007
+      ANALYTICS_SERVICE_URL: http://analytics-service:5008
+      RATE_LIMIT_GENERAL_PER_MINUTE: ${RATE_LIMIT_GENERAL_PER_MINUTE:-60}
+      RATE_LIMIT_SENSITIVE_PER_MINUTE: ${RATE_LIMIT_SENSITIVE_PER_MINUTE:-5}
+      RATE_LIMIT_FAIL_OPEN: ${RATE_LIMIT_FAIL_OPEN:-true}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:3001}
+      OTEL_ENABLED: ${OTEL_ENABLED:-true}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      TRUST_PROXY: ${TRUST_PROXY:-true}
+    ports:
+      - '${API_GATEWAY_PORT:-8080}:8080'
+    depends_on:
+      redis:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:8080/health/liveness >/dev/null || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - talent-ai-network
+
+networks:
+  talent-ai-network:
+    name: talent-ai-network

@@ -1,0 +1,66 @@
+# syntax=docker/dockerfile:1.7
+#
+# Generic multi-stage build for any talent.ai Node service in this monorepo.
+#
+#   docker build -f infrastructure/docker/Dockerfile.service \
+#     --build-arg SERVICE_NAME=auth-service \
+#     --build-arg SERVICE_PATH=services/auth-service \
+#     --build-arg APP_PORT=5001 \
+#     -t talent-ai/auth-service .
+
+ARG NODE_VERSION=22
+
+FROM node:${NODE_VERSION}-alpine AS pruner
+RUN corepack enable
+WORKDIR /app
+COPY . .
+ARG SERVICE_NAME
+RUN pnpm dlx turbo prune "@talent-ai/${SERVICE_NAME}" --docker
+
+FROM node:${NODE_VERSION}-alpine AS installer
+ARG SERVICE_NAME
+RUN corepack enable \
+  && apk add --no-cache python3 make g++ openssl
+WORKDIR /app
+
+# Install only the pruned workspace manifests first for better layer caching.
+COPY --from=pruner /app/out/json/ ./
+COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
+RUN pnpm install --frozen-lockfile
+
+COPY --from=pruner /app/out/full/ .
+# `turbo prune` only emits package files plus the workspace lockfile; root
+# configs that packages extend must be copied explicitly.
+COPY --from=pruner /app/tsconfig.base.json ./tsconfig.base.json
+# Prisma generate validates the datasource URL even without a live database.
+ENV DATABASE_URL=postgresql://build:build@localhost:5432/build
+RUN pnpm --filter "@talent-ai/${SERVICE_NAME}..." build
+
+# Produce a portable production bundle (workspace packages included).
+RUN pnpm --filter "@talent-ai/${SERVICE_NAME}" deploy --prod --legacy /app/deploy
+
+# `pnpm deploy` does not copy Prisma's generated client (the sibling
+# `node_modules/.prisma` directory), so copy it into the deployed client when
+# the service uses Prisma. This is a no-op for services without Prisma.
+RUN set -eux; \
+    client_dir="$(find /app/node_modules/.pnpm -maxdepth 1 -type d -name '@prisma+client@*' | head -n1)"; \
+    deploy_dir="$(find /app/deploy/node_modules/.pnpm -maxdepth 1 -type d -name '@prisma+client@*' | head -n1)"; \
+    if [ -n "$client_dir" ] && [ -d "$client_dir/node_modules/.prisma" ]; then \
+      cp -R "$client_dir/node_modules/.prisma" "$deploy_dir/node_modules/.prisma"; \
+    fi
+
+FROM node:${NODE_VERSION}-alpine AS runner
+ARG APP_PORT=5001
+RUN apk add --no-cache openssl tini
+WORKDIR /app
+
+ENV NODE_ENV=production \
+    PORT=${APP_PORT} \
+    LOG_LEVEL=info
+
+COPY --from=installer /app/deploy ./
+
+USER node
+EXPOSE ${APP_PORT}
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["node", "dist/server.js"]

@@ -1,6 +1,7 @@
 export * from './correlation.js';
 
 import pino, { type Logger, type LoggerOptions } from 'pino';
+import { context as otelContext, trace as otelTrace } from '@opentelemetry/api';
 import { getCorrelationContext } from './correlation.js';
 
 export interface CreateLoggerOptions {
@@ -50,12 +51,15 @@ export function createLogger(options: CreateLoggerOptions): Logger {
       censor: '[REDACTED]',
     },
     mixin() {
-      const context = getCorrelationContext();
-      if (!context) return {};
+      const correlation = getCorrelationContext();
+      const spanContext = otelTrace.getSpan(otelContext.active())?.spanContext();
+      const traceId = spanContext?.traceId ?? correlation?.traceId;
+      const spanId = spanContext?.spanId ?? correlation?.spanId;
+
       return {
-        correlationId: context.correlationId,
-        ...(context.traceId ? { traceId: context.traceId } : {}),
-        ...(context.spanId ? { spanId: context.spanId } : {}),
+        ...(correlation ? { correlationId: correlation.correlationId } : {}),
+        ...(traceId ? { trace_id: traceId } : {}),
+        ...(spanId ? { span_id: spanId } : {}),
       };
     },
   };

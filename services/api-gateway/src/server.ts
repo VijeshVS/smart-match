@@ -1,3 +1,7 @@
+// Must be the first import: OpenTelemetry has to patch modules before use.
+import './tracing.js';
+
+import { shutdownTracing } from '@talent-ai/observability/tracing';
 import { config } from './config.js';
 import { createApp } from './app.js';
 import { logger } from './lib/logger.js';
@@ -40,7 +44,7 @@ async function shutdown(signal: string): Promise<void> {
     server.close(() => resolve());
   });
 
-  await Promise.allSettled([redis.quit()]);
+  await Promise.allSettled([redis.quit(), shutdownTracing()]);
 
   clearTimeout(forceExit);
   logger.info('api-gateway stopped');

@@ -2,6 +2,7 @@ import cookieParser from 'cookie-parser';
 import cors, { type CorsOptions } from 'cors';
 import express from 'express';
 import helmet from 'helmet';
+import { createHttpMetrics } from '@talent-ai/observability/metrics';
 import { correlationMiddleware } from '@talent-ai/logger';
 import { config } from './config.js';
 import { errorHandler, notFoundHandler } from './lib/errors.js';
@@ -11,6 +12,7 @@ import { healthRouter } from './routes/health.routes.js';
 
 export function createApp(): express.Express {
   const app = express();
+  const metrics = createHttpMetrics(config.serviceName);
 
   app.disable('x-powered-by');
   app.set('trust proxy', config.trustProxy ? 1 : false);
@@ -47,6 +49,10 @@ export function createApp(): express.Express {
   app.use(cors(corsOptions));
 
   app.use(correlationMiddleware);
+
+  // Scrapes are intentionally excluded from HTTP request metrics.
+  app.get('/metrics', metrics.handler);
+  app.use(metrics.middleware);
 
   app.use((req, res, next) => {
     const startedAt = Date.now();

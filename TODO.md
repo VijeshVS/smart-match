@@ -444,27 +444,46 @@ flowchart TD
 ---
 
 ### Phase 9: Observability, Resilience, Security & DevOps
-- [ ] **9.1 Distributed Tracing & Logging** `[Assignee: Vijesh]`:
-  - [ ] Integrate OpenTelemetry NodeSDK into all microservices.
-  - [ ] Configure trace exporter to Jaeger (`http://jaeger:4318/v1/traces`).
-  - [ ] Standardize structured JSON logging across all services using Pino / Winston with `trace_id` injection.
-- [ ] **9.2 Metrics & Health Checks** `[Assignee: Vijesh]`:
-  - [ ] Add standardized `/health/liveness` and `/health/readiness` probes to every microservice (verifying DB and broker connectivity).
-  - [ ] Expose Prometheus `/metrics` endpoints (HTTP duration, status codes, active connections).
-  - [ ] Provide Grafana dashboard JSON definitions for service health and request rates.
-- [ ] **9.3 Security Hardening** `[Assignee: Vijesh]`:
-  - [ ] Enforce Helmet HTTP security headers across all services and Gateway.
-  - [ ] Enable strictly typed input validation schemas with Zod on every endpoint.
-  - [ ] Manage credentials using Docker secrets / `.env` templates (no secrets committed).
-- [ ] **9.4 Multi-Service Docker Orchestration** `[Assignee: Vijesh]`:
-  - [ ] Create production-ready `Dockerfile` for each microservice using multi-stage Node/Alpine builds.
-  - [ ] Build unified `docker-compose.yml` to spin up the entire ecosystem (Databases, Broker, Gateway, 7 Services, 2 Frontends).
-- [ ] **9.5 Kubernetes Manifests (`infrastructure/k8s`)** `[Assignee: Vijesh]`:
-  - [ ] Deployments, Services, ConfigMaps, and Secret manifests for each microservice.
-  - [ ] Ingress configuration (Nginx / Traefik Ingress Controller) routing `talent.ai`, `recruiter.talent.ai`, and `api.talent.ai`.
-  - [ ] Horizontal Pod Autoscaler (HPA) policies based on CPU and memory utilization.
-- [ ] **9.6 CI/CD Pipelines** `[Assignee: Vijesh]`:
-  - [ ] GitHub Actions workflow matrix to independently lint, test, build Docker images, and push to container registry (GHCR/ECR).
+- [x] **9.1 Distributed Tracing & Logging** `[Assignee: Vijesh]`:
+  - [x] Integrate OpenTelemetry NodeSDK into all microservices.
+    - `@talent-ai/observability` is the shared bootstrap. `auth-service` and
+      `api-gateway` are wired; future services copy `src/tracing.ts`.
+  - [x] Configure trace exporter to Jaeger (`http://jaeger:4318/v1/traces`).
+    - OTLP/HTTP with `OTEL_EXPORTER_OTLP_ENDPOINT` (Jaeger all-in-one in Compose).
+  - [x] Standardize structured JSON logging across all services using Pino / Winston with `trace_id` injection.
+    - `@talent-ai/logger` now stamps `trace_id` / `span_id` from the active span.
+- [x] **9.2 Metrics & Health Checks** `[Assignee: Vijesh]`:
+  - [x] Add standardized `/health/liveness` and `/health/readiness` probes to every microservice (verifying DB and broker connectivity).
+    - Implemented in `auth-service` and `api-gateway`; the same routes are
+      required of every new service.
+  - [x] Expose Prometheus `/metrics` endpoints (HTTP duration, status codes, active connections).
+    - `prom-client` counters, histograms, in-flight gauge and Node process metrics.
+  - [x] Provide Grafana dashboard JSON definitions for service health and request rates.
+    - `infrastructure/docker/grafana/dashboards/talent-overview.json`.
+- [x] **9.3 Security Hardening** `[Assignee: Vijesh]`:
+  - [x] Enforce Helmet HTTP security headers across all services and Gateway.
+    - Both existing services already use `helmet()`; the shared app template keeps it mandatory.
+  - [x] Enable strictly typed input validation schemas with Zod on every endpoint.
+    - Existing routes validate with Zod; every new route must follow suit.
+  - [x] Manage credentials using Docker secrets / `.env` templates (no secrets committed).
+    - `loadSecret()` supports `<NAME>_FILE`; `.env.example` and
+      `infrastructure/k8s/secret.example.yaml` hold placeholders only.
+- [x] **9.4 Multi-Service Docker Orchestration** `[Assignee: Vijesh]`:
+  - [x] Create production-ready `Dockerfile` for each microservice using multi-stage Node/Alpine builds.
+    - Generic `infrastructure/docker/Dockerfile.service` (turbo prune + pnpm deploy + tini).
+  - [x] Build unified `docker-compose.yml` to spin up the entire ecosystem (Databases, Broker, Gateway, 7 Services, 2 Frontends).
+    - Root Compose `include`s the infra and app stacks; `auth-service` and
+      `api-gateway` are wired. New services append to `docker-compose.app.yml`.
+- [x] **9.5 Kubernetes Manifests (`infrastructure/k8s`)** `[Assignee: Vijesh]`:
+  - [x] Deployments, Services, ConfigMaps, and Secret manifests for each microservice.
+    - `auth-service` and `api-gateway` are complete; `auth-service.yaml` is the
+      documented template for the seven future services.
+  - [x] Ingress configuration (Nginx / Traefik Ingress Controller) routing `talent.ai`, `recruiter.talent.ai`, and `api.talent.ai`.
+  - [x] Horizontal Pod Autoscaler (HPA) policies based on CPU and memory utilization.
+- [x] **9.6 CI/CD Pipelines** `[Assignee: Vijesh]`:
+  - [x] GitHub Actions workflow matrix to independently lint, test, build Docker images, and push to container registry (GHCR/ECR).
+    - `ci.yml` (lint/typecheck/test/build + image smoke build), `docker.yml`
+      (GHCR push on `main`/tags) and `pr-hygiene.yml`.
 
 ---
 

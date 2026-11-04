@@ -19,4 +19,18 @@ RabbitMQ exchange.
 
 > Phase 0 establishes the workspace layout only. Service implementations are delivered in
 > their respective phases. Shared contracts live in `packages/shared-types`, logging in
-> `packages/logger`, and messaging in `packages/event-bus`.
+> `packages/logger`, messaging in `packages/event-bus`, and tracing/metrics/secrets in
+> `packages/observability`.
+
+## Platform observability
+
+Every service is expected to adopt the same observability contract:
+
+- Preload `@talent-ai/observability/tracing` before Express/Prisma/Redis imports.
+- Expose `GET /health/liveness`, `GET /health/readiness` and `GET /metrics`.
+- Use `@talent-ai/logger`, which stamps `trace_id` / `span_id` automatically.
+- Load credentials with `loadSecret()` so `<NAME>_FILE` mounted secrets work.
+
+`auth-service` and `api-gateway` are the reference implementations; copy their
+`src/tracing.ts`, `createHttpMetrics()` wiring and Docker/Kubernetes manifests
+when adding a service.
