@@ -9,7 +9,7 @@ config();
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 4000;
 
 app.use(cors({
     origin: "*",
@@ -20,7 +20,7 @@ app.use(json());
 connectDB();
 
 app.get("/", (req, res) => {
-	res.send("Smart Match API is running...");
+	res.send("talent.ai API Gateway / Microservice v1.0 — candidate-legacy");
 });
 
 app.use("/api/candidates", candidateRoutes);

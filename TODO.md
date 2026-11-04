@@ -162,21 +162,21 @@ flowchart TD
   - `Smart Match Coins` ➔ **TalentCredits (TC)**
 
 ### Rebranding Inventory Checklist
-- [ ] **Domain & Configuration** `[Assignee: Vijesh]`:
-  - [ ] Replace `smartmatch` in database names, docker network names, container labels, and connection strings.
-  - [ ] Update frontend environment variables (`VITE_APP_NAME="talent.ai"`, `VITE_SITE_URL="https://talent.ai"`).
-- [ ] **HTML & Meta Tags** `[Assignee: Arun]`:
-  - [ ] `candidate/candidate-portal/index.html`: Update `<title>talent.ai — Candidate Career Portal</title>`, meta description, OpenGraph tags, and favicon.
-  - [ ] `hr/frontend/index.html`: Update `<title>talent.ai — Recruiter & Talent Acquisition Platform</title>`, meta description, OpenGraph tags, and favicon.
-- [ ] **UI Components & Branding Assets** `[Assignee: Arun]`:
-  - [ ] Design and generate modern SVG logos for **talent.ai** (dark & light variants, icon-only mark, full wordmark).
-  - [ ] `candidate/candidate-portal/src/components/Layout.tsx`: Update navbar brand text to `talent.`<span className="gradient-text">ai</span>.
-  - [ ] `hr/frontend/src/components/Sidebar.tsx`: Update sidebar brand text to `talent.`<span className="gradient-text">ai</span> `Recruiter`.
-  - [ ] `candidate/candidate-portal/src/components/Landing.tsx`: Replace all "Smart Match" copy with "talent.ai".
-  - [ ] `hr/frontend/src/pages/Home.tsx`: Replace "Welcome to SmartMatch" with "Welcome to talent.ai".
-- [ ] **Backend Ping Responses** `[Assignee: Vijesh]`:
-  - [ ] `candidate/backend/index.js` & `hr/backend/index.js`: Replace root ping responses (`talent.ai API Gateway / Microservice v1.0`).
-  - [ ] Replace demo mock copy, placeholders, and footer credits to reflect `talent.ai`.
+- [x] **Domain & Configuration** `[Assignee: Vijesh]`:
+  - [x] Replace `smartmatch` in database names, docker network names, container labels, and connection strings.
+  - [x] Update frontend environment variables (`VITE_APP_NAME="talent.ai"`, `VITE_SITE_URL="https://talent.ai"`).
+- [x] **HTML & Meta Tags** `[Assignee: Arun]`:
+  - [x] `apps/candidate-portal/index.html`: Update `<title>talent.ai — Candidate Career Portal</title>`, meta description, OpenGraph tags, and favicon.
+  - [x] `apps/recruiter-portal/index.html`: Update `<title>talent.ai — Recruiter & Talent Acquisition Platform</title>`, meta description, OpenGraph tags, and favicon.
+- [x] **UI Components & Branding Assets** `[Assignee: Arun]`:
+  - [x] Design and generate modern SVG logos for **talent.ai** (dark & light variants, icon-only mark, full wordmark).
+  - [x] `apps/candidate-portal/src/components/Layout.tsx`: Update navbar brand text to `talent.`<span className="gradient-text">ai</span>.
+  - [x] `apps/recruiter-portal/src/components/Sidebar.tsx`: Update sidebar brand text to `talent.`<span className="gradient-text">ai</span> `Recruiter`.
+  - [x] `apps/candidate-portal/src/components/Landing.tsx`: Replace all "Smart Match" copy with "talent.ai".
+  - [x] `apps/recruiter-portal/src/pages/Home.tsx`: Replace "Welcome to SmartMatch" with "Welcome to talent.ai".
+- [x] **Backend Ping Responses** `[Assignee: Vijesh]`:
+  - [x] `candidate/backend/index.js` & `hr/backend/index.js`: Replace root ping responses (`talent.ai API Gateway / Microservice v1.0`).
+  - [x] Replace demo mock copy, placeholders, and footer credits to reflect `talent.ai`.
 
 ---
 
@@ -225,8 +225,8 @@ flowchart TD
 ## 📝 Phase-by-Phase Implementation Checklist
 
 ### Phase 0: Workspace Setup, Monorepo & Rebranding Foundations
-- [ ] **0.1 Monorepo Structuring** `[Assignee: Vijesh]`:
-  - [ ] Initialize a Turborepo / pnpm workspace structure:
+- [x] **0.1 Monorepo Structuring** `[Assignee: Vijesh]`:
+  - [x] Initialize a Turborepo / pnpm workspace structure:
     ```
     talent-ai/
     ├── apps/
@@ -252,16 +252,16 @@ flowchart TD
     │   └── k8s/                     # Kubernetes manifests
     └── scripts/                     # Seeders & data migration scripts
     ```
-  - [ ] Create root `package.json` with workspace configuration (`workspaces: ["apps/*", "services/*", "packages/*"]`).
-  - [ ] Configure root `turbo.json` for pipeline caching (`build`, `lint`, `test`, `dev`).
-- [ ] **0.2 Shared Packages Setup** `[Assignees: Vijesh & Arun]`:
-  - [ ] `packages/shared-types`: Setup shared TypeScript interfaces for DTOs, Event models, and API responses. `[Assignee: Arun]`
-  - [ ] `packages/logger`: Setup structured JSON logger (Pino/Winston) with `correlationId` and `serviceName`. `[Assignee: Vijesh]`
-  - [ ] `packages/event-bus`: Setup RabbitMQ publisher/consumer module with auto-reconnect, Dead-Letter Exchange (DLX), and message typing. `[Assignee: Vijesh]`
-- [ ] **0.3 Global Rebranding Audit & Asset Preparation** `[Assignee: Arun]`:
-  - [ ] Design SVG brand assets (`talent-ai-logo.svg`, `talent-ai-mark.svg`, `favicon.svg`).
-  - [ ] Update color palette variables in Tailwind (`accent-cyan`, `accent-violet`, `talent-primary`, `talent-dark`).
-  - [ ] Draft unified brand guidelines in `docs/BRAND_GUIDELINES.md`.
+  - [x] Create root `package.json` with workspace configuration (`workspaces: ["apps/*", "services/*", "packages/*"]`).
+  - [x] Configure root `turbo.json` for pipeline caching (`build`, `lint`, `test`, `dev`).
+- [x] **0.2 Shared Packages Setup** `[Assignees: Vijesh & Arun]`:
+  - [x] `packages/shared-types`: Setup shared TypeScript interfaces for DTOs, Event models, and API responses. `[Assignee: Arun]`
+  - [x] `packages/logger`: Setup structured JSON logger (Pino/Winston) with `correlationId` and `serviceName`. `[Assignee: Vijesh]`
+  - [x] `packages/event-bus`: Setup RabbitMQ publisher/consumer module with auto-reconnect, Dead-Letter Exchange (DLX), and message typing. `[Assignee: Vijesh]`
+- [x] **0.3 Global Rebranding Audit & Asset Preparation** `[Assignee: Arun]`:
+  - [x] Design SVG brand assets (`talent-ai-logo.svg`, `talent-ai-mark.svg`, `favicon.svg`).
+  - [x] Update color palette variables in Tailwind (`accent-cyan`, `accent-violet`, `talent-primary`, `talent-dark`).
+  - [x] Draft unified brand guidelines in `docs/BRAND_GUIDELINES.md`.
 
 ---
 

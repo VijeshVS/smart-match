@@ -1,2 +1,41 @@
-node_modules
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+.vite/
+
+# Turbo
+.turbo/
+
+# Test output
+coverage/
+playwright-report/
+test-results/
+
+# Environment (never commit secrets)
 .env
+.env.*
+!.env.example
+!.env.*.example
+
+# Logs
+*.log
+logs/
+pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Docker / runtime data
+docker-data/
