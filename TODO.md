@@ -266,32 +266,32 @@ flowchart TD
 ---
 
 ### Phase 1: Infrastructure, API Gateway & IAM / Auth Service
-- [ ] **1.1 Base Infrastructure Orchestration** `[Assignee: Vijesh]`:
-  - [ ] Create `infrastructure/docker/docker-compose.infra.yml` orchestrating:
-    - [ ] MongoDB replica set (for `talent-service` & `notification-service`).
-    - [ ] PostgreSQL 16 instance with multi-tenancy/multi-database initialization script (`talent_auth`, `talent_recruiter`, `talent_engagement`, `talent_rewards`).
-    - [ ] Redis 7 (for distributed sessions, token bucket rate limiting, and caching).
-    - [ ] RabbitMQ 3.13 with Management UI (exchange: `talent.events.topic`).
-    - [ ] Qdrant Vector Database (for semantic talent embeddings).
-    - [ ] MailHog / Inbucket (for local email capture & testing).
-- [ ] **1.2 Auth & IAM Service (`services/auth-service`)** `[Assignee: Vijesh]`:
-  - [ ] Implement database schema with Prisma / TypeORM for `User`, `Role`, `RefreshToken`, `AuditLog`.
-  - [ ] Implement password hashing using Argon2id.
-  - [ ] Implement JWT token generator (Access Token: 15m expiration; Refresh Token: 7d sliding expiration).
-  - [ ] Implement auth endpoints:
+- [x] **1.1 Base Infrastructure Orchestration** `[Assignee: Vijesh]`:
+  - [x] Create `infrastructure/docker/docker-compose.infra.yml` orchestrating:
+    - [x] MongoDB replica set (for `talent-service` & `notification-service`).
+    - [x] PostgreSQL 16 instance with multi-tenancy/multi-database initialization script (`talent_auth`, `talent_recruiter`, `talent_engagement`, `talent_rewards`).
+    - [x] Redis 7 (for distributed sessions, token bucket rate limiting, and caching).
+    - [x] RabbitMQ 3.13 with Management UI (exchange: `talent.events.topic`).
+    - [x] Qdrant Vector Database (for semantic talent embeddings).
+    - [x] MailHog / Inbucket (for local email capture & testing).
+- [x] **1.2 Auth & IAM Service (`services/auth-service`)** `[Assignee: Vijesh]`:
+  - [x] Implement database schema with Prisma / TypeORM for `User`, `Role`, `RefreshToken`, `AuditLog`.
+  - [x] Implement password hashing using Argon2id.
+  - [x] Implement JWT token generator (Access Token: 15m expiration; Refresh Token: 7d sliding expiration).
+  - [x] Implement auth endpoints:
     - `POST /api/v1/auth/register` (Registers candidate or recruiter with role assignment).
     - `POST /api/v1/auth/login` (Returns JWT access token + HTTP-only refresh cookie).
     - `POST /api/v1/auth/refresh` (Rotates refresh token and returns new access token).
     - `POST /api/v1/auth/logout` (Revokes session in Redis).
     - `GET /api/v1/auth/me` (Returns current user identity and permissions).
-  - [ ] Publish `auth.user_registered` event to RabbitMQ on new account creation.
-- [ ] **1.3 API Gateway (`services/api-gateway`)** `[Assignee: Vijesh]`:
-  - [ ] Implement Express/Fastify API Gateway (or configure Traefik / Envoy reverse proxy).
-  - [ ] Implement Correlation ID middleware (`X-Correlation-ID`) with UUIDv4 generation if not supplied.
-  - [ ] Implement JWT Verification Middleware (decodes JWT, validates signature, attaches `X-User-Id`, `X-User-Role`, `X-User-Email` downstream).
-  - [ ] Implement Distributed Rate Limiter with Redis token-bucket (60 req/min for general routes, 5 req/min for auth/AI routes).
-  - [ ] Configure route proxy mappings with circuit breakers to downstream microservices.
-  - [ ] Configure unified CORS handling and central error format (`{ status, error: { code, message, correlationId } }`).
+  - [x] Publish `auth.user_registered` event to RabbitMQ on new account creation.
+- [x] **1.3 API Gateway (`services/api-gateway`)** `[Assignee: Vijesh]`:
+  - [x] Implement Express/Fastify API Gateway (or configure Traefik / Envoy reverse proxy).
+  - [x] Implement Correlation ID middleware (`X-Correlation-ID`) with UUIDv4 generation if not supplied.
+  - [x] Implement JWT Verification Middleware (decodes JWT, validates signature, attaches `X-User-Id`, `X-User-Role`, `X-User-Email` downstream).
+  - [x] Implement Distributed Rate Limiter with Redis token-bucket (60 req/min for general routes, 5 req/min for auth/AI routes).
+  - [x] Configure route proxy mappings with circuit breakers to downstream microservices.
+  - [x] Configure unified CORS handling and central error format (`{ status, error: { code, message, correlationId } }`).
 
 ---
 
