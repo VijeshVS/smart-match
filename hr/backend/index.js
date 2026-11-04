@@ -8,7 +8,8 @@ dotenv.config();
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 const app = express();
-const PORT = 3001;
+const PORT = Number(process.env.PORT) || 4001;
+const CANDIDATE_API_URL = process.env.CANDIDATE_API_URL || "http://localhost:4000";
 
 app.use(express.json());
 app.use(
@@ -16,6 +17,11 @@ app.use(
     origin: "*",
   })
 );
+
+app.get("/", (_req, res) => {
+  res.send("talent.ai API Gateway / Microservice v1.0 — recruiter-legacy");
+});
+
 function toFormat(candidate) {
   const skills = (candidate.skills || []).join(", ");
   const reviews = (candidate.reviews || [])
@@ -67,7 +73,7 @@ app.post("/evaluate", async (req, res) => {
   try {
     const user_message = req.body.message;
 
-    const response = await fetch("http://localhost:3000/api/candidates");
+    const response = await fetch(`${CANDIDATE_API_URL}/api/candidates`);
     const candidates = await response.json();
 
     const results = [];

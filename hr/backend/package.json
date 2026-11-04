@@ -1,14 +1,13 @@
 {
-  "name": "temp",
-  "version": "1.0.0",
-  "main": "index.js",
+  "name": "@talent-ai/legacy-recruiter-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Legacy recruiter/AI monolith — decomposed in Phases 3-8",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "dev": "node --watch index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
