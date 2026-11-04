@@ -2,6 +2,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
 import { z } from 'zod';
+import { loadSecret } from '@talent-ai/observability/secrets';
 
 // Load `services/auth-service/.env` first, then the repository root `.env`.
 // Both are optional; environment variables always take precedence.
@@ -19,6 +20,14 @@ function booleanFromEnv(defaultValue: boolean) {
     }
     return value;
   }, z.boolean());
+}
+
+/** Accepts `<NAME>` or a Docker/Kubernetes secret mounted at `<NAME>_FILE`. */
+function secretFromEnv(name: string) {
+  return z.preprocess(
+    () => loadSecret(name),
+    z.string().min(32, `${name} must be at least 32 characters`),
+  );
 }
 
 const csv = z
@@ -42,8 +51,8 @@ const envSchema = z.object({
   RABBITMQ_URL: z.string().min(1).default('amqp://talent:talent@localhost:5672'),
   RABBITMQ_EXCHANGE: z.string().min(1).default('talent.events.topic'),
 
-  JWT_ACCESS_SECRET: z.string().min(32),
-  JWT_REFRESH_SECRET: z.string().min(32),
+  JWT_ACCESS_SECRET: secretFromEnv('JWT_ACCESS_SECRET'),
+  JWT_REFRESH_SECRET: secretFromEnv('JWT_REFRESH_SECRET'),
   JWT_ISSUER: z.string().min(1).default('talent.ai'),
   JWT_AUDIENCE: z.string().min(1).default('talent.ai'),
   ACCESS_TOKEN_TTL_SECONDS: z.coerce
@@ -76,6 +85,12 @@ const envSchema = z.object({
   OUTBOX_MAX_ATTEMPTS: z.coerce.number().int().positive().default(10),
 
   TRUST_PROXY: booleanFromEnv(false),
+
+  OTEL_ENABLED: booleanFromEnv(true),
+  OTEL_EXPORTER_OTLP_ENDPOINT: z
+    .string()
+    .optional()
+    .transform((value) => (value?.trim() ? value.trim() : undefined)),
 });
 
 const env = envSchema.safeParse(process.env);
@@ -106,6 +121,10 @@ export const config = Object.freeze({
   port: raw.PORT,
   logLevel: raw.LOG_LEVEL,
   trustProxy: raw.TRUST_PROXY,
+  otel: Object.freeze({
+    enabled: raw.OTEL_ENABLED,
+    endpoint: raw.OTEL_EXPORTER_OTLP_ENDPOINT,
+  }),
   databaseUrl: raw.DATABASE_URL,
   redisUrl: raw.REDIS_URL,
   rabbitmq: Object.freeze({

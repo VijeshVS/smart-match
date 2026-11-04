@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: talent-ai-config
+  labels:
+    app.kubernetes.io/part-of: talent-ai
+data:
+  NODE_ENV: production
+  LOG_LEVEL: info
+  TRUST_PROXY: 'true'
+
+  # Telemetry — point at the in-cluster OTLP collector / Jaeger.
+  OTEL_ENABLED: 'true'
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger-collector.observability.svc.cluster.local:4318
+
+  # Auth
+  PORT: '5001'
+  JWT_ISSUER: talent.ai
+  JWT_AUDIENCE: talent.ai
+  COOKIE_NAME: talent_ai_refresh
+  COOKIE_PATH: /api/v1/auth
+  COOKIE_SAME_SITE: lax
+  COOKIE_SECURE: 'true'
+  ARGON2_MEMORY_KIB: '19456'
+  ARGON2_TIME_COST: '2'
+  ARGON2_PARALLELISM: '1'
+  OUTBOX_POLL_INTERVAL_MS: '2000'
+  OUTBOX_BATCH_SIZE: '25'
+  OUTBOX_MAX_ATTEMPTS: '10'
+
+  # Gateway
+  API_GATEWAY_PORT: '8080'
+  AUTH_SERVICE_URL: http://auth-service:5001
+  TALENT_SERVICE_URL: http://talent-service:5002
+  RECRUITER_SERVICE_URL: http://recruiter-service:5003
+  ENGAGEMENT_SERVICE_URL: http://engagement-service:5004
+  REWARDS_SERVICE_URL: http://rewards-service:5005
+  AI_MATCHING_SERVICE_URL: http://ai-matching-service:5006
+  NOTIFICATION_SERVICE_URL: http://notification-service:5007
+  ANALYTICS_SERVICE_URL: http://analytics-service:5008
+  RATE_LIMIT_GENERAL_PER_MINUTE: '60'
+  RATE_LIMIT_SENSITIVE_PER_MINUTE: '5'
+  RATE_LIMIT_FAIL_OPEN: 'true'
+  PROXY_TIMEOUT_MS: '10000'
+  CIRCUIT_FAILURE_THRESHOLD: '5'
+  CIRCUIT_RESET_TIMEOUT_MS: '30000'
+
+  # Comma-separated portal origins.
+  CORS_ORIGINS: https://talent.ai,https://recruiter.talent.ai

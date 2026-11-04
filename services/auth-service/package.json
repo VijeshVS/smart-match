@@ -26,6 +26,7 @@
     "@prisma/client": "^6.2.1",
     "@talent-ai/event-bus": "workspace:*",
     "@talent-ai/logger": "workspace:*",
+    "@talent-ai/observability": "workspace:*",
     "@talent-ai/shared-types": "workspace:*",
     "argon2": "^0.41.1",
     "cookie-parser": "^1.4.7",

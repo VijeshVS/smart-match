@@ -33,6 +33,7 @@ Identity & access management for talent.ai.
 | `GET` | `/api/v1/auth/me` | bearer | Returns the current user and permissions. |
 | `GET` | `/health/liveness` | public | Process liveness. |
 | `GET` | `/health/readiness` | public | PostgreSQL, Redis and RabbitMQ checks. |
+| `GET` | `/metrics` | public | Prometheus metrics (`http_requests_total`, durations, in-flight, process). |
 
 Successful responses use `{ user, permissions, tokens }`. Errors use the shared
 envelope `{ status, error: { code, message, correlationId, details? } }`.
@@ -56,6 +57,21 @@ variables:
 
 `NODE_ENV=production` rejects placeholder JWT secrets and requires
 `COOKIE_SECURE=true` when `COOKIE_SAME_SITE=none`.
+
+Secrets may be supplied inline (`JWT_ACCESS_SECRET`) or through a mounted file
+(`JWT_ACCESS_SECRET_FILE`), which is how Docker secrets and Kubernetes
+`secretKeyRef` volumes are wired.
+
+## Observability
+
+- OpenTelemetry (`@talent-ai/observability`) starts before Express, Prisma,
+  ioredis and amqplib are imported, so HTTP/Express/Redis/Postgres/RabbitMQ
+  spans are captured automatically.
+- Traces are exported over OTLP/HTTP to `OTEL_EXPORTER_OTLP_ENDPOINT`; set
+  `OTEL_ENABLED=false` to disable. Health and metrics paths are excluded.
+- Every Pino log line carries `trace_id` / `span_id` from the active span.
+- `/metrics` is served by `prom-client`; `/health/liveness` and
+  `/health/readiness` back Docker/Kubernetes probes.
 
 ## Scripts
 

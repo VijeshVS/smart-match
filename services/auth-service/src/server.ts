@@ -1,3 +1,6 @@
+// Must be the first import: OpenTelemetry has to patch modules before use.
+import './tracing.js';
+
 import { config } from './config.js';
 import { createApp } from './app.js';
 import { eventBus } from './lib/event-bus.js';
@@ -5,6 +8,7 @@ import { logger } from './lib/logger.js';
 import { startOutboxRelay } from './lib/outbox.js';
 import { prisma } from './lib/prisma.js';
 import { redis } from './lib/redis.js';
+import { shutdownTracing } from '@talent-ai/observability/tracing';
 
 const app = createApp();
 
@@ -54,7 +58,7 @@ async function shutdown(signal: string): Promise<void> {
     server.close(() => resolve());
   });
 
-  await Promise.allSettled([eventBus.close(), redis.quit(), prisma.$disconnect()]);
+  await Promise.allSettled([eventBus.close(), redis.quit(), prisma.$disconnect(), shutdownTracing()]);
 
   clearTimeout(forceExit);
   logger.info('auth-service stopped');

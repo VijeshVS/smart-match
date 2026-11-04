@@ -1,0 +1,15 @@
+# Keep Docker build contexts small and free of local state.
+.git
+.github
+**/node_modules
+**/dist
+**/.turbo
+**/coverage
+**/.env
+**/.env.*
+!**/.env.example
+**/*.log
+**/.DS_Store
+candidate
+hr
+docker-data

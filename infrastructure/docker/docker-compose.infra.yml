@@ -138,6 +138,57 @@ services:
     networks:
       - talent-ai-network
 
+  # ── Observability ─────────────────────────────────────
+  jaeger:
+    image: jaegertracing/all-in-one:1.62.0
+    container_name: talent-ai-jaeger
+    restart: unless-stopped
+    environment:
+      COLLECTOR_OTLP_ENABLED: 'true'
+    ports:
+      - '${JAEGER_UI_PORT:-16686}:16686'
+      - '${JAEGER_OTLP_GRPC_PORT:-4317}:4317'
+      - '${JAEGER_OTLP_HTTP_PORT:-4318}:4318'
+    networks:
+      - talent-ai-network
+
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    container_name: talent-ai-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+    ports:
+      - '${PROMETHEUS_PORT:-9090}:9090'
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - talent_ai_prometheus_data:/prometheus
+    networks:
+      - talent-ai-network
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    container_name: talent-ai-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/talent-overview.json
+    ports:
+      - '${GRAFANA_PORT:-3100}:3000'
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - talent_ai_grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - talent-ai-network
+
 volumes:
   talent_ai_postgres_data:
     name: talent_ai_postgres_data
@@ -149,6 +200,10 @@ volumes:
     name: talent_ai_rabbitmq_data
   talent_ai_qdrant_data:
     name: talent_ai_qdrant_data
+  talent_ai_prometheus_data:
+    name: talent_ai_prometheus_data
+  talent_ai_grafana_data:
+    name: talent_ai_grafana_data
 
 networks:
   talent-ai-network:

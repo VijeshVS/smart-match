@@ -1,10 +1,54 @@
 # Kubernetes manifests
 
-Phase 9.5 adds:
+Phase 9.5 deployment assets for talent.ai.
 
-- `Deployment`, `Service` and `ConfigMap` manifests for the gateway and all eight domain services.
-- `Secret` templates (never commit real values).
-- Ingress routing for `talent.ai`, `recruiter.talent.ai` and `api.talent.ai`.
-- Horizontal Pod Autoscaler policies driven by CPU and memory.
+| File | Contents |
+| :--- | :--- |
+| `namespace.yaml` | `talent-ai` namespace. |
+| `configmap.yaml` | Shared non-secret configuration (telemetry, URLs, rate limits, cookie policy). |
+| `secret.example.yaml` | Template for `talent-ai-secrets`. Never commit real values. |
+| `auth-service.yaml` | `auth-service` Deployment + ClusterIP Service. |
+| `api-gateway.yaml` | `api-gateway` Deployment + ClusterIP Service. |
+| `hpa.yaml` | CPU/memory HPAs for both services. |
+| `ingress.yaml` | Nginx ingress for `api.talent.ai`, `talent.ai`, `recruiter.talent.ai`. |
+| `kustomization.yaml` | Renders everything above. |
 
-Nothing is deployed from this directory yet.
+## Render and apply
+
+```bash
+kubectl kustomize infrastructure/k8s            # preview
+kubectl apply -k infrastructure/k8s
+
+# Secrets are created out of band:
+kubectl -n talent-ai create secret generic talent-ai-secrets \
+  --from-literal=DATABASE_URL='postgresql://talent:...@postgres:5432/talent_auth' \
+  --from-literal=REDIS_URL='redis://redis:6379' \
+  --from-literal=RABBITMQ_URL='amqp://talent:...@rabbitmq:5672' \
+  --from-literal=JWT_ACCESS_SECRET='...' \
+  --from-literal=JWT_REFRESH_SECRET='...'
+```
+
+Prerequisites:
+
+- An Nginx ingress controller and a `talent-ai-tls` certificate secret.
+- PostgreSQL, Redis, RabbitMQ and MongoDB reachable at the hosts referenced in
+  the secret / ConfigMap (in-cluster or managed services).
+- An OTLP endpoint at `jaeger-collector.observability.svc.cluster.local:4318`
+  or an override of `OTEL_EXPORTER_OTLP_ENDPOINT` in the ConfigMap.
+- Metrics scraping: the pods carry `prometheus.io/scrape` annotations, so either
+  Prometheus Kubernetes SD or the Prometheus Operator can discover them.
+
+## Adding a service
+
+Each new microservice (talent, recruiter, engagement, rewards, AI matching,
+notification, analytics) follows the same pattern as `auth-service.yaml`:
+
+1. Copy the Deployment/Service pair and replace every `auth-service` /
+   `5001` occurrence with the new service name and `SERVICE_PORTS` value.
+2. Add the file to `resources` in `kustomization.yaml` and add its image to the
+   `images` list.
+3. Add an HPA entry to `hpa.yaml`.
+4. Add the image to the CI matrix in `.github/workflows/docker.yml`.
+
+Portal Services (`candidate-portal`, `recruiter-portal`) are created in Phase 8
+and are already referenced by the ingress rules.

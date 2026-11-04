@@ -2,6 +2,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
 import { z } from 'zod';
+import { loadSecret } from '@talent-ai/observability/secrets';
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({
@@ -17,6 +18,14 @@ function booleanFromEnv(defaultValue: boolean) {
     }
     return value;
   }, z.boolean());
+}
+
+/** Accepts `<NAME>` or a Docker/Kubernetes secret mounted at `<NAME>_FILE`. */
+function secretFromEnv(name: string) {
+  return z.preprocess(
+    () => loadSecret(name),
+    z.string().min(32, `${name} must be at least 32 characters`),
+  );
 }
 
 const csv = z
@@ -38,7 +47,7 @@ const envSchema = z.object({
 
   REDIS_URL: z.string().min(1).default('redis://localhost:6379'),
 
-  JWT_ACCESS_SECRET: z.string().min(32),
+  JWT_ACCESS_SECRET: secretFromEnv('JWT_ACCESS_SECRET'),
   JWT_ISSUER: z.string().min(1).default('talent.ai'),
   JWT_AUDIENCE: z.string().min(1).default('talent.ai'),
 
@@ -60,6 +69,12 @@ const envSchema = z.object({
   CIRCUIT_RESET_TIMEOUT_MS: z.coerce.number().int().positive().default(30_000),
 
   CORS_ORIGINS: csv,
+
+  OTEL_ENABLED: booleanFromEnv(true),
+  OTEL_EXPORTER_OTLP_ENDPOINT: z
+    .string()
+    .optional()
+    .transform((value) => (value?.trim() ? value.trim() : undefined)),
 });
 
 const env = envSchema.safeParse(process.env);
@@ -85,6 +100,10 @@ export const config = Object.freeze({
   port: raw.API_GATEWAY_PORT,
   logLevel: raw.LOG_LEVEL,
   trustProxy: raw.TRUST_PROXY,
+  otel: Object.freeze({
+    enabled: raw.OTEL_ENABLED,
+    endpoint: raw.OTEL_EXPORTER_OTLP_ENDPOINT,
+  }),
   redisUrl: raw.REDIS_URL,
   jwt: Object.freeze({
     accessSecret: raw.JWT_ACCESS_SECRET,

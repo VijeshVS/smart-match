@@ -41,7 +41,8 @@ Single edge entry point for every talent.ai domain service.
 | `/api/v1/analytics` | analytics-service | required | general |
 
 `/health/liveness` and `/health/readiness` are served locally. Readiness
-includes a snapshot of every circuit breaker.
+includes a snapshot of every circuit breaker. `/metrics` exposes Prometheus
+counters, latency histograms and in-flight gauges.
 
 ## Configuration
 
@@ -61,6 +62,16 @@ variables:
 | `CIRCUIT_FAILURE_THRESHOLD` | `5` | Consecutive failures before opening. |
 | `CIRCUIT_RESET_TIMEOUT_MS` | `30000` | Cooldown before a half-open probe. |
 | `CORS_ORIGINS` | `http://localhost:3000,http://localhost:3001` | Allowed portal origins. |
+| `OTEL_ENABLED` | `true` | Toggle OpenTelemetry tracing. |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4318` | OTLP/HTTP collector base URL. |
+
+## Observability
+
+- OpenTelemetry starts before Express and ioredis are imported.
+- The proxy injects a W3C `traceparent` into every downstream request, so a
+  single trace spans the gateway and the target service.
+- Pino logs include `trace_id` / `span_id`, and `/metrics` exposes the same
+  Prometheus metrics as the other services.
 
 ## Rate-limit headers
 
