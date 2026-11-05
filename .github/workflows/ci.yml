@@ -82,6 +82,8 @@ jobs:
         include:
           - service: auth-service
             port: 5001
+          - service: talent-service
+            port: 5002
           - service: api-gateway
             port: 8080
 

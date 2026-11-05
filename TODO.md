@@ -10,9 +10,9 @@
 
 | Engineer | Primary Focus Areas | Owned Microservices & Modules | Key Milestones & Phases |
 | :--- | :--- | :--- | :--- |
-| **Vijesh**<br/>`@vijesh` | **Platform Architecture, Security & DevOps** | • `services/api-gateway`<br/>• `services/auth-service`<br/>• `packages/event-bus`<br/>• Infrastructure (`Docker`, `K8s`, `RabbitMQ`, `Redis`) | • Phase 0 (Monorepo & Infra setup)<br/>• Phase 1 (Gateway & IAM Auth)<br/>• Phase 9 (Observability, Security & CI/CD)<br/>• Production Deployment |
+| **Vijesh**<br/>`@vijesh` | **Platform Architecture, Security, DevOps & Talent Domain** | • `services/api-gateway`<br/>• `services/auth-service`<br/>• `services/talent-service`<br/>• `packages/event-bus`<br/>• Infrastructure (`Docker`, `K8s`, `RabbitMQ`, `Redis`) | • Phase 0 (Monorepo & Infra setup)<br/>• Phase 1 (Gateway & IAM Auth)<br/>• Phase 2 (Talent Profile Service) ✦ reassigned<br/>• Phase 9 (Observability, Security & CI/CD)<br/>• Production Deployment |
 | **Varenya**<br/>`@varenya` | **AI Systems, Analytics & Recruiter Domain** | • `services/ai-matching-service`<br/>• `services/recruiter-service`<br/>• `services/analytics-service`<br/>• Vector DB (`Qdrant` / `pgvector`) | • Phase 3 (Recruiter & Org Service)<br/>• Phase 6 (AI Engine, Embeddings & TalentLens)<br/>• Phase 7.2 (Analytics & Funnel Metrics)<br/>• Phase 10.1 (Data Migration Script) |
-| **Arun**<br/>`@arun` | **Talent Domain, Engagement, Gamification & Frontends** | • `services/talent-service`<br/>• `services/engagement-service`<br/>• `services/rewards-service`<br/>• `services/notification-service`<br/>• `apps/candidate-portal`<br/>• `apps/recruiter-portal`<br/>• `packages/ui` & `packages/api-client` | • Phase 0.3 (Brand Assets & UI Tokens)<br/>• Phase 2 (Talent Profile Service)<br/>• Phase 4 (Engagement & Swipes)<br/>• Phase 5 (Rewards & Sagas)<br/>• Phase 7.1 (Notifications)<br/>• Phase 8 (Frontend Portals & Rebrand)<br/>• Phase 10.2 (E2E Integration Tests) |
+| **Arun**<br/>`@arun` | **Engagement, Gamification & Frontends** | • `services/engagement-service`<br/>• `services/rewards-service`<br/>• `services/notification-service`<br/>• `apps/candidate-portal`<br/>• `apps/recruiter-portal`<br/>• `packages/ui` & `packages/api-client` | • Phase 0.3 (Brand Assets & UI Tokens)<br/>• Phase 4 (Engagement & Swipes)<br/>• Phase 5 (Rewards & Sagas)<br/>• Phase 7.1 (Notifications)<br/>• Phase 8 (Frontend Portals & Rebrand)<br/>• Phase 10.2 (E2E Integration Tests) |
 
 ---
 
@@ -55,7 +55,7 @@ flowchart TD
 
     subgraph CoreServices["Domain Microservices"]
         AUTH["Auth & IAM Service<br/><b>[Owner: Vijesh]</b><br/>(Node.js / Express / Argon2)"]
-        TALENT["Talent Profile Service<br/><b>[Owner: Arun]</b><br/>(Node.js / Mongoose)"]
+        TALENT["Talent Profile Service<br/><b>[Owner: Vijesh]</b><br/>(Node.js / Mongoose)"]
         REC["Recruiter & Org Service<br/><b>[Owner: Varenya]</b><br/>(Node.js / Prisma)"]
         ENGAGE["Engagement & Review Service<br/><b>[Owner: Arun]</b><br/>(Node.js / Express)"]
         REWARDS["Gamification & Rewards Service<br/><b>[Owner: Arun]</b><br/>(Coin Ledger & Subscriptions)"]
@@ -137,7 +137,7 @@ flowchart TD
 | :--- | :--- | :--- | :--- | :--- |
 | **Identity & Access** | Authentication, authorization, token lifecycle, RBAC | `User`, `Account`, `RefreshToken`, `Role`, `Permission` | `auth-service` | **Vijesh** |
 | **API Gateway & Routing** | Edge proxy, rate limiting, SSL, token validation, correlation | `GatewayRoute`, `RateLimitRule`, `TokenPayload` | `api-gateway` | **Vijesh** |
-| **Talent / Candidate** | Candidate profiles, skills taxonomy, education, work experience, level categorization | `TalentProfile`, `Skill`, `Education`, `WorkExperience`, `TalentLevel` | `talent-profile-service` | **Arun** |
+| **Talent / Candidate** | Candidate profiles, skills taxonomy, education, work experience, level categorization | `TalentProfile`, `Skill`, `Education`, `WorkExperience`, `TalentLevel` | `talent-service` | **Vijesh** |
 | **Recruiter & Org** | Recruiter accounts, company affiliations, hiring criteria, job postings | `Recruiter`, `Organization`, `JobPosting`, `SubscriptionTier` | `recruiter-service` | **Varenya** |
 | **Engagement & Interaction** | Recruiter swipe actions (right/left), review comments, candidate feedback | `SwipeInteraction`, `Review`, `Feedback`, `Decision` | `engagement-service` | **Arun** |
 | **Gamification & Rewards** | HR coin ledger, coin awards, redemption for tier-3 access, platform subscriptions | `CoinLedger`, `CoinTransaction`, `RewardRule`, `Subscription` | `rewards-service` | **Arun** |
@@ -210,7 +210,7 @@ flowchart TD
 | :- | :--- | :--- | :- | :--- | :--- | :--- |
 | **0** | `services/api-gateway` | Express / Traefik / Envoy | 8080 | Redis (Rate Limiting & Sessions) | Entry point, routing, auth guard, rate limit, CORS | **Vijesh** |
 | **1** | `services/auth-service` | Node.js / Express / TypeScript | 5001 | PostgreSQL (`talent_auth`) | User accounts, credentials, JWT issue/refresh, RBAC | **Vijesh** |
-| **2** | `services/talent-service` | Node.js / Express / TypeScript | 5002 | MongoDB (`talent_profiles`) | Candidate profile management, resumes, skill tags, tiers | **Arun** |
+| **2** | `services/talent-service` | Node.js / Express / TypeScript | 5002 | MongoDB (`talent_profiles`) | Candidate profile management, resumes, skill tags, tiers | **Vijesh** |
 | **3** | `services/recruiter-service` | Node.js / Express / TypeScript | 5003 | PostgreSQL (`talent_recruiter`) | Recruiter profiles, company info, hiring requisitions | **Varenya** |
 | **4** | `services/engagement-service`| Node.js / Express / TypeScript | 5004 | PostgreSQL (`talent_engagement`) | Swipes (approve/reject), reviews, feedback records | **Arun** |
 | **5** | `services/rewards-service` | Node.js / Express / TypeScript | 5005 | PostgreSQL (`talent_rewards`) | TalentCredits ledger, coins for feedback, unlocks | **Arun** |
@@ -296,24 +296,24 @@ flowchart TD
 ---
 
 ### Phase 2: Talent Profile Service (Candidate Domain Extraction)
-- [ ] **2.1 Decouple Monolithic Candidate Schema** `[Assignee: Arun]`:
-  - [ ] Extract candidate details from monolithic `candidateModel.js`.
-  - [ ] **Remove** `rightSwipes`, `leftSwipes`, and `reviews` from the Talent Profile entity (these belong strictly to `engagement-service`).
-  - [ ] Create clean Mongoose / Prisma schema for `TalentProfile`:
+- [x] **2.1 Decouple Monolithic Candidate Schema** `[Assignee: Vijesh]`:
+  - [x] Extract candidate details from monolithic `candidateModel.js`.
+  - [x] **Remove** `rightSwipes`, `leftSwipes`, and `reviews` from the Talent Profile entity (these belong strictly to `engagement-service`).
+  - [x] Create clean Mongoose / Prisma schema for `TalentProfile`:
     - `id`, `userId` (ref to auth-service), `name`, `email`, `phone`, `field`, `skills` (normalized array), `experienceYears`.
     - `education` sub-documents: `college`, `degree`, `branchOfStudy`, `yearOfGraduation`, `gpa`.
     - `previousExperience` sub-documents: `company`, `role`, `durationMonths`, `responsibilities`.
     - `level`: Enum (`LEVEL_1_ENTRY`, `LEVEL_2_MID`, `LEVEL_3_LEAD`).
     - `bio`, `portfolioUrl`, `linkedinUrl`, `githubUrl`, `resumeUrl`.
-- [ ] **2.2 Implement Talent Service APIs** `[Assignee: Arun]`:
-  - [ ] `POST /api/v1/talent` — Create candidate profile (validated with Zod).
-  - [ ] `GET /api/v1/talent/:id` — Fetch candidate profile by ID.
-  - [ ] `GET /api/v1/talent` — Query candidate profiles with pagination, skills filtering, and level filtering.
-  - [ ] `PUT /api/v1/talent/:id` — Update candidate profile.
-  - [ ] `PATCH /api/v1/talent/:id/level` — Update calculated candidate tier.
-- [ ] **2.3 Event Publishing & Outbox** `[Assignee: Arun]`:
-  - [ ] Implement Transactional Outbox pattern on profile create and update.
-  - [ ] Publish `talent.created` and `talent.updated` events containing profile payloads for indexing by the AI Matching service.
+- [x] **2.2 Implement Talent Service APIs** `[Assignee: Vijesh]`:
+  - [x] `POST /api/v1/talent` — Create candidate profile (validated with Zod).
+  - [x] `GET /api/v1/talent/:id` — Fetch candidate profile by ID.
+  - [x] `GET /api/v1/talent` — Query candidate profiles with pagination, skills filtering, and level filtering.
+  - [x] `PUT /api/v1/talent/:id` — Update candidate profile.
+  - [x] `PATCH /api/v1/talent/:id/level` — Update calculated candidate tier.
+- [x] **2.3 Event Publishing & Outbox** `[Assignee: Vijesh]`:
+  - [x] Implement Transactional Outbox pattern on profile create and update.
+  - [x] Publish `talent.profile.created` and `talent.profile.updated` events containing profile payloads for indexing by the AI Matching service.
 
 ---
 
@@ -526,12 +526,12 @@ All asynchronous messages flow through the RabbitMQ topic exchange `talent.event
 
 | Routing Key | Producing Service | Consuming Services | Business Purpose | Primary Handlers |
 | :--- | :--- | :--- | :--- | :--- |
-| `talent.profile.created` | `talent-service` | `ai-matching-service`, `analytics-service` | Generate vector embeddings; update aggregate counts | Producer: **Arun**<br/>Consumers: **Varenya** |
-| `talent.profile.updated` | `talent-service` | `ai-matching-service` | Re-index candidate in vector search | Producer: **Arun**<br/>Consumer: **Varenya** |
+| `talent.profile.created` | `talent-service` | `ai-matching-service`, `analytics-service` | Generate vector embeddings; update aggregate counts | Producer: **Vijesh**<br/>Consumers: **Varenya** |
+| `talent.profile.updated` | `talent-service` | `ai-matching-service` | Re-index candidate in vector search | Producer: **Vijesh**<br/>Consumer: **Varenya** |
 | `swipe.recorded` | `engagement-service` | `analytics-service` | Track acceptance/rejection funnel metrics | Producer: **Arun**<br/>Consumer: **Varenya** |
 | `review.submitted` | `engagement-service` | `rewards-service`, `notification-service`, `analytics-service` | Award TalentCredits to HR; notify candidate | Producer: **Arun**<br/>Consumers: **Arun**, **Varenya** |
 | `rewards.coins_awarded` | `rewards-service` | `notification-service`, `analytics-service` | Notify recruiter of wallet credit | Producer: **Arun**<br/>Consumers: **Arun**, **Varenya** |
-| `rewards.tier3_unlocked` | `rewards-service` | `talent-service`, `notification-service` | Authorize recruiter view for Elite candidate | Producer: **Arun**<br/>Consumer: **Arun** |
+| `rewards.tier3_unlocked` | `rewards-service` | `talent-service`, `notification-service` | Authorize recruiter view for Elite candidate | Producer: **Arun**<br/>Consumer: **Vijesh** |
 | `ai.evaluation.completed`| `ai-matching-service`| `notification-service`, `analytics-service` | Notify recruiter of high-affinity candidate match | Producer: **Varenya**<br/>Consumers: **Arun**, **Varenya** |
 
 ---

@@ -6,6 +6,7 @@ resources:
   - namespace.yaml
   - configmap.yaml
   - auth-service.yaml
+  - talent-service.yaml
   - api-gateway.yaml
   - hpa.yaml
   - ingress.yaml
@@ -18,6 +19,8 @@ labels:
 
 images:
   - name: ghcr.io/vijeshvs/smart-match/auth-service
+    newTag: latest
+  - name: ghcr.io/vijeshvs/smart-match/talent-service
     newTag: latest
   - name: ghcr.io/vijeshvs/smart-match/api-gateway
     newTag: latest

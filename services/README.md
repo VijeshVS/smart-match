@@ -9,7 +9,7 @@ RabbitMQ exchange.
 | :--- | :--- | :--- | :--- | :--- |
 | `api-gateway` | 8080 | Redis | Vijesh | 1 |
 | `auth-service` | 5001 | PostgreSQL (`talent_auth`) | Vijesh | 1 |
-| `talent-service` | 5002 | MongoDB (`talent_profiles`) | Arun | 2 |
+| `talent-service` | 5002 | MongoDB (`talent_profiles`) | Vijesh | 2 (implemented) |
 | `recruiter-service` | 5003 | PostgreSQL (`talent_recruiter`) | Varenya | 3 |
 | `engagement-service` | 5004 | PostgreSQL (`talent_engagement`) | Arun | 4 |
 | `rewards-service` | 5005 | PostgreSQL (`talent_rewards`) | Arun | 5 |
@@ -18,7 +18,8 @@ RabbitMQ exchange.
 | `analytics-service` | 5008 | PostgreSQL / ClickHouse | Varenya | 7 |
 
 > Phase 0 establishes the workspace layout only. Service implementations are delivered in
-> their respective phases. Shared contracts live in `packages/shared-types`, logging in
+> their respective phases. `auth-service`, `api-gateway` and `talent-service` are implemented;
+> shared contracts live in `packages/shared-types`, logging in
 > `packages/logger`, messaging in `packages/event-bus`, and tracing/metrics/secrets in
 > `packages/observability`.
 

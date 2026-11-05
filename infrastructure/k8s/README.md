@@ -8,8 +8,9 @@ Phase 9.5 deployment assets for talent.ai.
 | `configmap.yaml` | Shared non-secret configuration (telemetry, URLs, rate limits, cookie policy). |
 | `secret.example.yaml` | Template for `talent-ai-secrets`. Never commit real values. |
 | `auth-service.yaml` | `auth-service` Deployment + ClusterIP Service. |
+| `talent-service.yaml` | `talent-service` Deployment + ClusterIP Service (port 5002, MongoDB). |
 | `api-gateway.yaml` | `api-gateway` Deployment + ClusterIP Service. |
-| `hpa.yaml` | CPU/memory HPAs for both services. |
+| `hpa.yaml` | CPU/memory HPAs for every service. |
 | `ingress.yaml` | Nginx ingress for `api.talent.ai`, `talent.ai`, `recruiter.talent.ai`. |
 | `kustomization.yaml` | Renders everything above. |
 
@@ -22,6 +23,7 @@ kubectl apply -k infrastructure/k8s
 # Secrets are created out of band:
 kubectl -n talent-ai create secret generic talent-ai-secrets \
   --from-literal=DATABASE_URL='postgresql://talent:...@postgres:5432/talent_auth' \
+  --from-literal=MONGODB_URI='mongodb://talent:...@mongodb:27017/talent_profiles?replicaSet=rs0' \
   --from-literal=REDIS_URL='redis://redis:6379' \
   --from-literal=RABBITMQ_URL='amqp://talent:...@rabbitmq:5672' \
   --from-literal=JWT_ACCESS_SECRET='...' \
@@ -40,8 +42,9 @@ Prerequisites:
 
 ## Adding a service
 
-Each new microservice (talent, recruiter, engagement, rewards, AI matching,
-notification, analytics) follows the same pattern as `auth-service.yaml`:
+Each new microservice (recruiter, engagement, rewards, AI matching,
+notification, analytics) follows the same pattern as `auth-service.yaml` /
+`talent-service.yaml`:
 
 1. Copy the Deployment/Service pair and replace every `auth-service` /
    `5001` occurrence with the new service name and `SERVICE_PORTS` value.

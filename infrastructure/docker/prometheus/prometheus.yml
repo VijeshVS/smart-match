@@ -15,4 +15,5 @@ scrape_configs:
     metrics_path: /metrics
     static_configs:
       - targets: ['auth-service:5001']
+      - targets: ['talent-service:5002']
       - targets: ['api-gateway:8080']
