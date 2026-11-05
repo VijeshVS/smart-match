@@ -1,0 +1,87 @@
+// talent.ai — engagement-service schema (PostgreSQL / `talent_engagement`).
+//
+// Bounded context: swipe decisions, candidate reviews and feedback. Candidate
+// profiles and recruiter organizations live in their own services.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("ENGAGEMENT_DATABASE_URL")
+}
+
+enum SwipeDecision {
+  APPROVE
+  REJECT
+}
+
+enum OutboxStatus {
+  PENDING
+  PROCESSING
+  PUBLISHED
+  FAILED
+}
+
+/// One swipe per (recruiter, talent) pair. Re-swiping updates the decision.
+model Swipe {
+  id          String        @id @default(uuid()) @db.Uuid
+  recruiterId String        @map("recruiter_id") @db.Uuid
+  talentId    String        @map("talent_id") @db.Uuid
+  decision    SwipeDecision
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  review Review?
+
+  @@unique([recruiterId, talentId])
+  @@index([talentId, decision])
+  @@index([recruiterId, createdAt])
+  @@map("swipes")
+}
+
+/// A recruiter's review of a candidate, optionally submitted with the swipe it
+/// belongs to. `hasActionableFeedback` is derived from `actionableAdvice` so
+/// consumers can filter without parsing the text.
+model Review {
+  id                    String        @id @default(uuid()) @db.Uuid
+  swipeId               String?       @unique @map("swipe_id") @db.Uuid
+  recruiterId           String        @map("recruiter_id") @db.Uuid
+  talentId              String        @map("talent_id") @db.Uuid
+  decision              SwipeDecision
+  rating                Int?
+  feedbackText          String?       @map("feedback_text") @db.Text
+  actionableAdvice      String?       @map("actionable_advice") @db.Text
+  hasActionableFeedback Boolean       @default(false) @map("has_actionable_feedback")
+  createdAt             DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  swipe Swipe? @relation(fields: [swipeId], references: [id], onDelete: SetNull)
+
+  @@index([talentId, createdAt])
+  @@index([recruiterId, createdAt])
+  @@map("reviews")
+}
+
+/// Transactional outbox: written in the same transaction as the business
+/// mutation, then relayed to RabbitMQ by the background worker.
+model OutboxEvent {
+  id            String       @id @default(uuid()) @db.Uuid
+  eventType     String       @map("event_type") @db.VarChar(120)
+  aggregateId   String       @map("aggregate_id") @db.VarChar(120)
+  payload       Json
+  correlationId String?      @map("correlation_id") @db.VarChar(120)
+  status        OutboxStatus @default(PENDING)
+  attempts      Int          @default(0)
+  availableAt   DateTime     @default(now()) @map("available_at") @db.Timestamptz(3)
+  publishedAt   DateTime?    @map("published_at") @db.Timestamptz(3)
+  lastError     String?      @map("last_error") @db.Text
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([status, availableAt])
+  @@map("outbox_events")
+}

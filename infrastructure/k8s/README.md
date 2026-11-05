@@ -10,6 +10,7 @@ Phase 9.5 deployment assets for talent.ai.
 | `auth-service.yaml` | `auth-service` Deployment + ClusterIP Service. |
 | `talent-service.yaml` | `talent-service` Deployment + ClusterIP Service (port 5002, MongoDB). |
 | `recruiter-service.yaml` | `recruiter-service` Deployment + ClusterIP Service (port 5003, PostgreSQL). |
+| `engagement-service.yaml` | `engagement-service` Deployment + ClusterIP Service (port 5004, PostgreSQL). |
 | `api-gateway.yaml` | `api-gateway` Deployment + ClusterIP Service. |
 | `hpa.yaml` | CPU/memory HPAs for every service. |
 | `ingress.yaml` | Nginx ingress for `api.talent.ai`, `talent.ai`, `recruiter.talent.ai`. |
@@ -25,6 +26,7 @@ kubectl apply -k infrastructure/k8s
 kubectl -n talent-ai create secret generic talent-ai-secrets \
   --from-literal=DATABASE_URL='postgresql://talent:...@postgres:5432/talent_auth' \
   --from-literal=RECRUITER_DATABASE_URL='postgresql://talent:...@postgres:5432/talent_recruiter?schema=public' \
+  --from-literal=ENGAGEMENT_DATABASE_URL='postgresql://talent:...@postgres:5432/talent_engagement?schema=public' \
   --from-literal=MONGODB_URI='mongodb://talent:...@mongodb:27017/talent_profiles?replicaSet=rs0' \
   --from-literal=REDIS_URL='redis://redis:6379' \
   --from-literal=RABBITMQ_URL='amqp://talent:...@rabbitmq:5672' \
@@ -44,9 +46,8 @@ Prerequisites:
 
 ## Adding a service
 
-Each new microservice (engagement, rewards, AI matching, notification,
-analytics) follows the same pattern as `auth-service.yaml` /
-`recruiter-service.yaml`:
+Each new microservice (rewards, AI matching, notification, analytics) follows
+the same pattern as `auth-service.yaml` / `recruiter-service.yaml`:
 
 1. Copy the Deployment/Service pair and replace every `auth-service` /
    `5001` occurrence with the new service name and `SERVICE_PORTS` value.

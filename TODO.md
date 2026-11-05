@@ -10,9 +10,9 @@
 
 | Engineer | Primary Focus Areas | Owned Microservices & Modules | Key Milestones & Phases |
 | :--- | :--- | :--- | :--- |
-| **Vijesh**<br/>`@vijesh` | **Platform Architecture, Security, DevOps & Talent/Recruiter Domains** | • `services/api-gateway`<br/>• `services/auth-service`<br/>• `services/talent-service`<br/>• `services/recruiter-service`<br/>• `packages/event-bus`<br/>• Infrastructure (`Docker`, `K8s`, `RabbitMQ`, `Redis`) | • Phase 0 (Monorepo & Infra setup)<br/>• Phase 1 (Gateway & IAM Auth)<br/>• Phase 2 (Talent Profile Service) ✦ reassigned<br/>• Phase 3 (Recruiter & Org Service) ✦ reassigned<br/>• Phase 9 (Observability, Security & CI/CD)<br/>• Production Deployment |
+| **Vijesh**<br/>`@vijesh` | **Platform Architecture, Security, DevOps & Talent/Recruiter/Engagement Domains** | • `services/api-gateway`<br/>• `services/auth-service`<br/>• `services/talent-service`<br/>• `services/recruiter-service`<br/>• `services/engagement-service`<br/>• `packages/event-bus`<br/>• Infrastructure (`Docker`, `K8s`, `RabbitMQ`, `Redis`) | • Phase 0 (Monorepo & Infra setup)<br/>• Phase 1 (Gateway & IAM Auth)<br/>• Phase 2 (Talent Profile Service) ✦ reassigned<br/>• Phase 3 (Recruiter & Org Service) ✦ reassigned<br/>• Phase 4 (Engagement & Review Service) ✦ reassigned<br/>• Phase 9 (Observability, Security & CI/CD)<br/>• Production Deployment |
 | **Varenya**<br/>`@varenya` | **AI Systems, Analytics & Vector Search** | • `services/ai-matching-service`<br/>• `services/analytics-service`<br/>• Vector DB (`Qdrant` / `pgvector`) | • Phase 6 (AI Engine, Embeddings & TalentLens)<br/>• Phase 7.2 (Analytics & Funnel Metrics)<br/>• Phase 10.1 (Data Migration Script) |
-| **Arun**<br/>`@arun` | **Engagement, Gamification & Frontends** | • `services/engagement-service`<br/>• `services/rewards-service`<br/>• `services/notification-service`<br/>• `apps/candidate-portal`<br/>• `apps/recruiter-portal`<br/>• `packages/ui` & `packages/api-client` | • Phase 0.3 (Brand Assets & UI Tokens)<br/>• Phase 4 (Engagement & Swipes)<br/>• Phase 5 (Rewards & Sagas)<br/>• Phase 7.1 (Notifications)<br/>• Phase 8 (Frontend Portals & Rebrand)<br/>• Phase 10.2 (E2E Integration Tests) |
+| **Arun**<br/>`@arun` | **Gamification & Frontends** | • `services/rewards-service`<br/>• `services/notification-service`<br/>• `apps/candidate-portal`<br/>• `apps/recruiter-portal`<br/>• `packages/ui` & `packages/api-client` | • Phase 0.3 (Brand Assets & UI Tokens)<br/>• Phase 5 (Rewards & Sagas)<br/>• Phase 7.1 (Notifications)<br/>• Phase 8 (Frontend Portals & Rebrand)<br/>• Phase 10.2 (E2E Integration Tests) |
 
 ---
 
@@ -57,7 +57,7 @@ flowchart TD
         AUTH["Auth & IAM Service<br/><b>[Owner: Vijesh]</b><br/>(Node.js / Express / Argon2)"]
         TALENT["Talent Profile Service<br/><b>[Owner: Vijesh]</b><br/>(Node.js / Mongoose)"]
         REC["Recruiter & Org Service<br/><b>[Owner: Vijesh]</b><br/>(Node.js / Prisma)"]
-        ENGAGE["Engagement & Review Service<br/><b>[Owner: Arun]</b><br/>(Node.js / Express)"]
+        ENGAGE["Engagement & Review Service<br/><b>[Owner: Vijesh]</b><br/>(Node.js / Prisma)"]
         REWARDS["Gamification & Rewards Service<br/><b>[Owner: Arun]</b><br/>(Coin Ledger & Subscriptions)"]
         AI_SVC["AI Matching & Intelligence Service<br/><b>[Owner: Varenya]</b><br/>(Python FastAPI / LangChain / Groq / Gemini)"]
         NOTIF["Notification Service<br/><b>[Owner: Arun]</b><br/>(Node.js / WebSockets / Nodemailer)"]
@@ -139,7 +139,7 @@ flowchart TD
 | **API Gateway & Routing** | Edge proxy, rate limiting, SSL, token validation, correlation | `GatewayRoute`, `RateLimitRule`, `TokenPayload` | `api-gateway` | **Vijesh** |
 | **Talent / Candidate** | Candidate profiles, skills taxonomy, education, work experience, level categorization | `TalentProfile`, `Skill`, `Education`, `WorkExperience`, `TalentLevel` | `talent-service` | **Vijesh** |
 | **Recruiter & Org** | Recruiter accounts, company affiliations, hiring criteria, job postings | `Recruiter`, `Organization`, `JobPosting`, `SubscriptionTier` | `recruiter-service` | **Vijesh** |
-| **Engagement & Interaction** | Recruiter swipe actions (right/left), review comments, candidate feedback | `SwipeInteraction`, `Review`, `Feedback`, `Decision` | `engagement-service` | **Arun** |
+| **Engagement & Interaction** | Recruiter swipe actions (right/left), review comments, candidate feedback | `SwipeInteraction`, `Review`, `Feedback`, `Decision` | `engagement-service` | **Vijesh** |
 | **Gamification & Rewards** | HR coin ledger, coin awards, redemption for tier-3 access, platform subscriptions | `CoinLedger`, `CoinTransaction`, `RewardRule`, `Subscription` | `rewards-service` | **Arun** |
 | **AI & Matching Intelligence** | Natural language filtering, fit scoring, profile summarization, career recommendations | `MatchEvaluation`, `TalentSummary`, `CareerSuggestion`, `EmbeddingVector` | `ai-matching-service` | **Varenya** |
 | **Notifications** | Async in-app alerts, emails to candidates on review, recruiter match alerts | `Notification`, `NotificationTemplate`, `DeliveryStatus` | `notification-service` | **Arun** |
@@ -212,7 +212,7 @@ flowchart TD
 | **1** | `services/auth-service` | Node.js / Express / TypeScript | 5001 | PostgreSQL (`talent_auth`) | User accounts, credentials, JWT issue/refresh, RBAC | **Vijesh** |
 | **2** | `services/talent-service` | Node.js / Express / TypeScript | 5002 | MongoDB (`talent_profiles`) | Candidate profile management, resumes, skill tags, tiers | **Vijesh** |
 | **3** | `services/recruiter-service` | Node.js / Express / TypeScript | 5003 | PostgreSQL (`talent_recruiter`) | Recruiter profiles, company info, hiring requisitions | **Vijesh** |
-| **4** | `services/engagement-service`| Node.js / Express / TypeScript | 5004 | PostgreSQL (`talent_engagement`) | Swipes (approve/reject), reviews, feedback records | **Arun** |
+| **4** | `services/engagement-service`| Node.js / Express / TypeScript | 5004 | PostgreSQL (`talent_engagement`) | Swipes (approve/reject), reviews, feedback records | **Vijesh** |
 | **5** | `services/rewards-service` | Node.js / Express / TypeScript | 5005 | PostgreSQL (`talent_rewards`) | TalentCredits ledger, coins for feedback, unlocks | **Arun** |
 | **6** | `services/ai-matching-service`| Python FastAPI / Node.js | 5006 | Qdrant (Vector DB) + Redis | LLM analysis, TalentLens semantic search, summaries | **Varenya** |
 | **7** | `services/notification-service`| Node.js / TypeScript | 5007 | MongoDB (`talent_notif`) | Email alerts, in-app WebSocket notifications | **Arun** |
@@ -332,19 +332,19 @@ flowchart TD
 ---
 
 ### Phase 4: Engagement & Review Service (Decoupling Swipes & Feedback)
-- [ ] **4.1 Architecture & Schema Design** `[Assignee: Arun]`:
-  - [ ] Build isolated `engagement-service` backed by PostgreSQL (`talent_engagement`).
-  - [ ] Schema:
+- [x] **4.1 Architecture & Schema Design** `[Assignee: Vijesh]`:
+  - [x] Build isolated `engagement-service` backed by PostgreSQL (`talent_engagement`).
+  - [x] Schema:
     - `swipes` table: `id`, `recruiterId`, `talentId`, `decision` (`APPROVE` | `REJECT`), `createdAt`. Unique constraint on `(recruiterId, talentId)`.
     - `reviews` table: `id`, `swipeId`, `recruiterId`, `talentId`, `rating`, `feedbackText`, `actionableAdvice`, `createdAt`.
-- [ ] **4.2 Engagement Service APIs** `[Assignee: Arun]`:
-  - [ ] `POST /api/v1/engagement/swipes` — Record swipe action.
-  - [ ] `POST /api/v1/engagement/reviews` — Submit candidate review and feedback.
-  - [ ] `GET /api/v1/engagement/talent/:talentId/summary` — Get aggregate swipe counts (`rightSwipes`, `leftSwipes`) and review comments for candidate dashboard.
-  - [ ] `GET /api/v1/engagement/recruiter/:recruiterId/history` — Get candidate review history for recruiter.
-- [ ] **4.3 Event Publishing** `[Assignee: Arun]`:
-  - [ ] Emit `swipe.recorded` event: `{ swipeId, recruiterId, talentId, decision, timestamp }`.
-  - [ ] Emit `review.submitted` event: `{ reviewId, recruiterId, talentId, decision, feedbackText, hasActionableFeedback: boolean }`.
+- [x] **4.2 Engagement Service APIs** `[Assignee: Vijesh]`:
+  - [x] `POST /api/v1/engagement/swipes` — Record swipe action.
+  - [x] `POST /api/v1/engagement/reviews` — Submit candidate review and feedback.
+  - [x] `GET /api/v1/engagement/talent/:talentId/summary` — Get aggregate swipe counts (`rightSwipes`, `leftSwipes`) and review comments for candidate dashboard.
+  - [x] `GET /api/v1/engagement/recruiter/:recruiterId/history` — Get candidate review history for recruiter.
+- [x] **4.3 Event Publishing** `[Assignee: Vijesh]`:
+  - [x] Emit `swipe.recorded` event: `{ swipeId, recruiterId, talentId, decision, timestamp }`.
+  - [x] Emit `review.submitted` event: `{ reviewId, recruiterId, talentId, decision, feedbackText, hasActionableFeedback: boolean }`.
 
 ---
 

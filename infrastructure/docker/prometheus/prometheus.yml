@@ -17,4 +17,5 @@ scrape_configs:
       - targets: ['auth-service:5001']
       - targets: ['talent-service:5002']
       - targets: ['recruiter-service:5003']
+      - targets: ['engagement-service:5004']
       - targets: ['api-gateway:8080']
