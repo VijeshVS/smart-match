@@ -70,7 +70,7 @@ recruiter-portal ─┘               ├─→ talent-service
 | `talent-service` | 5002 | MongoDB (`talent_profiles`) | Implemented |
 | `recruiter-service` | 5003 | PostgreSQL (`talent_recruiter`) | Implemented |
 | `engagement-service` | 5004 | PostgreSQL (`talent_engagement`) | Implemented |
-| `rewards-service` | 5005 | PostgreSQL (`talent_rewards`) | Planned |
+| `rewards-service` | 5005 | PostgreSQL (`talent_rewards`) | Implemented |
 | `ai-matching-service` | 5006 | Qdrant + Redis | Planned |
 | `notification-service` | 5007 | MongoDB (`talent_notif`) | Planned |
 | `analytics-service` | 5008 | PostgreSQL / ClickHouse | Planned |
@@ -184,7 +184,7 @@ pnpm db:auth:seed
 ### 4. Run the platform
 
 ```bash
-# API gateway + auth, talent, recruiter and engagement services
+# API gateway + auth, talent, recruiter, engagement and rewards services
 pnpm dev:services
 
 # Candidate and recruiter portals
@@ -259,6 +259,7 @@ talent.ai is delivered in phases. Phase 0 established the monorepo and brand
 foundation; Phase 1 delivered the auth service and API gateway; Phase 2 delivered
 the talent profile service and its transactional outbox; Phase 3 delivered the
 recruiter, organization and job-posting service; Phase 4 delivered the engagement,
-swipe and review service; Phase 9 added observability, containerization,
+swipe and review service; Phase 5 delivered the TalentCredits wallet, ledger and
+Tier-3 unlock service; Phase 9 added observability, containerization,
 Kubernetes manifests, and CI/CD. The remaining domain services
 and portals follow the plan in [`TODO.md`](TODO.md).

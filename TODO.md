@@ -10,9 +10,9 @@
 
 | Engineer | Primary Focus Areas | Owned Microservices & Modules | Key Milestones & Phases |
 | :--- | :--- | :--- | :--- |
-| **Vijesh**<br/>`@vijesh` | **Platform Architecture, Security, DevOps & Talent/Recruiter/Engagement Domains** | • `services/api-gateway`<br/>• `services/auth-service`<br/>• `services/talent-service`<br/>• `services/recruiter-service`<br/>• `services/engagement-service`<br/>• `packages/event-bus`<br/>• Infrastructure (`Docker`, `K8s`, `RabbitMQ`, `Redis`) | • Phase 0 (Monorepo & Infra setup)<br/>• Phase 1 (Gateway & IAM Auth)<br/>• Phase 2 (Talent Profile Service) ✦ reassigned<br/>• Phase 3 (Recruiter & Org Service) ✦ reassigned<br/>• Phase 4 (Engagement & Review Service) ✦ reassigned<br/>• Phase 9 (Observability, Security & CI/CD)<br/>• Production Deployment |
+| **Vijesh**<br/>`@vijesh` | **Platform Architecture, Security, DevOps & Talent/Recruiter/Engagement/Rewards Domains** | • `services/api-gateway`<br/>• `services/auth-service`<br/>• `services/talent-service`<br/>• `services/recruiter-service`<br/>• `services/engagement-service`<br/>• `services/rewards-service`<br/>• `packages/event-bus`<br/>• Infrastructure (`Docker`, `K8s`, `RabbitMQ`, `Redis`) | • Phase 0 (Monorepo & Infra setup)<br/>• Phase 1 (Gateway & IAM Auth)<br/>• Phase 2 (Talent Profile Service) ✦ reassigned<br/>• Phase 3 (Recruiter & Org Service) ✦ reassigned<br/>• Phase 4 (Engagement & Review Service) ✦ reassigned<br/>• Phase 5 (Rewards & Sagas) ✦ reassigned<br/>• Phase 9 (Observability, Security & CI/CD)<br/>• Production Deployment |
 | **Varenya**<br/>`@varenya` | **AI Systems, Analytics & Vector Search** | • `services/ai-matching-service`<br/>• `services/analytics-service`<br/>• Vector DB (`Qdrant` / `pgvector`) | • Phase 6 (AI Engine, Embeddings & TalentLens)<br/>• Phase 7.2 (Analytics & Funnel Metrics)<br/>• Phase 10.1 (Data Migration Script) |
-| **Arun**<br/>`@arun` | **Gamification & Frontends** | • `services/rewards-service`<br/>• `services/notification-service`<br/>• `apps/candidate-portal`<br/>• `apps/recruiter-portal`<br/>• `packages/ui` & `packages/api-client` | • Phase 0.3 (Brand Assets & UI Tokens)<br/>• Phase 5 (Rewards & Sagas)<br/>• Phase 7.1 (Notifications)<br/>• Phase 8 (Frontend Portals & Rebrand)<br/>• Phase 10.2 (E2E Integration Tests) |
+| **Arun**<br/>`@arun` | **Notifications & Frontends** | • `services/notification-service`<br/>• `apps/candidate-portal`<br/>• `apps/recruiter-portal`<br/>• `packages/ui` & `packages/api-client` | • Phase 0.3 (Brand Assets & UI Tokens)<br/>• Phase 7.1 (Notifications)<br/>• Phase 8 (Frontend Portals & Rebrand)<br/>• Phase 10.2 (E2E Integration Tests) |
 
 ---
 
@@ -58,7 +58,7 @@ flowchart TD
         TALENT["Talent Profile Service<br/><b>[Owner: Vijesh]</b><br/>(Node.js / Mongoose)"]
         REC["Recruiter & Org Service<br/><b>[Owner: Vijesh]</b><br/>(Node.js / Prisma)"]
         ENGAGE["Engagement & Review Service<br/><b>[Owner: Vijesh]</b><br/>(Node.js / Prisma)"]
-        REWARDS["Gamification & Rewards Service<br/><b>[Owner: Arun]</b><br/>(Coin Ledger & Subscriptions)"]
+        REWARDS["Gamification & Rewards Service<br/><b>[Owner: Vijesh]</b><br/>(Coin Ledger & Subscriptions)"]
         AI_SVC["AI Matching & Intelligence Service<br/><b>[Owner: Varenya]</b><br/>(Python FastAPI / LangChain / Groq / Gemini)"]
         NOTIF["Notification Service<br/><b>[Owner: Arun]</b><br/>(Node.js / WebSockets / Nodemailer)"]
         ANALYTICS["Analytics & Reporting Service<br/><b>[Owner: Varenya]</b><br/>(Node.js / ClickHouse or Mongo)"]
@@ -140,7 +140,7 @@ flowchart TD
 | **Talent / Candidate** | Candidate profiles, skills taxonomy, education, work experience, level categorization | `TalentProfile`, `Skill`, `Education`, `WorkExperience`, `TalentLevel` | `talent-service` | **Vijesh** |
 | **Recruiter & Org** | Recruiter accounts, company affiliations, hiring criteria, job postings | `Recruiter`, `Organization`, `JobPosting`, `SubscriptionTier` | `recruiter-service` | **Vijesh** |
 | **Engagement & Interaction** | Recruiter swipe actions (right/left), review comments, candidate feedback | `SwipeInteraction`, `Review`, `Feedback`, `Decision` | `engagement-service` | **Vijesh** |
-| **Gamification & Rewards** | HR coin ledger, coin awards, redemption for tier-3 access, platform subscriptions | `CoinLedger`, `CoinTransaction`, `RewardRule`, `Subscription` | `rewards-service` | **Arun** |
+| **Gamification & Rewards** | HR coin ledger, coin awards, redemption for tier-3 access, platform subscriptions | `CoinLedger`, `CoinTransaction`, `RewardRule`, `Subscription` | `rewards-service` | **Vijesh** |
 | **AI & Matching Intelligence** | Natural language filtering, fit scoring, profile summarization, career recommendations | `MatchEvaluation`, `TalentSummary`, `CareerSuggestion`, `EmbeddingVector` | `ai-matching-service` | **Varenya** |
 | **Notifications** | Async in-app alerts, emails to candidates on review, recruiter match alerts | `Notification`, `NotificationTemplate`, `DeliveryStatus` | `notification-service` | **Arun** |
 | **Analytics & Reporting** | Funnel conversion, swipe ratios, skill demand metrics, leaderboard | `HiringMetric`, `FunnelAggregate`, `SkillAnalytics` | `analytics-service` | **Varenya** |
@@ -213,7 +213,7 @@ flowchart TD
 | **2** | `services/talent-service` | Node.js / Express / TypeScript | 5002 | MongoDB (`talent_profiles`) | Candidate profile management, resumes, skill tags, tiers | **Vijesh** |
 | **3** | `services/recruiter-service` | Node.js / Express / TypeScript | 5003 | PostgreSQL (`talent_recruiter`) | Recruiter profiles, company info, hiring requisitions | **Vijesh** |
 | **4** | `services/engagement-service`| Node.js / Express / TypeScript | 5004 | PostgreSQL (`talent_engagement`) | Swipes (approve/reject), reviews, feedback records | **Vijesh** |
-| **5** | `services/rewards-service` | Node.js / Express / TypeScript | 5005 | PostgreSQL (`talent_rewards`) | TalentCredits ledger, coins for feedback, unlocks | **Arun** |
+| **5** | `services/rewards-service` | Node.js / Express / TypeScript | 5005 | PostgreSQL (`talent_rewards`) | TalentCredits ledger, coins for feedback, unlocks | **Vijesh** |
 | **6** | `services/ai-matching-service`| Python FastAPI / Node.js | 5006 | Qdrant (Vector DB) + Redis | LLM analysis, TalentLens semantic search, summaries | **Varenya** |
 | **7** | `services/notification-service`| Node.js / TypeScript | 5007 | MongoDB (`talent_notif`) | Email alerts, in-app WebSocket notifications | **Arun** |
 | **8** | `services/analytics-service` | Node.js / TypeScript | 5008 | PostgreSQL / ClickHouse | Telemetry, hiring conversion stats, talent insights | **Varenya** |
@@ -349,23 +349,23 @@ flowchart TD
 ---
 
 ### Phase 5: Gamification & Rewards Service (Coin Ledger & Subscriptions)
-- [ ] **5.1 Transactional Ledger & Wallet Modeling** `[Assignee: Arun]`:
-  - [ ] Build `rewards-service` with PostgreSQL (`talent_rewards`) ensuring strict ACID compliance for financial/coin balance transactions.
-  - [ ] Schema:
+- [x] **5.1 Transactional Ledger & Wallet Modeling** `[Assignee: Vijesh]`:
+  - [x] Build `rewards-service` with PostgreSQL (`talent_rewards`) ensuring strict ACID compliance for financial/coin balance transactions.
+  - [x] Schema:
     - `wallets`: `id`, `recruiterId`, `balance` (TalentCredits), `version` (optimistic locking).
     - `ledger_transactions`: `id`, `walletId`, `amount`, `type` (`CREDIT_REVIEW_FEEDBACK`, `DEBIT_TIER3_UNLOCK`, `CREDIT_PURCHASE`), `referenceId`, `description`, `createdAt`.
     - `talent_access_grants`: `id`, `recruiterId`, `talentId`, `tierUnlocked`, `expiresAt`, `createdAt`.
-- [ ] **5.2 Business Logic & APIs** `[Assignee: Arun]`:
-  - [ ] `GET /api/v1/rewards/wallet` — Get current TalentCredits balance and transaction history.
-  - [ ] `POST /api/v1/rewards/unlock-tier3` — Unlock Level-3 Elite candidate profile using TalentCredits or active subscription.
-  - [ ] Implement Saga for unlocking:
+- [x] **5.2 Business Logic & APIs** `[Assignee: Vijesh]`:
+  - [x] `GET /api/v1/rewards/wallet` — Get current TalentCredits balance and transaction history.
+  - [x] `POST /api/v1/rewards/unlock-tier3` — Unlock Level-3 Elite candidate profile using TalentCredits or active subscription.
+  - [x] Implement Saga for unlocking:
     1. Verify wallet balance (>= cost).
     2. Atomically debit coins from wallet with optimistic lock.
     3. Insert access grant record.
     4. Emit `rewards.tier3_unlocked` event.
     5. Trigger compensating rollback transaction if grant fails.
-- [ ] **5.3 Event Consumption** `[Assignee: Arun]`:
-  - [ ] Subscribe to `review.submitted` from message broker:
+- [x] **5.3 Event Consumption** `[Assignee: Vijesh]`:
+  - [x] Subscribe to `review.submitted` from message broker:
     - If `hasActionableFeedback` is true, credit 5 TalentCredits to recruiter wallet.
     - Write immutable ledger entry: `+5 TC (Review Incentive)`.
     - Emit `rewards.coins_awarded` event.
@@ -528,10 +528,10 @@ All asynchronous messages flow through the RabbitMQ topic exchange `talent.event
 | :--- | :--- | :--- | :--- | :--- |
 | `talent.profile.created` | `talent-service` | `ai-matching-service`, `analytics-service` | Generate vector embeddings; update aggregate counts | Producer: **Vijesh**<br/>Consumers: **Varenya** |
 | `talent.profile.updated` | `talent-service` | `ai-matching-service` | Re-index candidate in vector search | Producer: **Vijesh**<br/>Consumer: **Varenya** |
-| `swipe.recorded` | `engagement-service` | `analytics-service` | Track acceptance/rejection funnel metrics | Producer: **Arun**<br/>Consumer: **Varenya** |
-| `review.submitted` | `engagement-service` | `rewards-service`, `notification-service`, `analytics-service` | Award TalentCredits to HR; notify candidate | Producer: **Arun**<br/>Consumers: **Arun**, **Varenya** |
-| `rewards.coins_awarded` | `rewards-service` | `notification-service`, `analytics-service` | Notify recruiter of wallet credit | Producer: **Arun**<br/>Consumers: **Arun**, **Varenya** |
-| `rewards.tier3_unlocked` | `rewards-service` | `talent-service`, `notification-service` | Authorize recruiter view for Elite candidate | Producer: **Arun**<br/>Consumer: **Vijesh** |
+| `swipe.recorded` | `engagement-service` | `analytics-service` | Track acceptance/rejection funnel metrics | Producer: **Vijesh**<br/>Consumer: **Varenya** |
+| `review.submitted` | `engagement-service` | `rewards-service`, `notification-service`, `analytics-service` | Award TalentCredits to HR; notify candidate | Producer: **Vijesh**<br/>Consumers: **Vijesh**, **Arun**, **Varenya** |
+| `rewards.coins_awarded` | `rewards-service` | `notification-service`, `analytics-service` | Notify recruiter of wallet credit | Producer: **Vijesh**<br/>Consumers: **Arun**, **Varenya** |
+| `rewards.tier3_unlocked` | `rewards-service` | `talent-service`, `notification-service` | Authorize recruiter view for Elite candidate | Producer: **Vijesh**<br/>Consumer: **Vijesh** |
 | `ai.evaluation.completed`| `ai-matching-service`| `notification-service`, `analytics-service` | Notify recruiter of high-affinity candidate match | Producer: **Varenya**<br/>Consumers: **Arun**, **Varenya** |
 
 ---

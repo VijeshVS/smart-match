@@ -1,0 +1,50 @@
+import { describe, expect, it } from 'vitest';
+import {
+  reviewSubmittedPayloadSchema,
+  unlockTier3Schema,
+  walletQuerySchema,
+} from '../src/validation/rewards.schemas.js';
+
+const recruiterId = '11111111-1111-4111-8111-111111111111';
+const talentId = '99999999-9999-4999-8999-999999999999';
+const reviewId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+
+describe('rewards validation', () => {
+  it('parses an unlock request and keeps recruiterId optional', () => {
+    expect(unlockTier3Schema.parse({ talentId })).toEqual({ talentId });
+    expect(unlockTier3Schema.parse({ talentId, recruiterId })).toEqual({
+      talentId,
+      recruiterId,
+    });
+  });
+
+  it('rejects malformed unlock identifiers', () => {
+    expect(() => unlockTier3Schema.parse({ talentId: 'talent-1' })).toThrow();
+    expect(() => unlockTier3Schema.parse({ talentId, recruiterId: 'acme' })).toThrow();
+    expect(() => unlockTier3Schema.parse({})).toThrow();
+  });
+
+  it('validates the optional wallet query', () => {
+    expect(walletQuerySchema.parse({})).toEqual({});
+    expect(walletQuerySchema.parse({ recruiterId })).toEqual({ recruiterId });
+    expect(() => walletQuerySchema.parse({ recruiterId: 'not-a-uuid' })).toThrow();
+  });
+
+  it('validates the review.submitted payload', () => {
+    const payload = {
+      reviewId,
+      recruiterId,
+      talentId,
+      hasActionableFeedback: true,
+    };
+
+    expect(reviewSubmittedPayloadSchema.parse(payload)).toEqual(payload);
+    expect(() =>
+      reviewSubmittedPayloadSchema.parse({ ...payload, hasActionableFeedback: 'yes' }),
+    ).toThrow();
+    expect(() =>
+      reviewSubmittedPayloadSchema.parse({ ...payload, reviewId: 'review-1' }),
+    ).toThrow();
+    expect(() => reviewSubmittedPayloadSchema.parse({ recruiterId, talentId })).toThrow();
+  });
+});
