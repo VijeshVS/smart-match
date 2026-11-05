@@ -3,7 +3,7 @@
 | File | Purpose |
 | :--- | :--- |
 | `docker-compose.infra.yml` | PostgreSQL 16, Redis 7, RabbitMQ 3.13, Qdrant, MailHog, a single-node MongoDB replica set, and the observability stack (Jaeger, Prometheus, Grafana). |
-| `docker-compose.app.yml` | Application services (`auth-service`, `api-gateway`) built from `Dockerfile.service`. |
+| `docker-compose.app.yml` | Application services (`auth-service`, `talent-service`, `api-gateway`) built from `Dockerfile.service`. |
 | `Dockerfile.service` | Generic multi-stage Node 22/Alpine image for any workspace service. |
 | `../../docker-compose.yml` | Unified entry point that `include`s both stacks above. |
 | `docker-compose.yml` | Phase 0 transitional MongoDB instance for the legacy monolith. |
@@ -59,7 +59,7 @@ needs, builds workspace packages, then produces a production-only bundle with
 | Service | Address |
 | :--- | :--- |
 | PostgreSQL | `postgresql://talent:talent@localhost:5432` |
-| MongoDB | `mongodb://localhost:27017/talent_ai?directConnection=true` |
+| MongoDB | `mongodb://localhost:27017/talent_profiles?directConnection=true` |
 | Redis | `redis://localhost:6379` |
 | RabbitMQ AMQP | `amqp://talent:talent@localhost:5672` |
 | RabbitMQ Management | <http://localhost:15672> (`talent` / `talent`) |
@@ -72,6 +72,7 @@ needs, builds workspace packages, then produces a production-only bundle with
 | Prometheus | <http://localhost:9090> |
 | Grafana | <http://localhost:3100> (`admin` / `admin`) |
 | auth-service (app stack) | <http://localhost:5001> |
+| talent-service (app stack) | <http://localhost:5002> |
 | api-gateway (app stack) | <http://localhost:8080> |
 
 ## Observability

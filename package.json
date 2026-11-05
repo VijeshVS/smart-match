@@ -29,7 +29,7 @@
     "stack:down": "docker compose down",
     "stack:logs": "docker compose logs -f",
     "stack:config": "docker compose --env-file .env.example config",
-    "dev:services": "turbo run dev --parallel --filter=@talent-ai/auth-service --filter=@talent-ai/api-gateway",
+    "dev:services": "turbo run dev --parallel --filter=@talent-ai/auth-service --filter=@talent-ai/talent-service --filter=@talent-ai/api-gateway",
     "db:auth:generate": "pnpm --filter @talent-ai/auth-service db:generate",
     "db:auth:migrate": "pnpm --filter @talent-ai/auth-service db:migrate",
     "db:auth:deploy": "pnpm --filter @talent-ai/auth-service db:deploy",
