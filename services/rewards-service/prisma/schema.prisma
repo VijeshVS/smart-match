@@ -1,0 +1,105 @@
+// talent.ai — rewards-service schema (PostgreSQL / `talent_rewards`).
+//
+// Bounded context: TalentCredits wallets, the immutable coin ledger and
+// Level-3 access grants. Financial mutations always run inside a transaction
+// with optimistic locking on `wallets.version`.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("REWARDS_DATABASE_URL")
+}
+
+enum LedgerTransactionType {
+  CREDIT_REVIEW_FEEDBACK
+  CREDIT_PURCHASE
+  CREDIT_WELCOME_BONUS
+  DEBIT_TIER3_UNLOCK
+  ADJUSTMENT
+}
+
+enum TalentLevel {
+  LEVEL_1_ENTRY
+  LEVEL_2_MID
+  LEVEL_3_LEAD
+}
+
+enum OutboxStatus {
+  PENDING
+  PROCESSING
+  PUBLISHED
+  FAILED
+}
+
+model Wallet {
+  id          String   @id @default(uuid()) @db.Uuid
+  recruiterId String   @unique @map("recruiter_id") @db.Uuid
+  /// TalentCredits balance. Never updated without a matching ledger row.
+  balance     Int      @default(0)
+  /// Optimistic concurrency token; incremented on every mutation.
+  version     Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  transactions LedgerTransaction[]
+
+  @@map("wallets")
+}
+
+/// Append-only ledger. A wallet's balance is the sum of its immutable entries.
+model LedgerTransaction {
+  id           String              @id @default(uuid()) @db.Uuid
+  walletId     String              @map("wallet_id") @db.Uuid
+  amount       Int
+  type         LedgerTransactionType
+  /// Source aggregate id (review id, purchase id, grant id). The unique
+  /// constraint makes event-driven credits idempotent under redelivery.
+  referenceId  String?             @map("reference_id") @db.VarChar(120)
+  description  String?             @db.VarChar(255)
+  balanceAfter Int                 @map("balance_after")
+  createdAt    DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@unique([type, referenceId])
+  @@index([walletId, createdAt])
+  @@map("ledger_transactions")
+}
+
+model TalentAccessGrant {
+  id           String      @id @default(uuid()) @db.Uuid
+  recruiterId  String      @map("recruiter_id") @db.Uuid
+  talentId     String      @map("talent_id") @db.Uuid
+  tierUnlocked TalentLevel @default(LEVEL_3_LEAD) @map("tier_unlocked")
+  expiresAt    DateTime?   @map("expires_at") @db.Timestamptz(3)
+  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@unique([recruiterId, talentId, tierUnlocked])
+  @@index([recruiterId, createdAt])
+  @@map("talent_access_grants")
+}
+
+/// Transactional outbox: written in the same transaction as the business
+/// mutation, then relayed to RabbitMQ by the background worker.
+model OutboxEvent {
+  id            String       @id @default(uuid()) @db.Uuid
+  eventType     String       @map("event_type") @db.VarChar(120)
+  aggregateId   String       @map("aggregate_id") @db.VarChar(120)
+  payload       Json
+  correlationId String?      @map("correlation_id") @db.VarChar(120)
+  status        OutboxStatus @default(PENDING)
+  attempts      Int          @default(0)
+  availableAt   DateTime     @default(now()) @map("available_at") @db.Timestamptz(3)
+  publishedAt   DateTime?    @map("published_at") @db.Timestamptz(3)
+  lastError     String?      @map("last_error") @db.Text
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([status, availableAt])
+  @@map("outbox_events")
+}

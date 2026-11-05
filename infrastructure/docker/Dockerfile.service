@@ -35,7 +35,8 @@ COPY --from=pruner /app/tsconfig.base.json ./tsconfig.base.json
 # Prisma generate validates the datasource URL even without a live database.
 ENV DATABASE_URL=postgresql://build:build@localhost:5432/talent_auth \
     RECRUITER_DATABASE_URL=postgresql://build:build@localhost:5432/talent_recruiter \
-    ENGAGEMENT_DATABASE_URL=postgresql://build:build@localhost:5432/talent_engagement
+    ENGAGEMENT_DATABASE_URL=postgresql://build:build@localhost:5432/talent_engagement \
+    REWARDS_DATABASE_URL=postgresql://build:build@localhost:5432/talent_rewards
 RUN pnpm --filter "@talent-ai/${SERVICE_NAME}..." build
 
 # Produce a portable production bundle (workspace packages included).
