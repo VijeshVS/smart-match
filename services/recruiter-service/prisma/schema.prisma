@@ -1,0 +1,119 @@
+// talent.ai — recruiter-service schema (PostgreSQL / `talent_recruiter`).
+//
+// Bounded context: recruiter organizations, recruiter profiles and job
+// postings. No other service reads these tables.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("RECRUITER_DATABASE_URL")
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+}
+
+enum JobPostingStatus {
+  DRAFT
+  OPEN
+  CLOSED
+  ARCHIVED
+}
+
+enum OutboxStatus {
+  PENDING
+  PROCESSING
+  PUBLISHED
+  FAILED
+}
+
+model Organization {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String   @db.VarChar(200)
+  domain       String?  @unique @db.VarChar(255)
+  website      String?  @db.VarChar(500)
+  logoUrl      String?  @map("logo_url") @db.VarChar(500)
+  industry     String?  @db.VarChar(120)
+  size         String?  @db.VarChar(60)
+  billingEmail String?  @map("billing_email") @db.VarChar(254)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  recruiters   RecruiterProfile[]
+  jobPostings  JobPosting[]
+
+  @@index([name])
+  @@map("organizations")
+}
+
+model RecruiterProfile {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @unique @map("user_id") @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  fullName       String   @map("full_name") @db.VarChar(120)
+  email          String   @unique @db.VarChar(254)
+  title          String?  @db.VarChar(120)
+  phone          String?  @db.VarChar(32)
+  permissions    String[] @default([])
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  jobs         JobPosting[]
+
+  @@index([organizationId])
+  @@index([email])
+  @@map("recruiter_profiles")
+}
+
+model JobPosting {
+  id                 String           @id @default(uuid()) @db.Uuid
+  organizationId     String           @map("organization_id") @db.Uuid
+  recruiterId        String           @map("recruiter_id") @db.Uuid
+  title              String           @db.VarChar(200)
+  description        String           @db.Text
+  location           String?          @db.VarChar(200)
+  employmentType     EmploymentType   @default(FULL_TIME) @map("employment_type")
+  requiredSkills     String[]         @default([]) @map("required_skills")
+  minExperienceYears Int?             @map("min_experience_years")
+  maxExperienceYears Int?             @map("max_experience_years")
+  status             JobPostingStatus @default(OPEN)
+  createdAt          DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  recruiter    RecruiterProfile @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, status])
+  @@index([recruiterId, createdAt])
+  @@index([status, createdAt])
+  @@map("job_postings")
+}
+
+/// Transactional outbox: written in the same transaction as the business
+/// mutation, then relayed to RabbitMQ by the background worker.
+model OutboxEvent {
+  id            String       @id @default(uuid()) @db.Uuid
+  eventType     String       @map("event_type") @db.VarChar(120)
+  aggregateId   String       @map("aggregate_id") @db.VarChar(120)
+  payload       Json
+  correlationId String?      @map("correlation_id") @db.VarChar(120)
+  status        OutboxStatus @default(PENDING)
+  attempts      Int          @default(0)
+  availableAt   DateTime     @default(now()) @map("available_at") @db.Timestamptz(3)
+  publishedAt   DateTime?    @map("published_at") @db.Timestamptz(3)
+  lastError     String?      @map("last_error") @db.Text
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([status, availableAt])
+  @@map("outbox_events")
+}

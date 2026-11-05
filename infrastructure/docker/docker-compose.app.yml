@@ -111,6 +111,55 @@ services:
     networks:
       - talent-ai-network
 
+  recruiter-service:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_NAME: recruiter-service
+        SERVICE_PATH: services/recruiter-service
+        APP_PORT: 5003
+    image: talent-ai/recruiter-service:local
+    container_name: talent-ai-recruiter-service
+    restart: unless-stopped
+    init: true
+    env_file:
+      - path: ../../.env
+        required: false
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 5003
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      RECRUITER_DATABASE_URL: postgresql://${POSTGRES_USER:-talent}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/talent_recruiter?schema=public
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-talent}:${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD is required}@rabbitmq:5672
+      RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-talent.events.topic}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET is required}
+      JWT_ISSUER: ${JWT_ISSUER:-talent.ai}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-talent.ai}
+      TRUST_GATEWAY_HEADERS: 'true'
+      OUTBOX_POLL_INTERVAL_MS: ${OUTBOX_POLL_INTERVAL_MS:-2000}
+      OUTBOX_BATCH_SIZE: ${OUTBOX_BATCH_SIZE:-25}
+      OUTBOX_MAX_ATTEMPTS: ${OUTBOX_MAX_ATTEMPTS:-10}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:3001}
+      OTEL_ENABLED: ${OTEL_ENABLED:-true}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      TRUST_PROXY: ${TRUST_PROXY:-true}
+    ports:
+      - '${RECRUITER_SERVICE_PORT:-5003}:5003'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:5003/health/liveness >/dev/null || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - talent-ai-network
+
   api-gateway:
     build:
       context: ../..

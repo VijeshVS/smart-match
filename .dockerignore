@@ -3,6 +3,7 @@
 .github
 **/node_modules
 **/dist
+**/src/generated
 **/.turbo
 **/coverage
 **/.env
