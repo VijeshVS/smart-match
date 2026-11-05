@@ -33,6 +33,8 @@ jobs:
             port: 5002
           - service: recruiter-service
             port: 5003
+          - service: engagement-service
+            port: 5004
           - service: api-gateway
             port: 8080
 

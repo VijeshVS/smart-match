@@ -1,0 +1,48 @@
+{
+  "name": "@talent-ai/engagement-service",
+  "version": "0.1.0",
+  "private": true,
+  "description": "talent.ai Engagement service — swipe decisions, candidate reviews and feedback",
+  "type": "module",
+  "main": "./dist/server.js",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "generate": "prisma generate",
+    "build": "pnpm generate && tsc -p tsconfig.build.json && node scripts/copy-prisma-engine.mjs",
+    "start": "node dist/server.js",
+    "typecheck": "pnpm generate && tsc -p tsconfig.json --noEmit",
+    "lint": "pnpm generate && tsc -p tsconfig.json --noEmit",
+    "test": "pnpm generate && vitest run --passWithNoTests",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio",
+    "clean": "rm -rf dist src/generated"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.2.1",
+    "@talent-ai/event-bus": "workspace:*",
+    "@talent-ai/logger": "workspace:*",
+    "@talent-ai/observability": "workspace:*",
+    "@talent-ai/shared-types": "workspace:*",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^22.10.2",
+    "prisma": "^6.2.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

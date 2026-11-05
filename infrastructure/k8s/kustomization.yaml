@@ -8,6 +8,7 @@ resources:
   - auth-service.yaml
   - talent-service.yaml
   - recruiter-service.yaml
+  - engagement-service.yaml
   - api-gateway.yaml
   - hpa.yaml
   - ingress.yaml
@@ -24,6 +25,8 @@ images:
   - name: ghcr.io/vijeshvs/smart-match/talent-service
     newTag: latest
   - name: ghcr.io/vijeshvs/smart-match/recruiter-service
+    newTag: latest
+  - name: ghcr.io/vijeshvs/smart-match/engagement-service
     newTag: latest
   - name: ghcr.io/vijeshvs/smart-match/api-gateway
     newTag: latest
