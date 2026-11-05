@@ -68,7 +68,7 @@ recruiter-portal ─┘               ├─→ talent-service
 | `api-gateway` | 8080 | Redis | Implemented |
 | `auth-service` | 5001 | PostgreSQL (`talent_auth`) | Implemented |
 | `talent-service` | 5002 | MongoDB (`talent_profiles`) | Implemented |
-| `recruiter-service` | 5003 | PostgreSQL (`talent_recruiter`) | Planned |
+| `recruiter-service` | 5003 | PostgreSQL (`talent_recruiter`) | Implemented |
 | `engagement-service` | 5004 | PostgreSQL (`talent_engagement`) | Planned |
 | `rewards-service` | 5005 | PostgreSQL (`talent_rewards`) | Planned |
 | `ai-matching-service` | 5006 | Qdrant + Redis | Planned |
@@ -184,7 +184,7 @@ pnpm db:auth:seed
 ### 4. Run the platform
 
 ```bash
-# API gateway + auth service
+# API gateway + auth, talent and recruiter services
 pnpm dev:services
 
 # Candidate and recruiter portals
@@ -211,6 +211,7 @@ pnpm stack:down    # preserves named volumes
 | API gateway | <http://localhost:8080> |
 | Auth service | <http://localhost:5001> |
 | Talent service | <http://localhost:5002> |
+| Recruiter service | <http://localhost:5003> |
 | Jaeger UI | <http://localhost:16686> |
 | Prometheus | <http://localhost:9090> |
 | Grafana | <http://localhost:3100> |
@@ -255,6 +256,7 @@ and publishes service images to GHCR on `main` and version tags.
 
 talent.ai is delivered in phases. Phase 0 established the monorepo and brand
 foundation; Phase 1 delivered the auth service and API gateway; Phase 2 delivered
-the talent profile service and its transactional outbox; Phase 9 added
-observability, containerization, Kubernetes manifests, and CI/CD. The remaining
-domain services and portals follow the plan in [`TODO.md`](TODO.md).
+the talent profile service and its transactional outbox; Phase 3 delivered the
+recruiter, organization and job-posting service; Phase 9 added observability,
+containerization, Kubernetes manifests, and CI/CD. The remaining domain services
+and portals follow the plan in [`TODO.md`](TODO.md).

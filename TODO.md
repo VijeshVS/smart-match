@@ -10,8 +10,8 @@
 
 | Engineer | Primary Focus Areas | Owned Microservices & Modules | Key Milestones & Phases |
 | :--- | :--- | :--- | :--- |
-| **Vijesh**<br/>`@vijesh` | **Platform Architecture, Security, DevOps & Talent Domain** | • `services/api-gateway`<br/>• `services/auth-service`<br/>• `services/talent-service`<br/>• `packages/event-bus`<br/>• Infrastructure (`Docker`, `K8s`, `RabbitMQ`, `Redis`) | • Phase 0 (Monorepo & Infra setup)<br/>• Phase 1 (Gateway & IAM Auth)<br/>• Phase 2 (Talent Profile Service) ✦ reassigned<br/>• Phase 9 (Observability, Security & CI/CD)<br/>• Production Deployment |
-| **Varenya**<br/>`@varenya` | **AI Systems, Analytics & Recruiter Domain** | • `services/ai-matching-service`<br/>• `services/recruiter-service`<br/>• `services/analytics-service`<br/>• Vector DB (`Qdrant` / `pgvector`) | • Phase 3 (Recruiter & Org Service)<br/>• Phase 6 (AI Engine, Embeddings & TalentLens)<br/>• Phase 7.2 (Analytics & Funnel Metrics)<br/>• Phase 10.1 (Data Migration Script) |
+| **Vijesh**<br/>`@vijesh` | **Platform Architecture, Security, DevOps & Talent/Recruiter Domains** | • `services/api-gateway`<br/>• `services/auth-service`<br/>• `services/talent-service`<br/>• `services/recruiter-service`<br/>• `packages/event-bus`<br/>• Infrastructure (`Docker`, `K8s`, `RabbitMQ`, `Redis`) | • Phase 0 (Monorepo & Infra setup)<br/>• Phase 1 (Gateway & IAM Auth)<br/>• Phase 2 (Talent Profile Service) ✦ reassigned<br/>• Phase 3 (Recruiter & Org Service) ✦ reassigned<br/>• Phase 9 (Observability, Security & CI/CD)<br/>• Production Deployment |
+| **Varenya**<br/>`@varenya` | **AI Systems, Analytics & Vector Search** | • `services/ai-matching-service`<br/>• `services/analytics-service`<br/>• Vector DB (`Qdrant` / `pgvector`) | • Phase 6 (AI Engine, Embeddings & TalentLens)<br/>• Phase 7.2 (Analytics & Funnel Metrics)<br/>• Phase 10.1 (Data Migration Script) |
 | **Arun**<br/>`@arun` | **Engagement, Gamification & Frontends** | • `services/engagement-service`<br/>• `services/rewards-service`<br/>• `services/notification-service`<br/>• `apps/candidate-portal`<br/>• `apps/recruiter-portal`<br/>• `packages/ui` & `packages/api-client` | • Phase 0.3 (Brand Assets & UI Tokens)<br/>• Phase 4 (Engagement & Swipes)<br/>• Phase 5 (Rewards & Sagas)<br/>• Phase 7.1 (Notifications)<br/>• Phase 8 (Frontend Portals & Rebrand)<br/>• Phase 10.2 (E2E Integration Tests) |
 
 ---
@@ -56,7 +56,7 @@ flowchart TD
     subgraph CoreServices["Domain Microservices"]
         AUTH["Auth & IAM Service<br/><b>[Owner: Vijesh]</b><br/>(Node.js / Express / Argon2)"]
         TALENT["Talent Profile Service<br/><b>[Owner: Vijesh]</b><br/>(Node.js / Mongoose)"]
-        REC["Recruiter & Org Service<br/><b>[Owner: Varenya]</b><br/>(Node.js / Prisma)"]
+        REC["Recruiter & Org Service<br/><b>[Owner: Vijesh]</b><br/>(Node.js / Prisma)"]
         ENGAGE["Engagement & Review Service<br/><b>[Owner: Arun]</b><br/>(Node.js / Express)"]
         REWARDS["Gamification & Rewards Service<br/><b>[Owner: Arun]</b><br/>(Coin Ledger & Subscriptions)"]
         AI_SVC["AI Matching & Intelligence Service<br/><b>[Owner: Varenya]</b><br/>(Python FastAPI / LangChain / Groq / Gemini)"]
@@ -115,7 +115,7 @@ flowchart TD
     TALENT -.->|publish: talent.registered, talent.updated| BROKER
     ENGAGE -.->|publish: review.submitted, swipe.recorded| BROKER
     REWARDS -.->|publish: coins.awarded, subscription.unlocked| BROKER
-    REC -.->|publish: recruiter.registered, job.created| BROKER
+    REC -.->|publish: recruiter.registered, recruiter.job_posted| BROKER
 
     BROKER -.->|consume: review.submitted| REWARDS
     BROKER -.->|consume: review.submitted, match.found| NOTIF
@@ -138,7 +138,7 @@ flowchart TD
 | **Identity & Access** | Authentication, authorization, token lifecycle, RBAC | `User`, `Account`, `RefreshToken`, `Role`, `Permission` | `auth-service` | **Vijesh** |
 | **API Gateway & Routing** | Edge proxy, rate limiting, SSL, token validation, correlation | `GatewayRoute`, `RateLimitRule`, `TokenPayload` | `api-gateway` | **Vijesh** |
 | **Talent / Candidate** | Candidate profiles, skills taxonomy, education, work experience, level categorization | `TalentProfile`, `Skill`, `Education`, `WorkExperience`, `TalentLevel` | `talent-service` | **Vijesh** |
-| **Recruiter & Org** | Recruiter accounts, company affiliations, hiring criteria, job postings | `Recruiter`, `Organization`, `JobPosting`, `SubscriptionTier` | `recruiter-service` | **Varenya** |
+| **Recruiter & Org** | Recruiter accounts, company affiliations, hiring criteria, job postings | `Recruiter`, `Organization`, `JobPosting`, `SubscriptionTier` | `recruiter-service` | **Vijesh** |
 | **Engagement & Interaction** | Recruiter swipe actions (right/left), review comments, candidate feedback | `SwipeInteraction`, `Review`, `Feedback`, `Decision` | `engagement-service` | **Arun** |
 | **Gamification & Rewards** | HR coin ledger, coin awards, redemption for tier-3 access, platform subscriptions | `CoinLedger`, `CoinTransaction`, `RewardRule`, `Subscription` | `rewards-service` | **Arun** |
 | **AI & Matching Intelligence** | Natural language filtering, fit scoring, profile summarization, career recommendations | `MatchEvaluation`, `TalentSummary`, `CareerSuggestion`, `EmbeddingVector` | `ai-matching-service` | **Varenya** |
@@ -211,7 +211,7 @@ flowchart TD
 | **0** | `services/api-gateway` | Express / Traefik / Envoy | 8080 | Redis (Rate Limiting & Sessions) | Entry point, routing, auth guard, rate limit, CORS | **Vijesh** |
 | **1** | `services/auth-service` | Node.js / Express / TypeScript | 5001 | PostgreSQL (`talent_auth`) | User accounts, credentials, JWT issue/refresh, RBAC | **Vijesh** |
 | **2** | `services/talent-service` | Node.js / Express / TypeScript | 5002 | MongoDB (`talent_profiles`) | Candidate profile management, resumes, skill tags, tiers | **Vijesh** |
-| **3** | `services/recruiter-service` | Node.js / Express / TypeScript | 5003 | PostgreSQL (`talent_recruiter`) | Recruiter profiles, company info, hiring requisitions | **Varenya** |
+| **3** | `services/recruiter-service` | Node.js / Express / TypeScript | 5003 | PostgreSQL (`talent_recruiter`) | Recruiter profiles, company info, hiring requisitions | **Vijesh** |
 | **4** | `services/engagement-service`| Node.js / Express / TypeScript | 5004 | PostgreSQL (`talent_engagement`) | Swipes (approve/reject), reviews, feedback records | **Arun** |
 | **5** | `services/rewards-service` | Node.js / Express / TypeScript | 5005 | PostgreSQL (`talent_rewards`) | TalentCredits ledger, coins for feedback, unlocks | **Arun** |
 | **6** | `services/ai-matching-service`| Python FastAPI / Node.js | 5006 | Qdrant (Vector DB) + Redis | LLM analysis, TalentLens semantic search, summaries | **Varenya** |
@@ -318,16 +318,16 @@ flowchart TD
 ---
 
 ### Phase 3: Recruiter & Organization Service
-- [ ] **3.1 Recruiter Domain Modeling** `[Assignee: Varenya]`:
-  - [ ] Create PostgreSQL schema for `RecruiterProfile`, `Organization`, `JobPosting`.
-  - [ ] Map recruiter accounts to companies, billing details, and team permissions.
-- [ ] **3.2 Recruiter Service APIs** `[Assignee: Varenya]`:
-  - [ ] `POST /api/v1/recruiters/profile` — Initialize or update recruiter profile.
-  - [ ] `GET /api/v1/recruiters/me` — Get authenticated recruiter profile and organization context.
-  - [ ] `POST /api/v1/recruiters/jobs` — Create a new hiring requirement / job listing.
-  - [ ] `GET /api/v1/recruiters/jobs` — List active job listings for candidate matching.
-- [ ] **3.3 Event Integration** `[Assignee: Varenya]`:
-  - [ ] Publish `recruiter.registered` and `recruiter.job_posted`.
+- [x] **3.1 Recruiter Domain Modeling** `[Assignee: Vijesh]`:
+  - [x] Create PostgreSQL schema for `RecruiterProfile`, `Organization`, `JobPosting`.
+  - [x] Map recruiter accounts to companies, billing details, and team permissions.
+- [x] **3.2 Recruiter Service APIs** `[Assignee: Vijesh]`:
+  - [x] `POST /api/v1/recruiters/profile` — Initialize or update recruiter profile.
+  - [x] `GET /api/v1/recruiters/me` — Get authenticated recruiter profile and organization context.
+  - [x] `POST /api/v1/recruiters/jobs` — Create a new hiring requirement / job listing.
+  - [x] `GET /api/v1/recruiters/jobs` — List active job listings for candidate matching.
+- [x] **3.3 Event Integration** `[Assignee: Vijesh]`:
+  - [x] Publish `recruiter.registered` and `recruiter.job_posted`.
 
 ---
 

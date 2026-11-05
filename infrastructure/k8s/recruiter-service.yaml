@@ -1,0 +1,112 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: recruiter-service
+  labels:
+    app.kubernetes.io/name: recruiter-service
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: talent-ai
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: recruiter-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: recruiter-service
+        app.kubernetes.io/component: backend
+        app.kubernetes.io/part-of: talent-ai
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '5003'
+        prometheus.io/path: /metrics
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: recruiter-service
+      containers:
+        - name: recruiter-service
+          image: ghcr.io/vijeshvs/smart-match/recruiter-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 5003
+          envFrom:
+            - configMapRef:
+                name: talent-ai-config
+            - secretRef:
+                name: talent-ai-secrets
+          env:
+            # The shared ConfigMap carries auth-service's PORT; each service
+            # overrides it with its own listen port.
+            - name: PORT
+              value: '5003'
+            - name: TRUST_GATEWAY_HEADERS
+              value: 'true'
+          readinessProbe:
+            httpGet:
+              path: /health/readiness
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health/liveness
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 192Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ['ALL']
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: recruiter-service
+  labels:
+    app.kubernetes.io/name: recruiter-service
+    app.kubernetes.io/part-of: talent-ai
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: recruiter-service
+  ports:
+    - name: http
+      port: 5003
+      targetPort: http
