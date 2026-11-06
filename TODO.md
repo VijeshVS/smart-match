@@ -413,35 +413,52 @@ flowchart TD
 ---
 
 ### Phase 8: Frontend Modernization & talent.ai UI Revamp
-- [ ] **8.1 Architecture & API Client Centralization** `[Assignee: Arun]`:
-  - [ ] Remove all hardcoded `http://localhost:3000` and `http://localhost:3001` URLs from both frontends.
-  - [ ] Create `packages/api-client` (Axios / TanStack Query) configured with `VITE_API_GATEWAY_URL`.
-  - [ ] Add request interceptors to automatically attach JWT bearer token and handle token refresh on 401.
-- [ ] **8.2 Candidate Portal Modernization (`apps/candidate-portal`)** `[Assignee: Arun]`:
-  - [ ] Rebrand completely to **talent.ai Candidate Portal**:
-    - Update logos, favicons, navbar brand text, page headers, and meta titles.
-    - Polish UI with modern glassmorphism, glowing gradients, and responsive layouts.
-  - [ ] `Landing.tsx`: Add genuine auth modal (Login / Sign Up) connected to `auth-service`.
-  - [ ] `Onboarding.tsx`: Connect multi-step wizard to `POST /api/v1/talent` via Gateway.
-  - [ ] `Dashboard.tsx`:
-    - Fetch candidate profile from `talent-service`.
-    - Fetch swipe counts and reviews from `engagement-service`.
-    - Fetch AI summary and career recommendations from `ai-matching-service`.
-    - Display real-time notification badge connected to `notification-service` WebSockets.
-- [ ] **8.3 Recruiter Portal Modernization (`apps/recruiter-portal`)** `[Assignee: Arun]`:
-  - [ ] Rebrand completely to **talent.ai for Recruiters**:
-    - Update logos, favicons, sidebar branding, and hero titles.
-  - [ ] `Home.tsx`: Add Recruiter Login & Organization selector.
-  - [ ] `Jumble.tsx` (Rebrand to **TalentSwipe**):
-    - Replace mock swipe endpoints with `engagement-service`.
-    - Connect review submission to `engagement-service` and display live TalentCredits earned from `rewards-service`.
-    - Restrict Level-3 Elite candidate cards unless unlocked via TalentCredits or active subscription.
-  - [ ] `Filter.tsx` (Rebrand to **TalentLens**):
-    - Connect natural language search bar to `ai-matching-service` (`POST /api/v1/ai/talent-lens`).
-    - Display match confidence scores and highlighted candidate key strengths.
-  - [ ] `Candidates.tsx`:
-    - Paginated candidate directory with filters by skill, tier, and experience.
-    - "Unlock Profile" modal triggering the `rewards-service` unlock Saga.
+- [x] **8.1 Architecture & API Client Centralization** `[Assignee: Arun]`:
+  - [x] Remove all hardcoded `http://localhost:3000` and `http://localhost:3001` URLs from both frontends.
+    - Portal origins now come from `VITE_*` env vars; every backend call flows through the Gateway.
+  - [x] Create `packages/api-client` (Axios / TanStack Query) configured with `VITE_API_GATEWAY_URL`.
+    - Axios client with typed modules (`auth`, `talent`, `recruiters`, `engagement`, `rewards`, `ai`,
+      `notifications`, `analytics`), shared DTOs from `@talent-ai/shared-types`, and a
+      `notificationSocketUrl` derived from `VITE_NOTIFICATION_WS_URL`.
+  - [x] Add request interceptors to automatically attach JWT bearer token and handle token refresh on 401.
+    - Single-flight refresh with request replay, token persistence in `authStore`, and automatic
+      sign-out when the refresh token is rejected.
+- [x] **8.2 Candidate Portal Modernization (`apps/candidate-portal`)** `[Assignee: Arun]`:
+  - [x] Rebrand completely to **talent.ai Candidate Portal**:
+    - [x] Update logos, favicons, navbar brand text, page headers, and meta titles.
+    - [x] Polish UI with modern glassmorphism, glowing gradients, and responsive layouts.
+    - shadcn/ui on Tailwind v4 with a shared dark brand theme, `BrandMark`/`BrandWordmark`,
+      motion-safe transitions and mobile-first layouts.
+  - [x] `Landing.tsx`: Add genuine auth modal (Login / Sign Up) connected to `auth-service`.
+    - `AuthDialog` drives `authApi.login` / `authApi.register`, validates password strength and
+      surfaces Gateway errors inline.
+  - [x] `Onboarding.tsx`: Connect multi-step wizard to `POST /api/v1/talent` via Gateway.
+    - Validated wizard submits the full profile (education, experience, skills) through `talentApi`.
+  - [x] `Dashboard.tsx`:
+    - [x] Fetch candidate profile from `talent-service`.
+    - [x] Fetch swipe counts and reviews from `engagement-service`.
+    - [x] Fetch AI summary and career recommendations from `ai-matching-service`.
+    - [x] Display real-time notification badge connected to `notification-service` WebSockets.
+- [x] **8.3 Recruiter Portal Modernization (`apps/recruiter-portal`)** `[Assignee: Arun]`:
+  - [x] Rebrand completely to **talent.ai for Recruiters**:
+    - [x] Update logos, favicons, sidebar branding, and hero titles.
+  - [x] `Home.tsx`: Add Recruiter Login & Organization selector.
+    - Replaced by `AuthPage` (login/register) plus `OrgSetup` and the authenticated `AppShell`,
+      which resolves the recruiter's organization from `recruiter-service`.
+  - [x] `Jumble.tsx` (Rebrand to **TalentSwipe**):
+    - [x] Replace mock swipe endpoints with `engagement-service`.
+    - [x] Connect review submission to `engagement-service` and display live TalentCredits earned from `rewards-service`.
+    - [x] Restrict Level-3 Elite candidate cards unless unlocked via TalentCredits or active subscription.
+    - Implemented in `pages/talent-swipe.tsx` with `ReviewDialog`, shared `WalletProvider` state
+      and the `useUnlockedTalent` local grant cache.
+  - [x] `Filter.tsx` (Rebrand to **TalentLens**):
+    - [x] Connect natural language search bar to `ai-matching-service` (`POST /api/v1/ai/talent-lens`).
+    - [x] Display match confidence scores and highlighted candidate key strengths.
+    - Implemented in `pages/talent-lens.tsx`.
+  - [x] `Candidates.tsx`:
+    - [x] Paginated candidate directory with filters by skill, tier, and experience.
+    - [x] "Unlock Profile" modal triggering the `rewards-service` unlock Saga.
+    - Implemented in `pages/candidates.tsx` with `CandidateCard`, `CandidateDialog` and `UnlockDialog`.
 
 ---
 
@@ -489,22 +506,11 @@ flowchart TD
 
 ---
 
-### Phase 10: Data Migration, Integration Testing & Production Cutover
-- [ ] **10.1 Data Migration Script** `[Assignee: Varenya]`:
-  - [ ] Develop `scripts/migrate-monolith-to-microservices.ts`:
-    - Reads existing `smartmatch` candidate documents (from `candidate/backend/data.json` or live Mongo).
-    - Generates corresponding Auth records in `auth-service` PostgreSQL DB.
-    - Migrates candidate personal, education, and experience fields to `talent-service` MongoDB.
-    - Migrates historical `rightSwipes`, `leftSwipes`, and `reviews` into `engagement-service` PostgreSQL tables.
-    - Initializes recruiter wallets in `rewards-service` with appropriate initial TalentCredits.
-- [ ] **10.2 End-to-End Automated Testing** `[Assignee: Arun & Vijesh]`:
+### Phase 10: End to End Testing
+- [ ] **End-to-End Automated Testing** `[Assignee: Arun & Vijesh]`:
   - [ ] Postman / Newman or Playwright API collection testing the complete user journey:
     - Candidate register ➔ Complete profile ➔ Get AI summary.
     - Recruiter login ➔ Search with TalentLens ➔ Swipe candidate on TalentSwipe ➔ Submit feedback ➔ Verify TalentCredits awarded ➔ Unlock Level-3 candidate.
-- [ ] **10.3 Documentation & Runbooks** `[Assignees: Vijesh, Varenya & Arun]`:
-  - [ ] Comprehensive `README.md` update reflecting **talent.ai**.
-  - [ ] API documentation with Swagger / OpenAPI 3.0 specs for all microservices.
-  - [ ] Local development onboarding guide (`docs/DEVELOPMENT_SETUP.md`).
 
 ---
 
