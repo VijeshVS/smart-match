@@ -23,6 +23,8 @@ interface RouteSpec {
   auth: AuthMode;
   bucket: RateLimitBucket;
   keyBy: KeyMode;
+  /** Optional per-route proxy timeout for long-running operations. */
+  timeoutMs?: number;
 }
 
 interface CompiledRoute {
@@ -50,6 +52,7 @@ const ROUTE_SPECS: RouteSpec[] = [
     auth: 'required',
     bucket: 'sensitive',
     keyBy: 'user',
+    timeoutMs: config.proxy.aiTimeoutMs,
   },
   {
     name: 'talent-service',
@@ -199,8 +202,8 @@ function compileRoute(spec: RouteSpec): CompiledRoute {
     target: spec.target,
     changeOrigin: true,
     xfwd: true,
-    proxyTimeout: config.proxy.timeoutMs,
-    timeout: config.proxy.timeoutMs,
+    proxyTimeout: spec.timeoutMs ?? config.proxy.timeoutMs,
+    timeout: spec.timeoutMs ?? config.proxy.timeoutMs,
     on: {
       proxyReq(proxyReq) {
         const correlationId = getCorrelationId();

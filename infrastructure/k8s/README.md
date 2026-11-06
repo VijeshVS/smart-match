@@ -12,6 +12,7 @@ Phase 9.5 deployment assets for talent.ai.
 | `recruiter-service.yaml` | `recruiter-service` Deployment + ClusterIP Service (port 5003, PostgreSQL). |
 | `engagement-service.yaml` | `engagement-service` Deployment + ClusterIP Service (port 5004, PostgreSQL). |
 | `rewards-service.yaml` | `rewards-service` Deployment + ClusterIP Service (port 5005, PostgreSQL). |
+| `ai-matching-service.yaml` | `ai-matching-service` Deployment + ClusterIP Service (port 5006, Qdrant + Redis). |
 | `api-gateway.yaml` | `api-gateway` Deployment + ClusterIP Service. |
 | `hpa.yaml` | CPU/memory HPAs for every service. |
 | `ingress.yaml` | Nginx ingress for `api.talent.ai`, `talent.ai`, `recruiter.talent.ai`. |
@@ -33,14 +34,22 @@ kubectl -n talent-ai create secret generic talent-ai-secrets \
   --from-literal=REDIS_URL='redis://redis:6379' \
   --from-literal=RABBITMQ_URL='amqp://talent:...@rabbitmq:5672' \
   --from-literal=JWT_ACCESS_SECRET='...' \
-  --from-literal=JWT_REFRESH_SECRET='...'
+  --from-literal=JWT_REFRESH_SECRET='...' \
+  --from-literal=GROQ_API_KEY='...' \
+  --from-literal=GEMINI_API_KEY='...' \
+  --from-literal=OPENAI_API_KEY='...' \
+  --from-literal=QDRANT_API_KEY='...'
 ```
+
+The AI provider and Qdrant credentials are optional. With `AI_PROVIDER=auto` and
+no provider keys, `ai-matching-service` uses its deterministic local engine;
+`QDRANT_API_KEY` is only required when Qdrant has authentication enabled.
 
 Prerequisites:
 
 - An Nginx ingress controller and a `talent-ai-tls` certificate secret.
-- PostgreSQL, Redis, RabbitMQ and MongoDB reachable at the hosts referenced in
-  the secret / ConfigMap (in-cluster or managed services).
+- PostgreSQL, Redis, RabbitMQ, MongoDB and Qdrant reachable at the hosts
+  referenced in the secret / ConfigMap (in-cluster or managed services).
 - An OTLP endpoint at `jaeger-collector.observability.svc.cluster.local:4318`
   or an override of `OTEL_EXPORTER_OTLP_ENDPOINT` in the ConfigMap.
 - Metrics scraping: the pods carry `prometheus.io/scrape` annotations, so either

@@ -3,7 +3,7 @@
 | File | Purpose |
 | :--- | :--- |
 | `docker-compose.infra.yml` | PostgreSQL 16, Redis 7, RabbitMQ 3.13, Qdrant, MailHog, a single-node MongoDB replica set, and the observability stack (Jaeger, Prometheus, Grafana). |
-| `docker-compose.app.yml` | Application services (`auth-service`, `talent-service`, `recruiter-service`, `engagement-service`, `rewards-service`, `api-gateway`) built from `Dockerfile.service`. |
+| `docker-compose.app.yml` | Application services (`auth-service`, `talent-service`, `recruiter-service`, `engagement-service`, `rewards-service`, `ai-matching-service`, `api-gateway`) built from `Dockerfile.service`. |
 | `Dockerfile.service` | Generic multi-stage Node 22/Alpine image for any workspace service. |
 | `../../docker-compose.yml` | Unified entry point that `include`s both stacks above. |
 | `docker-compose.yml` | Phase 0 transitional MongoDB instance for the legacy monolith. |
@@ -11,7 +11,7 @@
 | `mongo/init-replica.js` | Initiates the `rs0` single-node replica set required for transactions and change streams. |
 | `rabbitmq/rabbitmq.conf` | Loads the exchange/queue definitions on boot. |
 | `rabbitmq/definitions.json` | Declares the `talent.events.topic` exchange, the `talent.events.dlx` dead-letter exchange, the `talent.events.dlq` queue, and the `talent` administrator user. |
-| `prometheus/prometheus.yml` | Scrapes `auth-service:5001`, `talent-service:5002`, `recruiter-service:5003`, `engagement-service:5004`, `rewards-service:5005`, `api-gateway:8080` and Prometheus itself every 15s. |
+| `prometheus/prometheus.yml` | Scrapes `auth-service:5001`, `talent-service:5002`, `recruiter-service:5003`, `engagement-service:5004`, `rewards-service:5005`, `ai-matching-service:5006`, `api-gateway:8080` and Prometheus itself every 15s. |
 | `grafana/provisioning/` | Prometheus datasource and dashboard provider. |
 | `grafana/dashboards/talent-overview.json` | Service health, request rate, error rate, latency, in-flight requests and memory. |
 
@@ -76,6 +76,7 @@ needs, builds workspace packages, then produces a production-only bundle with
 | recruiter-service (app stack) | <http://localhost:5003> |
 | engagement-service (app stack) | <http://localhost:5004> |
 | rewards-service (app stack) | <http://localhost:5005> |
+| ai-matching-service (app stack) | <http://localhost:5006> |
 | api-gateway (app stack) | <http://localhost:8080> |
 
 ## Observability

@@ -71,14 +71,19 @@ function resolveTargetUserId(input: CreateTalentProfileInput, principal: TalentP
 }
 
 function profileEventPayload(doc: TalentProfileDocument): TalentProfileCreatedPayload {
+  const profile = toTalentProfile(doc);
+
   return {
-    talentId: doc._id.toString(),
-    userId: doc.userId,
-    name: doc.name,
-    skills: [...doc.skills],
-    experienceYears: doc.experienceYears,
-    level: doc.level,
-    field: doc.field,
+    talentId: profile.id,
+    userId: profile.userId,
+    name: profile.name,
+    skills: profile.skills,
+    experienceYears: profile.experienceYears,
+    level: profile.level,
+    field: profile.field,
+    education: profile.education,
+    previousExperience: profile.previousExperience,
+    ...(profile.bio === undefined ? {} : { bio: profile.bio }),
   };
 }
 

@@ -19,4 +19,5 @@ scrape_configs:
       - targets: ['recruiter-service:5003']
       - targets: ['engagement-service:5004']
       - targets: ['rewards-service:5005']
+      - targets: ['ai-matching-service:5006']
       - targets: ['api-gateway:8080']

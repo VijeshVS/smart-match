@@ -54,6 +54,9 @@ jobs:
             echo "ENGAGEMENT_DATABASE_URL=postgresql://talent:talent@localhost:5432/talent_engagement?schema=public"
             echo "REWARDS_DATABASE_URL=postgresql://talent:talent@localhost:5432/talent_rewards?schema=public"
             echo "REDIS_URL=redis://localhost:6379"
+            echo "QDRANT_URL=http://localhost:6333"
+            echo "AI_PROVIDER=local"
+            echo "EMBEDDING_PROVIDER=local"
             echo "RABBITMQ_URL=amqp://talent:talent@localhost:5672"
             echo "JWT_ACCESS_SECRET=$(openssl rand -hex 32)"
             echo "JWT_REFRESH_SECRET=$(openssl rand -hex 32)"
@@ -93,6 +96,8 @@ jobs:
             port: 5004
           - service: rewards-service
             port: 5005
+          - service: ai-matching-service
+            port: 5006
           - service: api-gateway
             port: 8080
 

@@ -10,8 +10,8 @@
 
 | Engineer | Primary Focus Areas | Owned Microservices & Modules | Key Milestones & Phases |
 | :--- | :--- | :--- | :--- |
-| **Vijesh**<br/>`@vijesh` | **Platform Architecture, Security, DevOps & Talent/Recruiter/Engagement/Rewards Domains** | • `services/api-gateway`<br/>• `services/auth-service`<br/>• `services/talent-service`<br/>• `services/recruiter-service`<br/>• `services/engagement-service`<br/>• `services/rewards-service`<br/>• `packages/event-bus`<br/>• Infrastructure (`Docker`, `K8s`, `RabbitMQ`, `Redis`) | • Phase 0 (Monorepo & Infra setup)<br/>• Phase 1 (Gateway & IAM Auth)<br/>• Phase 2 (Talent Profile Service) ✦ reassigned<br/>• Phase 3 (Recruiter & Org Service) ✦ reassigned<br/>• Phase 4 (Engagement & Review Service) ✦ reassigned<br/>• Phase 5 (Rewards & Sagas) ✦ reassigned<br/>• Phase 9 (Observability, Security & CI/CD)<br/>• Production Deployment |
-| **Varenya**<br/>`@varenya` | **AI Systems, Analytics & Vector Search** | • `services/ai-matching-service`<br/>• `services/analytics-service`<br/>• Vector DB (`Qdrant` / `pgvector`) | • Phase 6 (AI Engine, Embeddings & TalentLens)<br/>• Phase 7.2 (Analytics & Funnel Metrics)<br/>• Phase 10.1 (Data Migration Script) |
+| **Vijesh**<br/>`@vijesh` | **Platform Architecture, Security, DevOps & Talent/Recruiter/Engagement/Rewards/AI Domains** | • `services/api-gateway`<br/>• `services/auth-service`<br/>• `services/talent-service`<br/>• `services/recruiter-service`<br/>• `services/engagement-service`<br/>• `services/rewards-service`<br/>• `services/ai-matching-service`<br/>• `packages/event-bus`<br/>• Vector DB (`Qdrant`)<br/>• Infrastructure (`Docker`, `K8s`, `RabbitMQ`, `Redis`) | • Phase 0 (Monorepo & Infra setup)<br/>• Phase 1 (Gateway & IAM Auth)<br/>• Phase 2 (Talent Profile Service) ✦ reassigned<br/>• Phase 3 (Recruiter & Org Service) ✦ reassigned<br/>• Phase 4 (Engagement & Review Service) ✦ reassigned<br/>• Phase 5 (Rewards & Sagas) ✦ reassigned<br/>• Phase 6 (AI Engine, Embeddings & TalentLens) ✦ reassigned<br/>• Phase 9 (Observability, Security & CI/CD)<br/>• Production Deployment |
+| **Varenya**<br/>`@varenya` | **Analytics & Data Migration** | • `services/analytics-service` | • Phase 7.2 (Analytics & Funnel Metrics)<br/>• Phase 10.1 (Data Migration Script) |
 | **Arun**<br/>`@arun` | **Notifications & Frontends** | • `services/notification-service`<br/>• `apps/candidate-portal`<br/>• `apps/recruiter-portal`<br/>• `packages/ui` & `packages/api-client` | • Phase 0.3 (Brand Assets & UI Tokens)<br/>• Phase 7.1 (Notifications)<br/>• Phase 8 (Frontend Portals & Rebrand)<br/>• Phase 10.2 (E2E Integration Tests) |
 
 ---
@@ -59,7 +59,7 @@ flowchart TD
         REC["Recruiter & Org Service<br/><b>[Owner: Vijesh]</b><br/>(Node.js / Prisma)"]
         ENGAGE["Engagement & Review Service<br/><b>[Owner: Vijesh]</b><br/>(Node.js / Prisma)"]
         REWARDS["Gamification & Rewards Service<br/><b>[Owner: Vijesh]</b><br/>(Coin Ledger & Subscriptions)"]
-        AI_SVC["AI Matching & Intelligence Service<br/><b>[Owner: Varenya]</b><br/>(Python FastAPI / LangChain / Groq / Gemini)"]
+        AI_SVC["AI Matching & Intelligence Service<br/><b>[Owner: Vijesh]</b><br/>(Node.js / Express / Qdrant / Groq / Gemini)"]
         NOTIF["Notification Service<br/><b>[Owner: Arun]</b><br/>(Node.js / WebSockets / Nodemailer)"]
         ANALYTICS["Analytics & Reporting Service<br/><b>[Owner: Varenya]</b><br/>(Node.js / ClickHouse or Mongo)"]
     end
@@ -141,7 +141,7 @@ flowchart TD
 | **Recruiter & Org** | Recruiter accounts, company affiliations, hiring criteria, job postings | `Recruiter`, `Organization`, `JobPosting`, `SubscriptionTier` | `recruiter-service` | **Vijesh** |
 | **Engagement & Interaction** | Recruiter swipe actions (right/left), review comments, candidate feedback | `SwipeInteraction`, `Review`, `Feedback`, `Decision` | `engagement-service` | **Vijesh** |
 | **Gamification & Rewards** | HR coin ledger, coin awards, redemption for tier-3 access, platform subscriptions | `CoinLedger`, `CoinTransaction`, `RewardRule`, `Subscription` | `rewards-service` | **Vijesh** |
-| **AI & Matching Intelligence** | Natural language filtering, fit scoring, profile summarization, career recommendations | `MatchEvaluation`, `TalentSummary`, `CareerSuggestion`, `EmbeddingVector` | `ai-matching-service` | **Varenya** |
+| **AI & Matching Intelligence** | Natural language filtering, fit scoring, profile summarization, career recommendations | `MatchEvaluation`, `TalentSummary`, `CareerSuggestion`, `EmbeddingVector` | `ai-matching-service` | **Vijesh** |
 | **Notifications** | Async in-app alerts, emails to candidates on review, recruiter match alerts | `Notification`, `NotificationTemplate`, `DeliveryStatus` | `notification-service` | **Arun** |
 | **Analytics & Reporting** | Funnel conversion, swipe ratios, skill demand metrics, leaderboard | `HiringMetric`, `FunnelAggregate`, `SkillAnalytics` | `analytics-service` | **Varenya** |
 | **Frontend Applications** | Candidate Portal, Recruiter Portal, Shared UI tokens, API client | `WebClient`, `CandidateApp`, `RecruiterApp` | `apps/*` | **Arun** |
@@ -195,7 +195,7 @@ flowchart TD
    - Prevents dual-write inconsistencies between database mutations and message publishing. Events are committed atomically with business transactions into an `outbox` table and relayed to the broker.
 5. **Saga Pattern (Orchestration/Choreography)** *(Lead: Arun)*:
    - Distributed transactions for multi-step workflows (e.g. unlocking Elite Tier-3 candidates: check coin balance ➔ reserve coins ➔ grant access ➔ debit coins ➔ emit notification; with rollback on failure).
-6. **Circuit Breaker & Graceful Degradation** *(Lead: Varenya & Vijesh)*:
+6. **Circuit Breaker & Graceful Degradation** *(Lead: Vijesh)*:
    - Wraps downstream calls (e.g., Groq / Gemini LLM API, remote microservice calls) with timeouts, error thresholds, and cached fallbacks to prevent cascading failures.
 7. **Command Query Responsibility Segregation (CQRS)** *(Lead: Varenya)*:
    - Write models handle strict transactional consistency (e.g. Candidate Registration, Reviews); Read models provide fast denormalized views for recruiter swipe queues and search.
@@ -214,7 +214,7 @@ flowchart TD
 | **3** | `services/recruiter-service` | Node.js / Express / TypeScript | 5003 | PostgreSQL (`talent_recruiter`) | Recruiter profiles, company info, hiring requisitions | **Vijesh** |
 | **4** | `services/engagement-service`| Node.js / Express / TypeScript | 5004 | PostgreSQL (`talent_engagement`) | Swipes (approve/reject), reviews, feedback records | **Vijesh** |
 | **5** | `services/rewards-service` | Node.js / Express / TypeScript | 5005 | PostgreSQL (`talent_rewards`) | TalentCredits ledger, coins for feedback, unlocks | **Vijesh** |
-| **6** | `services/ai-matching-service`| Python FastAPI / Node.js | 5006 | Qdrant (Vector DB) + Redis | LLM analysis, TalentLens semantic search, summaries | **Varenya** |
+| **6** | `services/ai-matching-service`| Node.js / Express / TypeScript | 5006 | Qdrant (Vector DB) + Redis | LLM analysis, TalentLens semantic search, summaries | **Vijesh** |
 | **7** | `services/notification-service`| Node.js / TypeScript | 5007 | MongoDB (`talent_notif`) | Email alerts, in-app WebSocket notifications | **Arun** |
 | **8** | `services/analytics-service` | Node.js / TypeScript | 5008 | PostgreSQL / ClickHouse | Telemetry, hiring conversion stats, talent insights | **Varenya** |
 | **9** | `apps/candidate-portal` | React / Vite / Tailwind / TS | 3000 | Client Browser | Rebranded talent.ai candidate web app | **Arun** |
@@ -373,20 +373,20 @@ flowchart TD
 ---
 
 ### Phase 6: AI & Matching Intelligence Service (Async Worker & Semantic Search)
-- [ ] **6.1 Refactoring Monolithic LLM Logic** `[Assignee: Varenya]`:
-  - [ ] Move LLM calls away from synchronous HTTP request loops (which currently bottleneck `hr/backend/index.js` on `POST /evaluate`).
-  - [ ] Implement provider abstraction interface (`LLMProvider`: Groq, Google Gemini 1.5 Pro/Flash, OpenAI).
-- [ ] **6.2 Vector Search & Candidate Embeddings** `[Assignee: Varenya]`:
-  - [ ] Integrate Qdrant or pgvector.
-  - [ ] On `talent.created` or `talent.updated` events, generate dense vector embeddings of candidate skills, experience, and education, storing them in the vector database.
-- [ ] **6.3 AI Service APIs & Workers** `[Assignee: Varenya]`:
-  - [ ] `POST /api/v1/ai/summarize-profile` — Generate structured JSON candidate profile summary points.
-  - [ ] `POST /api/v1/ai/suggest-improvements` — Generate personalized, actionable career improvement recommendations based on candidate's current skills and reviews.
-  - [ ] `POST /api/v1/ai/talent-lens` (Formerly Filterify):
+- [x] **6.1 Refactoring Monolithic LLM Logic** `[Assignee: Vijesh]`:
+  - [x] Move LLM calls away from synchronous HTTP request loops (which currently bottleneck `hr/backend/index.js` on `POST /evaluate`).
+  - [x] Implement provider abstraction interface (`LLMProvider`: Groq, Google Gemini 1.5 Pro/Flash, OpenAI).
+- [x] **6.2 Vector Search & Candidate Embeddings** `[Assignee: Vijesh]`:
+  - [x] Integrate Qdrant or pgvector.
+  - [x] On `talent.created` or `talent.updated` events, generate dense vector embeddings of candidate skills, experience, and education, storing them in the vector database.
+- [x] **6.3 AI Service APIs & Workers** `[Assignee: Vijesh]`:
+  - [x] `POST /api/v1/ai/summarize-profile` — Generate structured JSON candidate profile summary points.
+  - [x] `POST /api/v1/ai/suggest-improvements` — Generate personalized, actionable career improvement recommendations based on candidate's current skills and reviews.
+  - [x] `POST /api/v1/ai/talent-lens` (Formerly Filterify):
     - Converts recruiter's natural language hiring prompt (e.g., *"Looking for senior DevOps with Terraform and AWS experience"*) into vector search + metadata filters.
     - Uses Groq / Gemini for rapid parallel evaluation and scoring of candidate matches.
-  - [ ] Add Redis caching for repeated evaluation prompts (TTL 1 hour).
-  - [ ] Implement circuit breaker with fallback responses if AI provider rate limits are exceeded.
+  - [x] Add Redis caching for repeated evaluation prompts (TTL 1 hour).
+  - [x] Implement circuit breaker with fallback responses if AI provider rate limits are exceeded.
 
 ---
 
@@ -526,13 +526,13 @@ All asynchronous messages flow through the RabbitMQ topic exchange `talent.event
 
 | Routing Key | Producing Service | Consuming Services | Business Purpose | Primary Handlers |
 | :--- | :--- | :--- | :--- | :--- |
-| `talent.profile.created` | `talent-service` | `ai-matching-service`, `analytics-service` | Generate vector embeddings; update aggregate counts | Producer: **Vijesh**<br/>Consumers: **Varenya** |
-| `talent.profile.updated` | `talent-service` | `ai-matching-service` | Re-index candidate in vector search | Producer: **Vijesh**<br/>Consumer: **Varenya** |
+| `talent.profile.created` | `talent-service` | `ai-matching-service`, `analytics-service` | Generate vector embeddings; update aggregate counts | Producer: **Vijesh**<br/>Consumers: **Vijesh**, **Varenya** |
+| `talent.profile.updated` | `talent-service` | `ai-matching-service` | Re-index candidate in vector search | Producer: **Vijesh**<br/>Consumer: **Vijesh** |
 | `swipe.recorded` | `engagement-service` | `analytics-service` | Track acceptance/rejection funnel metrics | Producer: **Vijesh**<br/>Consumer: **Varenya** |
 | `review.submitted` | `engagement-service` | `rewards-service`, `notification-service`, `analytics-service` | Award TalentCredits to HR; notify candidate | Producer: **Vijesh**<br/>Consumers: **Vijesh**, **Arun**, **Varenya** |
 | `rewards.coins_awarded` | `rewards-service` | `notification-service`, `analytics-service` | Notify recruiter of wallet credit | Producer: **Vijesh**<br/>Consumers: **Arun**, **Varenya** |
 | `rewards.tier3_unlocked` | `rewards-service` | `talent-service`, `notification-service` | Authorize recruiter view for Elite candidate | Producer: **Vijesh**<br/>Consumer: **Vijesh** |
-| `ai.evaluation.completed`| `ai-matching-service`| `notification-service`, `analytics-service` | Notify recruiter of high-affinity candidate match | Producer: **Varenya**<br/>Consumers: **Arun**, **Varenya** |
+| `ai.evaluation.completed`| `ai-matching-service`| `notification-service`, `analytics-service` | Notify recruiter of high-affinity candidate match | Producer: **Vijesh**<br/>Consumers: **Arun**, **Varenya** |
 
 ---
 

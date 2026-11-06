@@ -71,13 +71,13 @@ recruiter-portal ─┘               ├─→ talent-service
 | `recruiter-service` | 5003 | PostgreSQL (`talent_recruiter`) | Implemented |
 | `engagement-service` | 5004 | PostgreSQL (`talent_engagement`) | Implemented |
 | `rewards-service` | 5005 | PostgreSQL (`talent_rewards`) | Implemented |
-| `ai-matching-service` | 5006 | Qdrant + Redis | Planned |
+| `ai-matching-service` | 5006 | Qdrant + Redis | Implemented |
 | `notification-service` | 5007 | MongoDB (`talent_notif`) | Planned |
 | `analytics-service` | 5008 | PostgreSQL / ClickHouse | Planned |
 
-> `auth-service` and `api-gateway` are the reference implementations. Each new
-> service follows the same package, observability, Docker, and Kubernetes
-> patterns.
+> `auth-service`, `api-gateway`, `rewards-service` and `ai-matching-service` are
+> the reference implementations. Each new service follows the same package,
+> observability, Docker, and Kubernetes patterns.
 
 ### Shared packages
 
