@@ -35,6 +35,13 @@
    - [Phase 9: Observability, Resilience, Security & DevOps](#phase-9-observability-resilience-security--devops)
    - [Phase 10: Data Migration, Integration Testing & Production Cutover](#phase-10-data-migration-integration-testing--production-cutover)
    - [Phase 11: Grafana Dashboards & Realistic Data Seeding](#phase-11-grafana-dashboards--realistic-data-seeding)
+   - [Phase 12: Kubernetes Platform Foundation](#phase-12-kubernetes-platform-foundation)
+   - [Phase 13: Helm Chart Structure & Release Management](#phase-13-helm-chart-structure--release-management)
+   - [Phase 14: Stateful Infrastructure & Persistent Storage](#phase-14-stateful-infrastructure--persistent-storage)
+   - [Phase 15: Application Workloads, Networking & Scaling](#phase-15-application-workloads-networking--scaling)
+   - [Phase 16: Kubernetes Ingress, Security & Observability](#phase-16-kubernetes-ingress-security--observability)
+   - [Phase 17: Single-Command Platform Startup & Operations](#phase-17-single-command-platform-startup--operations)
+   - [Phase 18: Kubernetes Validation, Recovery & Production Cutover](#phase-18-kubernetes-validation-recovery--production-cutover)
 7. [Distributed Event Catalog & Message Schemas](#-distributed-event-catalog--message-schemas)
 8. [Data Migration & Decoupling Strategy](#-data-migration--decoupling-strategy)
 
@@ -543,6 +550,142 @@ flowchart TD
 
 ---
 
+### Phase 12: Kubernetes Platform Foundation
+- [ ] Define supported Kubernetes versions, local cluster options ( kind / minikube / k3d ), cloud cluster assumptions, required CLI tools, storage classes, ingress classes, and minimum node capacity.
+- [ ] Establish environment overlays for `dev`, `staging`, and `production` without duplicating manifests; document immutable image tags and environment-specific domains.
+- [ ] Create the complete Kubernetes repository structure:
+  ```text
+  infrastructure/k8s/
+  ├── base/
+  │   ├── namespaces/
+  │   ├── rbac/
+  │   ├── config/
+  │   ├── workloads/
+  │   ├── networking/
+  │   ├── policies/
+  │   └── kustomization.yaml
+  ├── overlays/
+  │   ├── dev/kustomization.yaml
+  │   ├── staging/kustomization.yaml
+  │   └── production/kustomization.yaml
+  └── helm/
+      └── talent-ai/
+  ```
+- [ ] Define namespaces for platform services, application services, observability, and data where separation is useful; apply consistent labels, annotations, ownership, and pod security standards.
+- [ ] Define RBAC service accounts, Roles, ClusterRoles, RoleBindings, and least-privilege permissions for workloads, metrics collection, secret access, Jobs, and operators.
+- [ ] Define ResourceQuota, LimitRange, default priority classes, topology spread constraints, node selectors, tolerations, and pod anti-affinity policies.
+- [ ] Add validation for every manifest using `kubectl apply --dry-run=server`, Kubeconform/Kubeval, Helm lint, and rendered-manifest tests.
+
+### Phase 13: Helm Chart Structure & Release Management
+- [ ] Create an umbrella Helm chart for the complete platform with reusable subcharts or templates for application services, frontends, infrastructure, and observability.
+- [ ] Structure the chart with:
+  ```text
+  infrastructure/helm/talent-ai/
+  ├── Chart.yaml
+  ├── Chart.lock
+  ├── values.yaml
+  ├── values-dev.yaml
+  ├── values-staging.yaml
+  ├── values-production.yaml
+  ├── templates/
+  │   ├── _helpers.tpl
+  │   ├── namespace.yaml
+  │   ├── serviceaccounts.yaml
+  │   ├── configmaps.yaml
+  │   ├── secrets.yaml
+  │   ├── deployments.yaml
+  │   ├── statefulsets.yaml
+  │   ├── daemonsets.yaml
+  │   ├── services.yaml
+  │   ├── ingress.yaml
+  │   ├── jobs.yaml
+  │   ├── cronjobs.yaml
+  │   ├── hpa.yaml
+  │   ├── pdb.yaml
+  │   ├── networkpolicies.yaml
+  │   └── servicemonitors.yaml
+  └── charts/
+  ```
+- [ ] Define chart values for image repository/tag/digest, replicas, ports, environment variables, secrets, resources, probes, autoscaling, persistence, affinity, ingress, domains, TLS, and observability.
+- [ ] Define Helm dependencies and pinned versions for ingress-nginx, cert-manager, Prometheus/Grafana, OpenTelemetry Collector, RabbitMQ, PostgreSQL, MongoDB, Redis, and Qdrant where self-hosting is selected.
+- [ ] Use separate Helm releases for platform dependencies where independent lifecycle management is required; document install, upgrade, rollback, uninstall, and release ordering.
+- [ ] Ensure `helm template`, `helm lint`, `helm dependency build`, and rendered YAML validation run in CI for every environment values file.
+- [ ] Replace `latest` image tags with CI-produced immutable tags or digests and configure image pull secrets and private registry access.
+
+### Phase 14: Stateful Infrastructure & Persistent Storage
+- [ ] Choose managed services versus in-cluster Helm releases for PostgreSQL, MongoDB, Redis, RabbitMQ, Qdrant, and object storage; document the decision and operational ownership for each.
+- [ ] For self-hosted dependencies, define production-safe StatefulSets or maintained Helm releases with:
+  - [ ] PersistentVolumeClaims, StorageClass selection, volume expansion, filesystem permissions, and encryption at rest.
+  - [ ] Headless Services and stable network identities where clustering requires them.
+  - [ ] Readiness, liveness, and startup probes that reflect actual service health.
+  - [ ] Backup schedules, retention, point-in-time recovery, restore verification, and disaster-recovery runbooks.
+  - [ ] Anti-affinity, topology spread, replication, quorum, and graceful termination settings.
+- [ ] Configure PostgreSQL databases per service (`talent_auth`, `talent_recruiter`, `talent_engagement`, `talent_rewards`, and `talent_analytics`) with migration and credential separation.
+- [ ] Configure MongoDB replica-set initialization and persistent storage for Talent and Notification data.
+- [ ] Configure RabbitMQ durable exchanges, queues, bindings, publisher confirms, consumer queues, retry policies, and persistent dead-letter queues.
+- [ ] Configure Qdrant collection persistence, API authentication, vector dimension compatibility, snapshots, and re-indexing procedures.
+- [ ] Configure Redis persistence/replication according to its role as cache, rate limiter, session store, and notification fan-out bus.
+- [ ] Define one-shot Kubernetes Jobs or Helm hooks for database migrations, MongoDB initialization, Qdrant collection initialization, and realistic seed data; make every Job idempotent and environment-gated.
+
+### Phase 15: Application Workloads, Networking & Scaling
+- [ ] Create one Deployment per stateless application workload: API Gateway, Auth, Talent, Recruiter, Engagement, Rewards, AI Matching, Notification, Analytics, Candidate Portal, and Recruiter Portal.
+- [ ] Treat ReplicaSets as Deployment-managed resources; do not maintain standalone ReplicaSet YAML unless a specific controlled rollout requires it.
+- [ ] Define for every Deployment:
+  - [ ] Container image, command, ports, environment/config references, secret references, security context, and read-only filesystem where compatible.
+  - [ ] Startup, readiness, and liveness probes mapped to `/health/liveness`, `/health/readiness`, and service-specific dependency checks.
+  - [ ] CPU/memory requests and limits, graceful termination, preStop hooks, rolling-update strategy, max unavailable, and max surge.
+  - [ ] Pod anti-affinity/topology spread and minimum available replicas for service resilience.
+- [ ] Define ClusterIP Services for internal service discovery and dedicated external entry points only where required; standardize service names and ports.
+- [ ] Define the API Gateway route map for every backend service and ensure internal services are not unintentionally exposed publicly.
+- [ ] Define a DaemonSet strategy for node-level agents such as OpenTelemetry host metrics, Fluent Bit/Vector logs, and Node Exporter where those components are selected.
+- [ ] Define HPAs using CPU/memory and, where appropriate, custom Prometheus metrics such as request rate, queue depth, or consumer lag; ensure Metrics Server and adapters are installed.
+- [ ] Add PodDisruptionBudgets, graceful shutdown, retry behavior, circuit breakers, and event-consumer concurrency limits for highly available services.
+- [ ] Define CronJobs for cleanup, token/session maintenance, analytics rollups, backups, DLQ inspection, and scheduled data-quality checks where required.
+
+### Phase 16: Kubernetes Ingress, Security & Observability
+- [ ] Deploy and configure an Ingress Controller with TLS termination, HTTP to HTTPS redirects, host/path routing, WebSocket support, body-size limits, timeouts, CORS, and rate-limiting policies.
+- [ ] Configure Ingress hosts for `talent.ai`, `recruiter.talent.ai`, and `api.talent.ai`; provision certificates with cert-manager or a documented external certificate process.
+- [ ] Add NetworkPolicies for default-deny ingress/egress and explicitly allow gateway-to-service, service-to-database, service-to-broker, metrics scraping, DNS, and telemetry traffic.
+- [ ] Store credentials through an external secret manager or sealed/encrypted secrets; never commit plaintext credentials, provider keys, or production values.
+- [ ] Apply pod security contexts, non-root users, dropped Linux capabilities, seccomp profiles, image signing/scanning, admission policies, and audit logging.
+- [ ] Deploy an OpenTelemetry Collector with separate receivers/exporters for OTLP traces, application metrics, host metrics, Kubernetes object/state metrics, logs, and RabbitMQ/ database telemetry as appropriate.
+- [ ] Deploy Prometheus with Kubernetes service discovery or Prometheus Operator, including ServiceMonitor/PodMonitor resources for every application and infrastructure exporter.
+- [ ] Deploy Grafana with provisioned Prometheus and tracing data sources, Phase 11 dashboards, alert rules, folders, variables, and persistent storage.
+- [ ] Add Node Exporter and kube-state-metrics for node and Kubernetes control-plane/workload metrics; document which metrics are collected by Prometheus versus OTel.
+- [ ] Add alerting and runbooks for unavailable pods, crash loops, readiness failures, high latency/errors, HPA saturation, node pressure, PVC exhaustion, broker backlog/DLQs, database failures, and stale analytics projections.
+
+### Phase 17: Single-Command Platform Startup & Operations
+- [ ] Create an executable root script, `scripts/start.sh`, as the supported entry point for local, staging, and controlled production bootstrap.
+- [ ] Make the script strict and safe (`set -Eeuo pipefail`), with argument parsing for environment, namespace, kube-context, release name, image tag, and optional actions such as `--seed`, `--migrate`, `--destroy`, and `--dry-run`.
+- [ ] Have the script verify prerequisites (`kubectl`, `helm`, cluster connectivity, required namespaces, storage classes, ingress controller, and Metrics Server) before changing the cluster.
+- [ ] Have the script load the selected values file, validate required environment variables and secret references, and fail before deployment when configuration is incomplete.
+- [ ] Implement idempotent ordered operations:
+  1. Select and validate the Kubernetes context.
+  2. Create or verify namespaces and RBAC.
+  3. Install/upgrade Helm dependencies and CRDs.
+  4. Create/update secrets through the configured secret mechanism.
+  5. Install/upgrade stateful infrastructure and wait for readiness.
+  6. Run database and vector-store migration/init Jobs.
+  7. Install/upgrade application and frontend workloads.
+  8. Install/upgrade ingress, observability, dashboards, and alerts.
+  9. Optionally run privacy-safe realistic seed Jobs.
+  10. Wait for rollouts and print service URLs, release status, pod status, and useful log commands.
+- [ ] Ensure `start.sh` never deletes production resources by default; require explicit confirmation and environment checks for destructive operations.
+- [ ] Add companion scripts or commands for `stop`, `status`, `logs`, `rollback`, `migrate`, `seed`, `backup`, and `restore` while keeping `start.sh` the single bootstrap entry point.
+- [ ] Document local cluster bootstrap, cloud cluster bootstrap, required secret injection, and expected startup duration.
+
+### Phase 18: Kubernetes Validation, Recovery & Production Cutover
+- [ ] Add CI checks for Helm linting, chart dependency locks, Kustomize rendering, schema validation, security scanning, container scanning, and policy compliance.
+- [ ] Add ephemeral-cluster smoke tests that execute `scripts/start.sh`, verify every rollout, exercise gateway routes, publish/consume a RabbitMQ event, and validate database persistence.
+- [ ] Run end-to-end tests against the Kubernetes environment covering registration, profile creation, AI summary, TalentLens search, swipe, review, rewards, notifications, analytics, and dashboard visibility.
+- [ ] Test pod restarts, rolling upgrades, node drain, broker restart, database failover, Qdrant recovery, message redelivery, DLQ handling, and restore from backup.
+- [ ] Validate horizontal scaling for HTTP services, WebSocket notification behavior, RabbitMQ consumers, AI concurrency, and analytics idempotency.
+- [ ] Define SLOs, error budgets, capacity thresholds, on-call ownership, incident response, and rollback criteria.
+- [ ] Perform a production readiness review covering security, cost, backups, observability, secrets, data retention, privacy, and disaster recovery.
+- [ ] Execute staged production cutover with smoke tests, migration verification, DNS/TLS activation, rollback checkpoints, and post-deployment monitoring.
+
+---
+
 ## 📡 Distributed Event Catalog & Message Schemas
 
 All asynchronous messages flow through the RabbitMQ topic exchange `talent.events.topic` with standardized CloudEvents-compliant JSON envelopes:
@@ -673,4 +816,11 @@ pnpm run dev
 # API Gateway:       http://localhost:8080 (api.talent.ai)
 # RabbitMQ Console:  http://localhost:15672 (guest/guest)
 # Jaeger Tracing UI: http://localhost:16686
+```
+
+After Phases 12–18 are implemented, the full Kubernetes environment will be
+started and verified through the single platform entry point:
+
+```bash
+./scripts/start.sh --environment dev
 ```
