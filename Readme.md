@@ -168,6 +168,24 @@ cp .env.example .env
 Set `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` to values of at least 32
 characters. Never commit `.env`; it is gitignored.
 
+For OpenAI-backed summaries, suggestions, TalentLens search, and embeddings,
+set these values in `.env`:
+
+```env
+AI_PROVIDER=openai
+OPENAI_API_KEY=your-openai-api-key
+OPENAI_MODEL=gpt-4o-mini
+EMBEDDING_PROVIDER=openai
+EMBEDDING_MODEL=text-embedding-3-small
+EMBEDDING_DIMENSIONS=384
+```
+
+The API key is used only by `ai-matching-service` and is never exposed to the
+frontends. If no external AI key is configured while `AI_PROVIDER=auto`, the
+service uses its deterministic local fallback. OpenAI embeddings require a
+Qdrant collection with the same vector dimension; use a new collection and
+re-index profiles if the dimension changes.
+
 ### 2. Start backing services
 
 ```bash
