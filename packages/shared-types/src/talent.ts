@@ -97,6 +97,8 @@ export interface TalentProfileCreatedPayload {
   experienceYears: number;
   level: TalentLevel;
   field: string;
+  /** Optional contact address used by the notification service. */
+  email?: string;
   /** Optional richer fields used by the AI indexer for embeddings. */
   education?: Education[];
   previousExperience?: WorkExperience[];

@@ -2,10 +2,7 @@ import type { ISODateString, UUID } from './common.js';
 import type { AuthUserRegisteredPayload } from './auth.js';
 import type { TalentProfileCreatedPayload, TalentProfileUpdatedPayload } from './talent.js';
 import type { RecruiterJobPostedPayload, RecruiterRegisteredPayload } from './recruiter.js';
-import type {
-  ReviewSubmittedPayload,
-  SwipeRecordedPayload,
-} from './engagement.js';
+import type { ReviewSubmittedPayload, SwipeRecordedPayload } from './engagement.js';
 import type { CoinsAwardedPayload, Tier3UnlockedPayload } from './rewards.js';
 import type { AiEvaluationCompletedPayload } from './ai.js';
 import type { NotificationSentPayload } from './notification.js';
@@ -96,5 +93,8 @@ export const EVENT_QUEUES = {
   rewardsReviewConsumer: 'rewards-service.review-consumer',
   notificationReviewConsumer: 'notification-service.review-consumer',
   notificationRewardsConsumer: 'notification-service.rewards-consumer',
+  notificationTalentConsumer: 'notification-service.talent-consumer',
+  notificationRegistrationConsumer: 'notification-service.registration-consumer',
+  notificationMatchConsumer: 'notification-service.match-consumer',
   analyticsAllEvents: 'analytics-service.all-events',
 } as const;

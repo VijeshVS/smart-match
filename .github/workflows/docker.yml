@@ -39,6 +39,10 @@ jobs:
             port: 5005
           - service: ai-matching-service
             port: 5006
+          - service: notification-service
+            port: 5007
+          - service: analytics-service
+            port: 5008
           - service: api-gateway
             port: 8080
 

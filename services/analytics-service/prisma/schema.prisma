@@ -1,0 +1,130 @@
+// talent.ai — analytics-service schema (PostgreSQL / `talent_analytics`).
+//
+// Bounded context: event-sourced hiring read models. Every domain event is
+// applied exactly once (guarded by `processed_events`) into denormalised
+// aggregates so dashboards never replay the whole event log.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("ANALYTICS_DATABASE_URL")
+}
+
+/// Per-candidate funnel counters. `firstApprovedAt` marks the first time any
+/// recruiter approved the candidate, which drives time-to-match metrics.
+/// `userId` lets a candidate read their own analytics without exposing another
+/// candidate's funnel.
+model CandidateMetric {
+  talentId         String    @id @map("talent_id") @db.Uuid
+  userId           String?   @map("user_id") @db.Uuid
+  rightSwipes      Int       @default(0) @map("right_swipes")
+  leftSwipes       Int       @default(0) @map("left_swipes")
+  totalReviews     Int       @default(0) @map("total_reviews")
+  profileCreatedAt DateTime? @map("profile_created_at") @db.Timestamptz(3)
+  firstApprovedAt  DateTime? @map("first_approved_at") @db.Timestamptz(3)
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([userId])
+  @@index([firstApprovedAt])
+  @@map("candidate_metrics")
+}
+
+/// Recruiter events carry two different identifiers: `recruiter.registered`
+/// and `recruiter.job_posted` use the recruiter profile id, while engagement,
+/// rewards and AI events use the owning user id. This projection maps both onto
+/// the canonical `userId` used by `RecruiterMetric`.
+model RecruiterIdentity {
+  profileId      String   @id @map("profile_id") @db.Uuid
+  userId         String   @unique @map("user_id") @db.Uuid
+  organizationId String?  @map("organization_id") @db.Uuid
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("recruiter_identities")
+}
+
+/// Per-recruiter engagement counters and leaderboard inputs.
+model RecruiterMetric {
+  recruiterId             String   @id @map("recruiter_id") @db.Uuid
+  organizationId          String?  @map("organization_id") @db.Uuid
+  openJobs                Int      @default(0) @map("open_jobs")
+  reviewsSubmitted        Int      @default(0) @map("reviews_submitted")
+  actionableFeedbackCount Int      @default(0) @map("actionable_feedback_count")
+  creditsEarned           Int      @default(0) @map("credits_earned")
+  approvals               Int      @default(0)
+  rejections              Int      @default(0)
+  matchCount              Int      @default(0) @map("match_count")
+  matchDelayMsSum         Float    @default(0) @map("match_delay_ms_sum")
+  updatedAt               DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([actionableFeedbackCount])
+  @@index([creditsEarned])
+  @@map("recruiter_metrics")
+}
+
+/// Supply (profiles) and demand (job postings) per normalised skill.
+model SkillMetric {
+  skill            String   @id @db.VarChar(80)
+  demandCount      Int      @default(0) @map("demand_count")
+  supplyCount      Int      @default(0) @map("supply_count")
+  experienceSum    Float    @default(0) @map("experience_sum")
+  experienceCount  Int      @default(0) @map("experience_count")
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([demandCount])
+  @@index([supplyCount])
+  @@map("skill_metrics")
+}
+
+/// Required skills across a recruiter's published jobs. Drives the
+/// recruiter-specific `topSkills` section of the dashboard.
+model RecruiterSkillDemand {
+  recruiterId String   @map("recruiter_id") @db.Uuid
+  skill       String   @db.VarChar(80)
+  jobCount    Int      @default(1) @map("job_count")
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@id([recruiterId, skill])
+  @@index([recruiterId, jobCount])
+  @@map("recruiter_skill_demands")
+}
+
+/// The current skill set per candidate, used to apply supply deltas when a
+/// profile update adds or removes skills instead of double counting.
+model CandidateSkill {
+  talentId        String  @map("talent_id") @db.Uuid
+  skill           String  @db.VarChar(80)
+  experienceYears Float   @default(0) @map("experience_years")
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@id([talentId, skill])
+  @@index([skill])
+  @@map("candidate_skills")
+}
+
+/// Daily funnel counters keyed by UTC calendar day.
+model FunnelAggregate {
+  day              DateTime @id @db.Date
+  profilesCreated  Int      @default(0) @map("profiles_created")
+  swipesRecorded   Int      @default(0) @map("swipes_recorded")
+  reviewsSubmitted Int      @default(0) @map("reviews_submitted")
+  tier3Unlocks     Int      @default(0) @map("tier3_unlocks")
+  approvals        Int      @default(0)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("funnel_aggregates")
+}
+
+/// Consumer idempotency guard: one row per applied domain event.
+model ProcessedEvent {
+  eventId     String   @id @map("event_id") @db.VarChar(120)
+  eventType   String   @map("event_type") @db.VarChar(120)
+  processedAt DateTime @default(now()) @map("processed_at") @db.Timestamptz(3)
+
+  @@index([processedAt])
+  @@map("processed_events")
+}

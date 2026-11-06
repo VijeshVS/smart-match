@@ -10,9 +10,9 @@
 
 | Engineer | Primary Focus Areas | Owned Microservices & Modules | Key Milestones & Phases |
 | :--- | :--- | :--- | :--- |
-| **Vijesh**<br/>`@vijesh` | **Platform Architecture, Security, DevOps & Talent/Recruiter/Engagement/Rewards/AI Domains** | • `services/api-gateway`<br/>• `services/auth-service`<br/>• `services/talent-service`<br/>• `services/recruiter-service`<br/>• `services/engagement-service`<br/>• `services/rewards-service`<br/>• `services/ai-matching-service`<br/>• `packages/event-bus`<br/>• Vector DB (`Qdrant`)<br/>• Infrastructure (`Docker`, `K8s`, `RabbitMQ`, `Redis`) | • Phase 0 (Monorepo & Infra setup)<br/>• Phase 1 (Gateway & IAM Auth)<br/>• Phase 2 (Talent Profile Service) ✦ reassigned<br/>• Phase 3 (Recruiter & Org Service) ✦ reassigned<br/>• Phase 4 (Engagement & Review Service) ✦ reassigned<br/>• Phase 5 (Rewards & Sagas) ✦ reassigned<br/>• Phase 6 (AI Engine, Embeddings & TalentLens) ✦ reassigned<br/>• Phase 9 (Observability, Security & CI/CD)<br/>• Production Deployment |
-| **Varenya**<br/>`@varenya` | **Analytics & Data Migration** | • `services/analytics-service` | • Phase 7.2 (Analytics & Funnel Metrics)<br/>• Phase 10.1 (Data Migration Script) |
-| **Arun**<br/>`@arun` | **Notifications & Frontends** | • `services/notification-service`<br/>• `apps/candidate-portal`<br/>• `apps/recruiter-portal`<br/>• `packages/ui` & `packages/api-client` | • Phase 0.3 (Brand Assets & UI Tokens)<br/>• Phase 7.1 (Notifications)<br/>• Phase 8 (Frontend Portals & Rebrand)<br/>• Phase 10.2 (E2E Integration Tests) |
+| **Vijesh**<br/>`@vijesh` | **Platform Architecture, Security, DevOps, Talent/Recruiter/Engagement/Rewards/AI, Notification & Analytics Domains** | • `services/api-gateway`<br/>• `services/auth-service`<br/>• `services/talent-service`<br/>• `services/recruiter-service`<br/>• `services/engagement-service`<br/>• `services/rewards-service`<br/>• `services/ai-matching-service`<br/>• `services/notification-service`<br/>• `services/analytics-service`<br/>• `packages/event-bus`<br/>• Vector DB (`Qdrant`)<br/>• Infrastructure (`Docker`, `K8s`, `RabbitMQ`, `Redis`) | • Phase 0 (Monorepo & Infra setup)<br/>• Phase 1 (Gateway & IAM Auth)<br/>• Phase 2 (Talent Profile Service) ✦ reassigned<br/>• Phase 3 (Recruiter & Org Service) ✦ reassigned<br/>• Phase 4 (Engagement & Review Service) ✦ reassigned<br/>• Phase 5 (Rewards & Sagas) ✦ reassigned<br/>• Phase 6 (AI Engine, Embeddings & TalentLens) ✦ reassigned<br/>• Phase 7 (Notification & Analytics Services) ✦ reassigned<br/>• Phase 9 (Observability, Security & CI/CD)<br/>• Production Deployment |
+| **Varenya**<br/>`@varenya` | **Data Migration** | — | • Phase 10.1 (Data Migration Script) |
+| **Arun**<br/>`@arun` | **Frontends** | • `apps/candidate-portal`<br/>• `apps/recruiter-portal`<br/>• `packages/ui` & `packages/api-client` | • Phase 0.3 (Brand Assets & UI Tokens)<br/>• Phase 8 (Frontend Portals & Rebrand)<br/>• Phase 10.2 (E2E Integration Tests) |
 
 ---
 
@@ -60,8 +60,8 @@ flowchart TD
         ENGAGE["Engagement & Review Service<br/><b>[Owner: Vijesh]</b><br/>(Node.js / Prisma)"]
         REWARDS["Gamification & Rewards Service<br/><b>[Owner: Vijesh]</b><br/>(Coin Ledger & Subscriptions)"]
         AI_SVC["AI Matching & Intelligence Service<br/><b>[Owner: Vijesh]</b><br/>(Node.js / Express / Qdrant / Groq / Gemini)"]
-        NOTIF["Notification Service<br/><b>[Owner: Arun]</b><br/>(Node.js / WebSockets / Nodemailer)"]
-        ANALYTICS["Analytics & Reporting Service<br/><b>[Owner: Varenya]</b><br/>(Node.js / ClickHouse or Mongo)"]
+        NOTIF["Notification Service<br/><b>[Owner: Vijesh]</b><br/>(Node.js / WebSockets / Nodemailer)"]
+        ANALYTICS["Analytics & Reporting Service<br/><b>[Owner: Vijesh]</b><br/>(Node.js / PostgreSQL)"]
     end
 
     subgraph EventMesh["Event-Driven Backbone (Async Messaging) - [Owner: Vijesh]"]
@@ -142,8 +142,8 @@ flowchart TD
 | **Engagement & Interaction** | Recruiter swipe actions (right/left), review comments, candidate feedback | `SwipeInteraction`, `Review`, `Feedback`, `Decision` | `engagement-service` | **Vijesh** |
 | **Gamification & Rewards** | HR coin ledger, coin awards, redemption for tier-3 access, platform subscriptions | `CoinLedger`, `CoinTransaction`, `RewardRule`, `Subscription` | `rewards-service` | **Vijesh** |
 | **AI & Matching Intelligence** | Natural language filtering, fit scoring, profile summarization, career recommendations | `MatchEvaluation`, `TalentSummary`, `CareerSuggestion`, `EmbeddingVector` | `ai-matching-service` | **Vijesh** |
-| **Notifications** | Async in-app alerts, emails to candidates on review, recruiter match alerts | `Notification`, `NotificationTemplate`, `DeliveryStatus` | `notification-service` | **Arun** |
-| **Analytics & Reporting** | Funnel conversion, swipe ratios, skill demand metrics, leaderboard | `HiringMetric`, `FunnelAggregate`, `SkillAnalytics` | `analytics-service` | **Varenya** |
+| **Notifications** | Async in-app alerts, emails to candidates on review, recruiter match alerts | `Notification`, `NotificationTemplate`, `DeliveryStatus` | `notification-service` | **Vijesh** |
+| **Analytics & Reporting** | Funnel conversion, swipe ratios, skill demand metrics, leaderboard | `HiringMetric`, `FunnelAggregate`, `SkillAnalytics` | `analytics-service` | **Vijesh** |
 | **Frontend Applications** | Candidate Portal, Recruiter Portal, Shared UI tokens, API client | `WebClient`, `CandidateApp`, `RecruiterApp` | `apps/*` | **Arun** |
 
 ---
@@ -197,7 +197,7 @@ flowchart TD
    - Distributed transactions for multi-step workflows (e.g. unlocking Elite Tier-3 candidates: check coin balance ➔ reserve coins ➔ grant access ➔ debit coins ➔ emit notification; with rollback on failure).
 6. **Circuit Breaker & Graceful Degradation** *(Lead: Vijesh)*:
    - Wraps downstream calls (e.g., Groq / Gemini LLM API, remote microservice calls) with timeouts, error thresholds, and cached fallbacks to prevent cascading failures.
-7. **Command Query Responsibility Segregation (CQRS)** *(Lead: Varenya)*:
+7. **Command Query Responsibility Segregation (CQRS)** *(Lead: Vijesh)*:
    - Write models handle strict transactional consistency (e.g. Candidate Registration, Reviews); Read models provide fast denormalized views for recruiter swipe queues and search.
 8. **Distributed Tracing & Correlation IDs** *(Lead: Vijesh)*:
    - OpenTelemetry W3C trace context (`traceparent`, `X-Correlation-ID`) propagated from the API Gateway across every HTTP request and message broker header.
@@ -215,8 +215,8 @@ flowchart TD
 | **4** | `services/engagement-service`| Node.js / Express / TypeScript | 5004 | PostgreSQL (`talent_engagement`) | Swipes (approve/reject), reviews, feedback records | **Vijesh** |
 | **5** | `services/rewards-service` | Node.js / Express / TypeScript | 5005 | PostgreSQL (`talent_rewards`) | TalentCredits ledger, coins for feedback, unlocks | **Vijesh** |
 | **6** | `services/ai-matching-service`| Node.js / Express / TypeScript | 5006 | Qdrant (Vector DB) + Redis | LLM analysis, TalentLens semantic search, summaries | **Vijesh** |
-| **7** | `services/notification-service`| Node.js / TypeScript | 5007 | MongoDB (`talent_notif`) | Email alerts, in-app WebSocket notifications | **Arun** |
-| **8** | `services/analytics-service` | Node.js / TypeScript | 5008 | PostgreSQL / ClickHouse | Telemetry, hiring conversion stats, talent insights | **Varenya** |
+| **7** | `services/notification-service`| Node.js / TypeScript | 5007 | MongoDB (`talent_notif`) | Email alerts, in-app WebSocket notifications | **Vijesh** |
+| **8** | `services/analytics-service` | Node.js / TypeScript | 5008 | PostgreSQL (`talent_analytics`) | Telemetry, hiring conversion stats, talent insights | **Vijesh** |
 | **9** | `apps/candidate-portal` | React / Vite / Tailwind / TS | 3000 | Client Browser | Rebranded talent.ai candidate web app | **Arun** |
 | **10**| `apps/recruiter-portal` | React / Vite / Tailwind / TS | 3001 | Client Browser | Rebranded talent.ai recruiter web app | **Arun** |
 
@@ -391,22 +391,24 @@ flowchart TD
 ---
 
 ### Phase 7: Notification & Analytics Services
-- [ ] **7.1 Notification Service (`services/notification-service`)** `[Assignee: Arun]`:
-  - [ ] Implement WebSocket server (Socket.io / ws) for live in-app notifications.
-  - [ ] Implement email worker with Nodemailer / SendGrid templates branded for **talent.ai**.
-  - [ ] Subscribe to events:
+- [x] **7.1 Notification Service (`services/notification-service`)** `[Assignee: Vijesh]` ✦ reassigned from Arun:
+  - [x] Implement WebSocket server (`ws`) for live in-app notifications at `/ws/notifications`, with token auth and a Redis pub/sub fan-out across replicas.
+  - [x] Implement email worker with Nodemailer templates branded for **talent.ai** (JSON transport when no SMTP relay is configured).
+  - [x] Subscribe to events:
     - `review.submitted` ➔ Send notification to candidate: *"A recruiter reviewed your profile and left feedback!"*.
     - `rewards.coins_awarded` ➔ Send notification to recruiter: *"You earned 5 TalentCredits for your candidate review!"*.
     - `rewards.tier3_unlocked` ➔ Notify candidate that an employer unlocked their full profile.
-  - [ ] Store notification history in `notification_db`.
-  - [ ] API: `GET /api/v1/notifications` & `PATCH /api/v1/notifications/:id/read`.
-- [ ] **7.2 Analytics Service (`services/analytics-service`)** `[Assignee: Varenya]`:
-  - [ ] Subscribe to all domain events (`talent.*`, `swipe.*`, `review.*`, `rewards.*`).
-  - [ ] Maintain real-time read models:
+    - `ai.evaluation.completed` ➔ Notify recruiter of a high-affinity match.
+    - `talent.profile.*` / `recruiter.registered` ➔ Maintain contact projections used to address alerts.
+  - [x] Store notification history in MongoDB (`talent_notif`) with per-event idempotency.
+  - [x] API: `GET /api/v1/notifications`, `GET /api/v1/notifications/unread-count` & `PATCH /api/v1/notifications/:id/read`.
+- [x] **7.2 Analytics Service (`services/analytics-service`)** `[Assignee: Vijesh]` ✦ reassigned from Varenya:
+  - [x] Subscribe to all domain events (`talent.*`, `swipe.*`, `review.*`, `rewards.*`, `ai.*`) through one durable queue.
+  - [x] Maintain real-time read models in PostgreSQL (`talent_analytics`):
     - Candidate acceptance vs rejection ratios.
     - Top in-demand skills and average time to match.
     - Recruiter engagement leaderboards.
-  - [ ] API: `GET /api/v1/analytics/candidate/:id` & `GET /api/v1/analytics/recruiter/dashboard`.
+  - [x] API: `GET /api/v1/analytics/candidate/:id`, `GET /api/v1/analytics/recruiter/dashboard`, `GET /api/v1/analytics/skills`, `GET /api/v1/analytics/leaderboard` & `GET /api/v1/analytics/funnel`.
 
 ---
 
@@ -526,13 +528,13 @@ All asynchronous messages flow through the RabbitMQ topic exchange `talent.event
 
 | Routing Key | Producing Service | Consuming Services | Business Purpose | Primary Handlers |
 | :--- | :--- | :--- | :--- | :--- |
-| `talent.profile.created` | `talent-service` | `ai-matching-service`, `analytics-service` | Generate vector embeddings; update aggregate counts | Producer: **Vijesh**<br/>Consumers: **Vijesh**, **Varenya** |
-| `talent.profile.updated` | `talent-service` | `ai-matching-service` | Re-index candidate in vector search | Producer: **Vijesh**<br/>Consumer: **Vijesh** |
-| `swipe.recorded` | `engagement-service` | `analytics-service` | Track acceptance/rejection funnel metrics | Producer: **Vijesh**<br/>Consumer: **Varenya** |
-| `review.submitted` | `engagement-service` | `rewards-service`, `notification-service`, `analytics-service` | Award TalentCredits to HR; notify candidate | Producer: **Vijesh**<br/>Consumers: **Vijesh**, **Arun**, **Varenya** |
-| `rewards.coins_awarded` | `rewards-service` | `notification-service`, `analytics-service` | Notify recruiter of wallet credit | Producer: **Vijesh**<br/>Consumers: **Arun**, **Varenya** |
+| `talent.profile.created` | `talent-service` | `ai-matching-service`, `notification-service`, `analytics-service` | Generate vector embeddings; index contact; update aggregate counts | Producer: **Vijesh**<br/>Consumers: **Vijesh** |
+| `talent.profile.updated` | `talent-service` | `ai-matching-service`, `notification-service`, `analytics-service` | Re-index candidate, refresh contact and skill aggregates | Producer: **Vijesh**<br/>Consumers: **Vijesh** |
+| `swipe.recorded` | `engagement-service` | `analytics-service` | Track acceptance/rejection funnel metrics | Producer: **Vijesh**<br/>Consumer: **Vijesh** |
+| `review.submitted` | `engagement-service` | `rewards-service`, `notification-service`, `analytics-service` | Award TalentCredits to HR; notify candidate | Producer: **Vijesh**<br/>Consumers: **Vijesh** |
+| `rewards.coins_awarded` | `rewards-service` | `notification-service`, `analytics-service` | Notify recruiter of wallet credit | Producer: **Vijesh**<br/>Consumers: **Vijesh** |
 | `rewards.tier3_unlocked` | `rewards-service` | `talent-service`, `notification-service` | Authorize recruiter view for Elite candidate | Producer: **Vijesh**<br/>Consumer: **Vijesh** |
-| `ai.evaluation.completed`| `ai-matching-service`| `notification-service`, `analytics-service` | Notify recruiter of high-affinity candidate match | Producer: **Vijesh**<br/>Consumers: **Arun**, **Varenya** |
+| `ai.evaluation.completed`| `ai-matching-service`| `notification-service`, `analytics-service` | Notify recruiter of high-affinity candidate match | Producer: **Vijesh**<br/>Consumer: **Vijesh** |
 
 ---
 

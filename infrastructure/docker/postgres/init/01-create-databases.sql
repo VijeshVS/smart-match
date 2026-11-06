@@ -15,6 +15,9 @@ WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'talent_engagement')\g
 SELECT 'CREATE DATABASE talent_rewards'
 WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'talent_rewards')\gexec
 
+SELECT 'CREATE DATABASE talent_analytics'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'talent_analytics')\gexec
+
 \connect talent_auth
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -25,4 +28,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 \connect talent_rewards
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+\connect talent_analytics
 CREATE EXTENSION IF NOT EXISTS pgcrypto;

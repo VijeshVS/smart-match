@@ -11,6 +11,8 @@ resources:
   - engagement-service.yaml
   - rewards-service.yaml
   - ai-matching-service.yaml
+  - notification-service.yaml
+  - analytics-service.yaml
   - api-gateway.yaml
   - hpa.yaml
   - ingress.yaml
@@ -33,6 +35,10 @@ images:
   - name: ghcr.io/vijeshvs/smart-match/rewards-service
     newTag: latest
   - name: ghcr.io/vijeshvs/smart-match/ai-matching-service
+    newTag: latest
+  - name: ghcr.io/vijeshvs/smart-match/notification-service
+    newTag: latest
+  - name: ghcr.io/vijeshvs/smart-match/analytics-service
     newTag: latest
   - name: ghcr.io/vijeshvs/smart-match/api-gateway
     newTag: latest

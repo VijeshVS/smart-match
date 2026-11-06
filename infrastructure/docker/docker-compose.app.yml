@@ -326,6 +326,111 @@ services:
     networks:
       - talent-ai-network
 
+  notification-service:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_NAME: notification-service
+        SERVICE_PATH: services/notification-service
+        APP_PORT: 5007
+    image: talent-ai/notification-service:local
+    container_name: talent-ai-notification-service
+    restart: unless-stopped
+    init: true
+    env_file:
+      - path: ../../.env
+        required: false
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 5007
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      NOTIFICATION_MONGODB_URI: mongodb://mongodb:27017/talent_notif?replicaSet=rs0
+      NOTIFICATION_MONGODB_DB: talent_notif
+      MONGODB_MAX_POOL_SIZE: ${MONGODB_MAX_POOL_SIZE:-10}
+      MONGODB_SERVER_SELECTION_TIMEOUT_MS: ${MONGODB_SERVER_SELECTION_TIMEOUT_MS:-5000}
+      REDIS_URL: redis://redis:6379
+      NOTIFICATION_FANOUT_CHANNEL: ${NOTIFICATION_FANOUT_CHANNEL:-talent.notifications}
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-talent}:${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD is required}@rabbitmq:5672
+      RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-talent.events.topic}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET is required}
+      JWT_ISSUER: ${JWT_ISSUER:-talent.ai}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-talent.ai}
+      TRUST_GATEWAY_HEADERS: 'true'
+      WEBSOCKET_PATH: ${WEBSOCKET_PATH:-/ws/notifications}
+      EMAIL_ENABLED: ${EMAIL_ENABLED:-false}
+      EMAIL_FROM: ${EMAIL_FROM:-talent.ai <no-reply@talent.ai>}
+      SMTP_URL: ${SMTP_URL:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:3001}
+      OTEL_ENABLED: ${OTEL_ENABLED:-true}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      TRUST_PROXY: ${TRUST_PROXY:-true}
+    ports:
+      - '${NOTIFICATION_SERVICE_PORT:-5007}:5007'
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      mongodb-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:5007/health/liveness >/dev/null || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - talent-ai-network
+
+  analytics-service:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_NAME: analytics-service
+        SERVICE_PATH: services/analytics-service
+        APP_PORT: 5008
+    image: talent-ai/analytics-service:local
+    container_name: talent-ai-analytics-service
+    restart: unless-stopped
+    init: true
+    env_file:
+      - path: ../../.env
+        required: false
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 5008
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      ANALYTICS_DATABASE_URL: postgresql://${POSTGRES_USER:-talent}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/talent_analytics?schema=public
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-talent}:${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD is required}@rabbitmq:5672
+      RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-talent.events.topic}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET is required}
+      JWT_ISSUER: ${JWT_ISSUER:-talent.ai}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-talent.ai}
+      TRUST_GATEWAY_HEADERS: 'true'
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:3001}
+      OTEL_ENABLED: ${OTEL_ENABLED:-true}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      TRUST_PROXY: ${TRUST_PROXY:-true}
+    ports:
+      - '${ANALYTICS_SERVICE_PORT:-5008}:5008'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:5008/health/liveness >/dev/null || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - talent-ai-network
+
   api-gateway:
     build:
       context: ../..
