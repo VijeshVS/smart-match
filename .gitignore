@@ -15,6 +15,7 @@ build/
 # Test output
 coverage/
 playwright-report/
+.playwright-mcp/
 test-results/
 
 # Environment (never commit secrets)

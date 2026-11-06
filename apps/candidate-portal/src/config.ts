@@ -1,10 +1,12 @@
 /**
  * Runtime configuration sourced from Vite environment variables.
- * Phase 8 will replace `legacyApiUrl` with the API Gateway client.
+ * All service traffic flows through the centralized @talent-ai/api-client.
  */
 export const appConfig = {
   appName: import.meta.env.VITE_APP_NAME ?? 'talent.ai',
   siteUrl: import.meta.env.VITE_SITE_URL ?? 'https://talent.ai',
+  recruiterPortalUrl: import.meta.env.VITE_RECRUITER_PORTAL_URL ?? 'https://recruiter.talent.ai',
   apiGatewayUrl: import.meta.env.VITE_API_GATEWAY_URL ?? 'http://localhost:8080',
-  legacyApiUrl: import.meta.env.VITE_LEGACY_API_URL ?? 'http://localhost:4000',
+  notificationWsUrl:
+    import.meta.env.VITE_NOTIFICATION_WS_URL ?? 'ws://localhost:5007/ws/notifications',
 } as const;

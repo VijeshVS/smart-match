@@ -1,383 +1,558 @@
-import { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
-import axios from 'axios';
+import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
-  UserCircle, ThumbsUp, ThumbsDown, TrendingUp,
-  Mail, Phone, Code, GraduationCap, Briefcase,
-  Lightbulb, Sparkles, CheckCircle, XCircle, Loader2,
+  Bell,
+  Briefcase,
+  CheckCircle2,
+  GraduationCap,
+  Lightbulb,
+  Mail,
+  Phone,
+  Sparkles,
+  ThumbsDown,
+  ThumbsUp,
+  TrendingUp,
+  XCircle,
 } from 'lucide-react';
-import type { UserData } from '../types';
-import { appConfig } from '../config';
+import {
+  aiApi,
+  connectNotificationSocket,
+  engagementApi,
+  notificationsApi,
+  talentApi,
+  toApiClientError,
+  TALENT_LEVEL_LABELS,
+  type Notification,
+  type ProfileSuggestionsResult,
+  type ProfileSummaryResult,
+  type TalentEngagementSummary,
+  type TalentProfile,
+} from '@talent-ai/api-client';
+import { toast } from 'sonner';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty';
+import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useAuth } from '@/lib/auth';
 
-/* ─── Sub-components ─────────────────────────────────── */
+function initials(name: string) {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('');
+}
 
-const TALENT_TIER_LABELS: Record<number, string> = {
-  1: 'Junior Fellow',
-  2: 'Pro Engineer',
-  3: 'Elite Principal',
-};
+function formatDate(value?: string) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
 
-
-function StatCard({ title, value, icon: Icon, color }: {
+function StatCard({
+  title,
+  value,
+  hint,
+  icon: Icon,
+  tone,
+}: {
   title: string;
   value: string | number;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  color: string;
+  hint: string;
+  icon: typeof ThumbsUp;
+  tone: string;
 }) {
   return (
-    <div className="glass rounded-2xl p-6 card-hover">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-slate-400">{title}</h3>
-        <div className={`stat-card-icon ${color}`}>
-          <Icon size={20} />
+    <Card className="card-hover border-white/10 bg-card/60">
+      <CardContent className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <CardDescription>{title}</CardDescription>
+          <span className={`inline-flex size-9 items-center justify-center rounded-lg ${tone}`}>
+            <Icon className="size-4" />
+          </span>
         </div>
-      </div>
-      <p className="text-3xl font-bold text-white">{value}</p>
-    </div>
+        <p className="font-heading text-3xl font-bold">{value}</p>
+        <p className="text-xs text-muted-foreground">{hint}</p>
+      </CardContent>
+    </Card>
   );
 }
 
-function EducationCard({ education }: { education: UserData['education'][0] }) {
-  return (
-    <div className="glass rounded-2xl p-5 card-hover">
-      <div className="flex items-center gap-3 mb-3">
-        <div className="stat-card-icon">
-          <GraduationCap size={18} className="text-accent-violet" />
-        </div>
-        <h4 className="font-semibold text-white">{education.college}</h4>
-      </div>
-      <div className="space-y-1.5 text-sm text-slate-400 ml-12">
-        <p>
-          <span className="text-slate-300">{education.degree}</span> in {education.branchOfStudy}
-        </p>
-        <p>Class of {education.yearOfGraduation} · GPA: <span className="text-accent-cyan font-medium">{education.gpa}</span></p>
-      </div>
-    </div>
-  );
-}
-
-function ExperienceCard({ experience }: { experience: UserData['previousExperience'][0] }) {
-  return (
-    <div className="glass rounded-2xl p-5 card-hover">
-      <div className="flex items-center gap-3 mb-3">
-        <div className="stat-card-icon">
-          <Briefcase size={18} className="text-accent-cyan" />
-        </div>
-        <div>
-          <h4 className="font-semibold text-white">{experience.role}</h4>
-          <p className="text-sm text-slate-400">{experience.company} · {experience.duration} months</p>
-        </div>
-      </div>
-      <ul className="space-y-1 ml-12 text-sm text-slate-400">
-        {experience.responsibilities.map((r, i) => (
-          <li key={i} className="flex items-start gap-2">
-            <span className="text-accent-violet mt-1.5 shrink-0">•</span>
-            <span>{r}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function ReviewCard({ review }: { review: { swipe: string; comment: string } }) {
-  const isApproved = review.swipe === 'approve';
-  return (
-    <div
-      className={`glass rounded-2xl p-5 card-hover border-l-2 ${
-        isApproved ? 'border-l-emerald-500' : 'border-l-red-500'
-      }`}
-    >
-      <div className="flex items-center gap-2 mb-2">
-        {isApproved ? (
-          <CheckCircle size={16} className="text-emerald-400" />
-        ) : (
-          <XCircle size={16} className="text-red-400" />
-        )}
-        <span className={`text-xs font-medium ${isApproved ? 'text-emerald-400' : 'text-red-400'}`}>
-          {isApproved ? 'Approved' : 'Rejected'}
-        </span>
-      </div>
-      <p className="text-sm text-slate-300 leading-relaxed">{review.comment}</p>
-    </div>
-  );
-}
-
-function InsightCard({ title, items, icon: Icon, iconColor }: {
+function InsightCard({
+  title,
+  description,
+  items,
+  icon: Icon,
+  accent,
+  loading,
+}: {
   title: string;
+  description: string;
   items: string[];
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  iconColor: string;
+  icon: typeof Sparkles;
+  accent: string;
+  loading: boolean;
 }) {
   return (
-    <div className="glass rounded-2xl p-6 card-hover">
-      <div className="flex items-center gap-3 mb-5">
-        <div className="stat-card-icon">
-          <Icon size={20} className={iconColor} />
+    <Card className="card-hover border-white/10 bg-card/60">
+      <CardHeader>
+        <div className="flex items-center gap-3">
+          <span className={`inline-flex size-10 items-center justify-center rounded-xl ${accent}`}>
+            <Icon className="size-5" />
+          </span>
+          <div>
+            <CardTitle className="text-base">{title}</CardTitle>
+            <CardDescription>{description}</CardDescription>
+          </div>
         </div>
-        <h3 className="font-semibold text-white">{title}</h3>
-      </div>
-      <ul className="space-y-3">
-        {items.map((item, i) => (
-          <li key={i} className="flex items-start gap-3 text-sm text-slate-300 leading-relaxed">
-            <span className={`mt-1 shrink-0 ${iconColor}`}>›</span>
-            <span>{item}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="flex flex-col gap-3">
+            <Skeleton className="h-4 w-11/12" />
+            <Skeleton className="h-4 w-10/12" />
+            <Skeleton className="h-4 w-9/12" />
+          </div>
+        ) : items.length > 0 ? (
+          <ul className="flex flex-col gap-3">
+            {items.map((item, index) => (
+              <li key={index} className="flex items-start gap-3 text-sm text-muted-foreground">
+                <span className={`mt-1.5 size-1.5 shrink-0 rounded-full ${accent}`} />
+                <span className="leading-relaxed">{item}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Insights will appear once your profile has been analysed.
+          </p>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
-/* ─── Main Dashboard ──────────────────────────────────── */
-
-function Dashboard() {
-  const location = useLocation();
-  const stateEmail = (location.state as { email?: string })?.email;
-
-  const [email, setEmail] = useState(stateEmail || '');
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState(Boolean(stateEmail));
+export function Dashboard() {
+  const { user, accessToken } = useAuth();
+  const [profile, setProfile] = useState<TalentProfile | null>(null);
+  const [engagement, setEngagement] = useState<TalentEngagementSummary | null>(null);
+  const [summary, setSummary] = useState<ProfileSummaryResult | null>(null);
+  const [suggestions, setSuggestions] = useState<ProfileSuggestionsResult | null>(null);
+  const [unread, setUnread] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [insightsLoading, setInsightsLoading] = useState(true);
+  const [missingProfile, setMissingProfile] = useState(false);
   const [error, setError] = useState('');
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [summary, setSummary] = useState<string[]>([]);
-  const [needsLogin, setNeedsLogin] = useState(!stateEmail);
 
-  const fetchProfile = async (loginEmail: string) => {
-    try {
-      const response = await fetch(`${appConfig.legacyApiUrl}/api/candidates`);
-      if (!response.ok) throw new Error('Failed to fetch');
-
-      const data = await response.json();
-      const user = data.find(
-        (u: { email: string }) => u.email.toLowerCase() === loginEmail.toLowerCase()
-      );
-
-      if (!user) {
-        setError('No account found with this email.');
-        setLoading(false);
-        return;
-      }
-
-      setUserData(user);
-      setNeedsLogin(false);
-
-      // Fetch AI insights in parallel
-      const [suggestRes, summaryRes] = await Promise.all([
-        axios.post(`${appConfig.legacyApiUrl}/suggestProfile`, { profile: user }),
-        axios.post(`${appConfig.legacyApiUrl}/summariseProfile`, { profile: user }),
-      ]);
-
-      setSuggestions(suggestRes.data.suggestions || []);
-      setSummary(summaryRes.data.summary || []);
-    } catch {
-      setError('Unable to connect to the server.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (stateEmail) {
-      // The profile fetch is intentionally kicked off once on mount; state
-      // updates happen asynchronously inside fetchProfile.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      fetchProfile(stateEmail);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
+  const load = useCallback(async () => {
     setLoading(true);
     setError('');
-    fetchProfile(email);
-  };
+    setMissingProfile(false);
 
-  // Login prompt
-  if (needsLogin && !loading) {
-    return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4">
-        <div className="glass-strong rounded-3xl p-8 max-w-md w-full animate-scale-in">
-          <div className="text-center mb-6">
-            <div className="w-14 h-14 rounded-2xl gradient-btn mx-auto mb-4 flex items-center justify-center">
-              <Mail size={24} className="text-white relative z-10" />
-            </div>
-            <h2 className="text-2xl font-bold text-white mb-2">Access Dashboard</h2>
-            <p className="text-slate-400 text-sm">Enter your email to view your profile</p>
-          </div>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              className="w-full px-4 py-3 rounded-xl glass-input"
-              required
-            />
-            <button
-              type="submit"
-              className="w-full py-3 rounded-xl gradient-btn text-base"
-            >
-              <span>View Dashboard</span>
-            </button>
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-red-400 text-sm text-center animate-fade-in">
-                {error}
-              </div>
-            )}
-          </form>
-        </div>
-      </div>
-    );
-  }
+    try {
+      const talent = await talentApi.getMyProfile();
+      setProfile(talent);
+      setLoading(false);
 
-  // Loading state
+      const [engagementResult, summaryResult, suggestionResult, unreadCount] =
+        await Promise.allSettled([
+          engagementApi.getTalentSummary(talent.id),
+          aiApi.summarizeProfile({
+            talentId: talent.id,
+            profile: {
+              name: talent.name,
+              field: talent.field,
+              skills: talent.skills,
+              experienceYears: talent.experienceYears,
+              level: talent.level,
+              education: talent.education,
+              previousExperience: talent.previousExperience,
+              bio: talent.bio,
+            },
+          }),
+          aiApi.suggestImprovements({ talentId: talent.id }),
+          notificationsApi.unreadCount(),
+        ]);
+
+      if (engagementResult.status === 'fulfilled') setEngagement(engagementResult.value);
+      if (summaryResult.status === 'fulfilled') setSummary(summaryResult.value);
+      if (suggestionResult.status === 'fulfilled') setSuggestions(suggestionResult.value);
+      if (unreadCount.status === 'fulfilled') setUnread(unreadCount.value);
+    } catch (cause) {
+      const apiError = toApiClientError(cause);
+      if (apiError.status === 404) {
+        setMissingProfile(true);
+      } else {
+        setError(apiError.message);
+      }
+      setLoading(false);
+    } finally {
+      setInsightsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  useEffect(() => {
+    if (!accessToken || !user) return;
+    const handle = connectNotificationSocket({
+      onNotification: (notification: Notification) => {
+        setUnread((value) => value + 1);
+        toast(notification.title, { description: notification.body });
+      },
+    });
+    return () => handle.close();
+  }, [accessToken, user]);
+
   if (loading) {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <div className="text-center animate-fade-in">
-          <Loader2 size={48} className="text-accent-violet mx-auto mb-4 animate-spin" />
-          <p className="text-slate-400">Loading your profile...</p>
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="mb-8 flex items-center gap-4">
+          <Skeleton className="size-16 rounded-2xl" />
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+        </div>
+        <div className="grid gap-5 sm:grid-cols-3">
+          <Skeleton className="h-32 rounded-xl" />
+          <Skeleton className="h-32 rounded-xl" />
+          <Skeleton className="h-32 rounded-xl" />
         </div>
       </div>
     );
   }
 
-  if (!userData) return null;
+  if (missingProfile) {
+    return (
+      <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-16 sm:px-6">
+        <Empty className="glass-strong border border-white/10">
+          <EmptyHeader>
+            <EmptyTitle>Your talent profile is not ready yet</EmptyTitle>
+            <EmptyDescription>
+              Complete the three-step onboarding wizard and we will start matching you instantly.
+            </EmptyDescription>
+          </EmptyHeader>
+          <Button asChild size="lg">
+            <Link to="/register">Create your profile</Link>
+          </Button>
+        </Empty>
+      </div>
+    );
+  }
+
+  if (error || !profile) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
+        <Alert variant="destructive">
+          <AlertTitle>We couldn’t load your dashboard</AlertTitle>
+          <AlertDescription className="flex flex-col gap-3">
+            <span>{error || 'An unexpected error occurred.'}</span>
+            <Button variant="outline" size="sm" className="w-fit" onClick={() => void load()}>
+              Try again
+            </Button>
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  const levelLabel = TALENT_LEVEL_LABELS[profile.level] ?? profile.level;
+  const approvals = engagement?.rightSwipes ?? 0;
+  const rejections = engagement?.leftSwipes ?? 0;
+  const totalSwipes = approvals + rejections;
+  const acceptance = totalSwipes > 0 ? Math.round((approvals / totalSwipes) * 100) : 0;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Profile Header */}
-      <div className="glass-strong rounded-3xl p-8 mb-8 animate-slide-up">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-          <div className="flex items-center gap-5">
-            <div className="w-20 h-20 rounded-2xl gradient-btn flex items-center justify-center shrink-0">
-              <UserCircle size={40} className="text-white relative z-10" />
+    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-4">
+          <Avatar className="size-16 rounded-2xl">
+            <AvatarFallback className="rounded-2xl bg-gradient-to-br from-primary to-brand-cyan text-xl font-bold text-white">
+              {initials(profile.name)}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col gap-1">
+            <h1 className="font-heading text-3xl font-extrabold tracking-tight">{profile.name}</h1>
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <Badge variant="secondary" className="bg-primary/15 text-primary">
+                {levelLabel}
+              </Badge>
+              <span>{profile.field}</span>
+              <span aria-hidden="true">·</span>
+              <span>{profile.experienceYears} yrs experience</span>
             </div>
-            <div>
-              <h1 className="text-3xl font-extrabold text-white">{userData.name}</h1>
-              <div className="flex items-center gap-2 mt-1">
-                <Code size={14} className="text-accent-cyan" />
-                <span className="text-accent-cyan font-medium text-sm">{userData.field}</span>
-                <span className="text-slate-600">·</span>
-                <span className="text-slate-400 text-sm">
-                  {TALENT_TIER_LABELS[userData.level] ?? `Verified Talent Tier ${userData.level}`}
-                </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" className="relative">
+            <Bell />
+            {unread > 0 ? (
+              <span className="absolute -top-1.5 -right-1.5 inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+                {unread > 9 ? '9+' : unread}
+              </span>
+            ) : null}
+            <span className="sr-only">{unread} unread notifications</span>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link to="/register">Edit profile</Link>
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          title="Approvals"
+          value={approvals}
+          hint="Recruiters who saved your profile"
+          icon={ThumbsUp}
+          tone="bg-success/15 text-success"
+        />
+        <StatCard
+          title="Rejections"
+          value={rejections}
+          hint="Feedback helps refine your signal"
+          icon={ThumbsDown}
+          tone="bg-destructive/15 text-destructive"
+        />
+        <StatCard
+          title="Acceptance rate"
+          value={`${acceptance}%`}
+          hint={`${totalSwipes} recruiter decisions`}
+          icon={TrendingUp}
+          tone="bg-brand-cyan/15 text-brand-cyan"
+        />
+        <StatCard
+          title="Reviews"
+          value={engagement?.totalReviews ?? 0}
+          hint="Detailed recruiter feedback"
+          icon={CheckCircle2}
+          tone="bg-primary/15 text-primary"
+        />
+      </div>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+        <Card className="glass-strong border-white/10">
+          <CardHeader>
+            <CardTitle>Profile signal</CardTitle>
+            <CardDescription>How your profile performs in the talent pool.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-5">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Acceptance confidence</span>
+                <span className="font-medium">{acceptance}%</span>
+              </div>
+              <Progress value={acceptance} />
+            </div>
+
+            <Separator />
+
+            <div className="flex flex-col gap-3">
+              <span className="text-sm font-medium">Contact</span>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Mail className="size-4" />
+                <span className="truncate">{profile.email}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Phone className="size-4" />
+                <span>{profile.phone}</span>
               </div>
             </div>
-          </div>
 
-          <div className="flex flex-col gap-2 text-sm">
-            <div className="flex items-center gap-3 text-slate-400">
-              <Mail size={15} className="text-accent-violet" />
-              <span>{userData.email}</span>
+            <Separator />
+
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Skills</span>
+                <Badge variant="secondary">{profile.skills.length}</Badge>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {profile.skills.map((skill) => (
+                  <Badge key={skill} variant="outline" className="border-primary/25 bg-primary/5">
+                    {skill}
+                  </Badge>
+                ))}
+              </div>
             </div>
-            <div className="flex items-center gap-3 text-slate-400">
-              <Phone size={15} className="text-accent-violet" />
-              <span>{userData.phone}</span>
-            </div>
-          </div>
-        </div>
-      </div>
+          </CardContent>
+        </Card>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
-        <div className="animate-slide-up" style={{ animationDelay: '0.1s', animationFillMode: 'both' }}>
-          <StatCard title="Approvals" value={userData.rightSwipes} icon={ThumbsUp} color="text-emerald-400" />
-        </div>
-        <div className="animate-slide-up" style={{ animationDelay: '0.2s', animationFillMode: 'both' }}>
-          <StatCard title="Rejections" value={userData.leftSwipes} icon={ThumbsDown} color="text-red-400" />
-        </div>
-        <div className="animate-slide-up" style={{ animationDelay: '0.3s', animationFillMode: 'both' }}>
-          <StatCard title="Experience" value={`${userData.experience} yrs`} icon={TrendingUp} color="text-accent-cyan" />
-        </div>
-      </div>
-
-      {/* Skills */}
-      <div className="glass rounded-2xl p-6 mb-8 animate-slide-up" style={{ animationDelay: '0.15s', animationFillMode: 'both' }}>
-        <h2 className="text-lg font-semibold text-white mb-4">Skills</h2>
-        <div className="flex flex-wrap gap-2">
-          {userData.skills.map((skill, i) => (
-            <span
-              key={i}
-              className="px-4 py-1.5 rounded-full text-sm font-medium skill-chip-active"
-            >
-              {skill}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* AI Insights */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="animate-slide-up" style={{ animationDelay: '0.2s', animationFillMode: 'both' }}>
+        <div className="grid gap-6">
           <InsightCard
-            title="Profile Summary"
-            items={summary}
+            title="Profile summary"
+            description="AI-generated overview of your signal"
+            items={summary?.summary ?? []}
             icon={Sparkles}
-            iconColor="text-accent-cyan"
+            accent="bg-brand-cyan/15 text-brand-cyan"
+            loading={insightsLoading}
           />
-        </div>
-        <div className="animate-slide-up" style={{ animationDelay: '0.25s', animationFillMode: 'both' }}>
           <InsightCard
-            title="Suggestions for Improvement"
-            items={suggestions}
+            title="Suggestions to improve"
+            description="Prioritised actions from the matching engine"
+            items={suggestions?.suggestions ?? []}
             icon={Lightbulb}
-            iconColor="text-yellow-400"
+            accent="bg-warning/15 text-warning"
+            loading={insightsLoading}
           />
         </div>
       </div>
 
-      {/* Education & Experience + Reviews */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        {/* Left column */}
-        <div className="space-y-6 animate-slide-up" style={{ animationDelay: '0.3s', animationFillMode: 'both' }}>
-          <div>
-            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <GraduationCap size={18} className="text-accent-violet" />
-              Education
-            </h2>
-            <div className="space-y-4">
-              {userData.education.map((edu, i) => (
-                <EducationCard key={i} education={edu} />
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <Briefcase size={18} className="text-accent-cyan" />
-              Experience
-            </h2>
-            <div className="space-y-4">
-              {userData.previousExperience.map((exp, i) => (
-                <ExperienceCard key={i} experience={exp} />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Right column: Reviews */}
-        <div className="animate-slide-up" style={{ animationDelay: '0.35s', animationFillMode: 'both' }}>
-          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <CheckCircle size={18} className="text-emerald-400" />
-            Reviews
-          </h2>
-          <div className="space-y-4">
-            {userData.reviews && userData.reviews.length > 0 ? (
-              userData.reviews.map((review, i) => (
-                <ReviewCard key={i} review={review} />
-              ))
-            ) : (
-              <div className="glass rounded-2xl p-8 text-center">
-                <p className="text-slate-500">No reviews yet</p>
-                <p className="text-slate-600 text-sm mt-1">Reviews from companies will appear here</p>
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <Card className="border-white/10 bg-card/60">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <span className="inline-flex size-9 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                <GraduationCap className="size-4" />
+              </span>
+              <div>
+                <CardTitle className="text-base">Education</CardTitle>
+                <CardDescription>{profile.education.length} entries</CardDescription>
               </div>
+            </div>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            {profile.education.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No education added yet.</p>
+            ) : (
+              profile.education.map((item, index) => (
+                <div key={item.id ?? index} className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-medium">{item.college}</p>
+                    <span className="text-xs text-muted-foreground">
+                      {item.yearOfGraduation}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {item.degree} · {item.branchOfStudy}
+                  </p>
+                  {item.gpa ? (
+                    <Badge variant="outline" className="w-fit border-white/10">
+                      GPA {item.gpa}
+                    </Badge>
+                  ) : null}
+                </div>
+              ))
             )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-white/10 bg-card/60">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <span className="inline-flex size-9 items-center justify-center rounded-lg bg-brand-cyan/15 text-brand-cyan">
+                <Briefcase className="size-4" />
+              </span>
+              <div>
+                <CardTitle className="text-base">Experience</CardTitle>
+                <CardDescription>{profile.previousExperience.length} roles</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-5">
+            {profile.previousExperience.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No work history added yet.</p>
+            ) : (
+              profile.previousExperience.map((item, index) => (
+                <div key={item.id ?? index} className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-medium">{item.role}</p>
+                    <span className="text-xs text-muted-foreground">
+                      {item.durationMonths} months
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{item.company}</p>
+                  {item.responsibilities.length > 0 ? (
+                    <ul className="flex flex-col gap-1.5">
+                      {item.responsibilities.map((responsibility, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                          <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-brand-cyan" />
+                          <span>{responsibility}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
       </div>
+
+      <Card className="mt-6 border-white/10 bg-card/60">
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <span className="inline-flex size-9 items-center justify-center rounded-lg bg-success/15 text-success">
+              <CheckCircle2 className="size-4" />
+            </span>
+            <div>
+              <CardTitle className="text-base">Recruiter feedback</CardTitle>
+              <CardDescription>Everything reviewers have shared with you.</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {engagement && engagement.reviews.length > 0 ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              {engagement.reviews.map((review) => {
+                const approved = review.decision === 'APPROVE';
+                return (
+                  <div
+                    key={review.id}
+                    className={`flex flex-col gap-2 rounded-xl border p-4 ${
+                      approved
+                        ? 'border-success/20 bg-success/5'
+                        : 'border-destructive/20 bg-destructive/5'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {approved ? (
+                        <CheckCircle2 className="size-4 text-success" />
+                      ) : (
+                        <XCircle className="size-4 text-destructive" />
+                      )}
+                      <span className="text-xs font-medium">
+                        {approved ? 'Approved' : 'Rejected'}
+                      </span>
+                      <span className="ml-auto text-xs text-muted-foreground">
+                        {formatDate(review.createdAt)}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {review.feedbackText ?? 'No written feedback provided.'}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <Empty className="border border-none">
+              <EmptyHeader>
+                <EmptyTitle>No reviews yet</EmptyTitle>
+                <EmptyDescription>
+                  When recruiters review your profile, their feedback lands here.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

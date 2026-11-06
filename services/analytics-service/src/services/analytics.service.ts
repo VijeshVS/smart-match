@@ -104,7 +104,7 @@ export async function getRecruiterDashboard(
   const recruiterId = requestedRecruiterId ?? principal.userId;
 
   if (principal.role !== 'ADMIN' && recruiterId !== principal.userId) {
-    throw new AppError(403, 'FORBIDDEN', 'You may only read your own dashboard');
+    throw new AppError(403, 'FORBIDDEN', 'only read your own dashboard');
   }
 
   const [metric, topSkills] = await Promise.all([

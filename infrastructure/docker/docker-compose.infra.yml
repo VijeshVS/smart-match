@@ -130,6 +130,9 @@ services:
 
   mailhog:
     image: mailhog/mailhog:v1.0.1
+    # MailHog only publishes linux/amd64 images. Pin the platform so Apple
+    # Silicon hosts pull the right image and run it through Rosetta emulation.
+    platform: linux/amd64
     container_name: talent-ai-mailhog
     restart: unless-stopped
     ports:
