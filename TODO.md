@@ -34,6 +34,7 @@
    - [Phase 8: Frontend Modernization & talent.ai UI Revamp](#phase-8-frontend-modernization--talentai-ui-revamp)
    - [Phase 9: Observability, Resilience, Security & DevOps](#phase-9-observability-resilience-security--devops)
    - [Phase 10: Data Migration, Integration Testing & Production Cutover](#phase-10-data-migration-integration-testing--production-cutover)
+   - [Phase 11: Grafana Dashboards & Realistic Data Seeding](#phase-11-grafana-dashboards--realistic-data-seeding)
 7. [Distributed Event Catalog & Message Schemas](#-distributed-event-catalog--message-schemas)
 8. [Data Migration & Decoupling Strategy](#-data-migration--decoupling-strategy)
 
@@ -514,6 +515,34 @@ flowchart TD
 
 ---
 
+### Phase 11: Grafana Dashboards & Realistic Data Seeding
+- [ ] **11.1 Identify Critical Flows and Observability Signals**:
+  - [ ] Document the most important user and platform flows to monitor:
+    - Candidate onboarding ➔ profile completion ➔ AI summary and recommendations.
+    - Recruiter search ➔ TalentLens evaluation ➔ TalentSwipe decision ➔ review submission.
+    - Review submission ➔ TalentCredits award ➔ Level-3 profile unlock Saga.
+    - Domain event publishing/consumption ➔ notification delivery and analytics projection updates.
+  - [ ] For each flow, define the dashboard parameters and metrics, including request rate, latency percentiles (p50/p95/p99), error rate, saturation, throughput, queue depth, consumer lag, retry/DLQ count, and end-to-end completion rate.
+  - [ ] Define business metrics including onboarding completion, TalentLens match rate and duration, approve/reject ratio, review rate, TalentCredits awarded, unlock conversion, notification delivery rate, and analytics projection freshness.
+- [ ] **11.2 Create and Provision Grafana Dashboards**:
+  - [ ] Create version-controlled Grafana JSON dashboards for:
+    - [ ] Platform overview and API Gateway traffic.
+    - [ ] Microservice health, RED metrics, database connectivity, and resource saturation.
+    - [ ] Candidate and recruiter conversion funnels.
+    - [ ] AI/TalentLens latency, provider usage, cache hit rate, failures, and circuit-breaker state.
+    - [ ] RabbitMQ events, consumer lag, retries, and DLQs.
+    - [ ] Rewards Saga, notifications, and analytics pipeline health.
+  - [ ] Configure Prometheus variables and dashboard filters for environment, service, route, status code, event type, and time range.
+  - [ ] Add actionable alert rules and runbooks for elevated error rates, latency, failed Sagas, queue backlog, DLQ growth, provider failures, and stale projections.
+  - [ ] Provision dashboards automatically in Docker Compose and Kubernetes, and validate them with seeded traffic.
+- [ ] **11.3 Enable Realistic Database Seeding**:
+  - [ ] Add a documented root command, `pnpm run db:seed:realistic`, to seed representative, privacy-safe real-world data across Auth, Talent, Recruiter, Engagement, Rewards, Notification, Analytics, and Qdrant stores.
+  - [ ] Generate realistic distributions for candidates, skills, experience levels, organizations, job postings, swipes, reviews, TalentCredits transactions, notifications, events, analytics aggregates, and embeddings so every critical flow is observable.
+  - [ ] Make the seeder deterministic with a configurable seed, idempotent, environment-aware, and safe against production execution; support reset/cleanup only for local and test environments.
+  - [ ] Verify referential integrity, event replay behavior, dashboard population, and a complete seeded candidate-to-recruiter journey in the development stack.
+
+---
+
 ## 📡 Distributed Event Catalog & Message Schemas
 
 All asynchronous messages flow through the RabbitMQ topic exchange `talent.events.topic` with standardized CloudEvents-compliant JSON envelopes:
@@ -632,10 +661,13 @@ docker compose -f infrastructure/docker/docker-compose.infra.yml up -d
 # 2. Run data migration script to decouple existing seed data
 pnpm run db:migrate:seed
 
-# 3. Start all microservices and frontends in development mode via Turborepo
+# 3. Seed privacy-safe, realistic data across all service databases
+pnpm run db:seed:realistic
+
+# 4. Start all microservices and frontends in development mode via Turborepo
 pnpm run dev
 
-# 4. Access apps:
+# 5. Access apps:
 # Candidate Portal:  http://localhost:3000 (talent.ai)
 # Recruiter Portal:  http://localhost:3001 (recruiter.talent.ai)
 # API Gateway:       http://localhost:8080 (api.talent.ai)
