@@ -258,6 +258,74 @@ services:
     networks:
       - talent-ai-network
 
+  ai-matching-service:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_NAME: ai-matching-service
+        SERVICE_PATH: services/ai-matching-service
+        APP_PORT: 5006
+    image: talent-ai/ai-matching-service:local
+    container_name: talent-ai-ai-matching-service
+    restart: unless-stopped
+    init: true
+    env_file:
+      - path: ../../.env
+        required: false
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 5006
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_COLLECTION: ${QDRANT_COLLECTION:-talent_profiles}
+      QDRANT_TIMEOUT_MS: ${QDRANT_TIMEOUT_MS:-5000}
+      REDIS_URL: redis://redis:6379
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-talent}:${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD is required}@rabbitmq:5672
+      RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-talent.events.topic}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET is required}
+      JWT_ISSUER: ${JWT_ISSUER:-talent.ai}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-talent.ai}
+      TRUST_GATEWAY_HEADERS: 'true'
+      AI_PROVIDER: ${AI_PROVIDER:-auto}
+      AI_REQUEST_TIMEOUT_MS: ${AI_REQUEST_TIMEOUT_MS:-15000}
+      AI_MAX_CONCURRENCY: ${AI_MAX_CONCURRENCY:-4}
+      AI_MAX_RERANK: ${AI_MAX_RERANK:-12}
+      AI_CIRCUIT_FAILURE_THRESHOLD: ${AI_CIRCUIT_FAILURE_THRESHOLD:-3}
+      AI_CIRCUIT_RESET_TIMEOUT_MS: ${AI_CIRCUIT_RESET_TIMEOUT_MS:-30000}
+      AI_CACHE_TTL_SECONDS: ${AI_CACHE_TTL_SECONDS:-3600}
+      AI_HIGH_AFFINITY_THRESHOLD: ${AI_HIGH_AFFINITY_THRESHOLD:-0.8}
+      AI_MIN_MATCH_SCORE: ${AI_MIN_MATCH_SCORE:-0.2}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: ${GROQ_MODEL:-openai/gpt-oss-120b}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-1.5-flash}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-local}
+      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-384}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:3001}
+      OTEL_ENABLED: ${OTEL_ENABLED:-true}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      TRUST_PROXY: ${TRUST_PROXY:-true}
+    ports:
+      - '${AI_MATCHING_SERVICE_PORT:-5006}:5006'
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:5006/health/liveness >/dev/null || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - talent-ai-network
+
   api-gateway:
     build:
       context: ../..
@@ -292,6 +360,8 @@ services:
       RATE_LIMIT_GENERAL_PER_MINUTE: ${RATE_LIMIT_GENERAL_PER_MINUTE:-60}
       RATE_LIMIT_SENSITIVE_PER_MINUTE: ${RATE_LIMIT_SENSITIVE_PER_MINUTE:-5}
       RATE_LIMIT_FAIL_OPEN: ${RATE_LIMIT_FAIL_OPEN:-true}
+      PROXY_TIMEOUT_MS: ${PROXY_TIMEOUT_MS:-10000}
+      AI_PROXY_TIMEOUT_MS: ${AI_PROXY_TIMEOUT_MS:-60000}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:3001}
       OTEL_ENABLED: ${OTEL_ENABLED:-true}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318

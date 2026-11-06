@@ -97,6 +97,10 @@ export interface TalentProfileCreatedPayload {
   experienceYears: number;
   level: TalentLevel;
   field: string;
+  /** Optional richer fields used by the AI indexer for embeddings. */
+  education?: Education[];
+  previousExperience?: WorkExperience[];
+  bio?: string;
 }
 
 export interface TalentProfileUpdatedPayload extends TalentProfileCreatedPayload {

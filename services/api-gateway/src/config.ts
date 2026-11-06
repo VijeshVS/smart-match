@@ -65,6 +65,8 @@ const envSchema = z.object({
   RATE_LIMIT_FAIL_OPEN: booleanFromEnv(true),
 
   PROXY_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
+  // AI endpoints intentionally run provider calls in bounded parallel batches.
+  AI_PROXY_TIMEOUT_MS: z.coerce.number().int().positive().default(60_000),
   CIRCUIT_FAILURE_THRESHOLD: z.coerce.number().int().positive().default(5),
   CIRCUIT_RESET_TIMEOUT_MS: z.coerce.number().int().positive().default(30_000),
 
@@ -127,6 +129,7 @@ export const config = Object.freeze({
   }),
   proxy: Object.freeze({
     timeoutMs: raw.PROXY_TIMEOUT_MS,
+    aiTimeoutMs: raw.AI_PROXY_TIMEOUT_MS,
     failureThreshold: raw.CIRCUIT_FAILURE_THRESHOLD,
     resetTimeoutMs: raw.CIRCUIT_RESET_TIMEOUT_MS,
   }),

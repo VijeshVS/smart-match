@@ -4,12 +4,49 @@ import type { TalentLevel, TalentProfile } from './talent.js';
 export const LLM_PROVIDERS = ['groq', 'gemini', 'openai'] as const;
 export type LLMProvider = (typeof LLM_PROVIDERS)[number];
 
+/**
+ * Every engine the AI service can answer with. `local` is the deterministic
+ * fallback used when no provider key is configured or a provider circuit is
+ * open, so responses never fail solely because of a rate limit.
+ */
+export const AI_ENGINES = [...LLM_PROVIDERS, 'local'] as const;
+export type AiEngine = (typeof AI_ENGINES)[number];
+
+/**
+ * Minimal profile snapshot accepted by the summary / suggestion endpoints.
+ * Callers may send the profile inline or let the service load the copy that
+ * was indexed from `talent.profile.*` events.
+ */
+export type AiProfileSnapshot = Pick<
+  TalentProfile,
+  'name' | 'field' | 'skills' | 'experienceYears'
+> &
+  Partial<
+    Pick<TalentProfile, 'id' | 'userId' | 'level' | 'education' | 'previousExperience' | 'bio'>
+  >;
+
+export interface ProfileSummaryRequest {
+  talentId?: UUID;
+  profile?: AiProfileSnapshot;
+}
+
+export interface ProfileSuggestionsRequest extends ProfileSummaryRequest {
+  /** Optional review comments used to ground the recommendations. */
+  reviews?: string[];
+}
+
 export interface ProfileSummaryResult {
   summary: string[];
+  provider: AiEngine;
+  cached: boolean;
+  fallback: boolean;
 }
 
 export interface ProfileSuggestionsResult {
   suggestions: string[];
+  provider: AiEngine;
+  cached: boolean;
+  fallback: boolean;
 }
 
 export interface TalentLensFilters {
@@ -28,10 +65,7 @@ export interface TalentLensRequest {
 
 export interface TalentLensMatch {
   talentId: UUID;
-  profile: Pick<
-    TalentProfile,
-    'id' | 'name' | 'field' | 'skills' | 'experienceYears' | 'level'
-  >;
+  profile: Pick<TalentProfile, 'id' | 'name' | 'field' | 'skills' | 'experienceYears' | 'level'>;
   /** Normalised confidence score between 0 and 1. */
   score: number;
   matchedSkills: string[];
@@ -43,7 +77,9 @@ export interface TalentLensResponse {
   query: string;
   results: TalentLensMatch[];
   cached: boolean;
-  provider: LLMProvider;
+  provider: AiEngine;
+  /** True when the deterministic local engine produced the answer. */
+  fallback: boolean;
 }
 
 export interface MatchEvaluation {
@@ -53,7 +89,7 @@ export interface MatchEvaluation {
   jobId?: UUID;
   score: number;
   reasoning: string[];
-  provider: LLMProvider;
+  provider: AiEngine;
   createdAt: ISODateString;
 }
 
