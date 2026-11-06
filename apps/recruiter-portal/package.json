@@ -12,6 +12,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@talent-ai/api-client": "workspace:*",
     "@talent-ai/ui": "workspace:*",
     "framer-motion": "^11.0.8",
     "lucide-react": "^0.344.0",

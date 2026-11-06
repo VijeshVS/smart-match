@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, ArrowRight, UserPlus, Zap, TrendingUp } from 'lucide-react';
 import { appConfig } from '../config';
+import { apiClient } from '../lib/api';
 
 function Landing() {
   const [email, setEmail] = useState('');
@@ -15,10 +16,12 @@ function Landing() {
     setError('');
 
     try {
-      const response = await fetch(`${appConfig.legacyApiUrl}/api/candidates`);
-      if (!response.ok) throw new Error('Failed to fetch');
-
-      const data = await response.json();
+      // Legacy monolith endpoint via the shared client. The absolute URL
+      // preserves the legacy host; Phase 8.2 will switch to relative
+      // gateway paths (e.g. /api/v1/talent).
+      const { data } = await apiClient.get<{ email: string }[]>(
+        `${appConfig.legacyApiUrl}/api/candidates`,
+      );
       const user = data.find(
         (u: { email: string }) => u.email.toLowerCase() === email.toLowerCase()
       );

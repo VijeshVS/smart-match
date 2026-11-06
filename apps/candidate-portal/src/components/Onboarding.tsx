@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, X, Check, User, GraduationCap, Briefcase, ArrowLeft, ArrowRight, Rocket } from 'lucide-react';
 import type { FormData } from '../types';
 import { appConfig } from '../config';
+import { apiClient } from '../lib/api';
 
 const PREDEFINED_SKILLS = [
   'JavaScript', 'TypeScript', 'React', 'Node.js', 'Python', 'C++', 'Go', 'Rust', 'AWS',
