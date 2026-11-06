@@ -81,6 +81,7 @@ function profileEventPayload(doc: TalentProfileDocument): TalentProfileCreatedPa
     experienceYears: profile.experienceYears,
     level: profile.level,
     field: profile.field,
+    email: profile.email,
     education: profile.education,
     previousExperience: profile.previousExperience,
     ...(profile.bio === undefined ? {} : { bio: profile.bio }),

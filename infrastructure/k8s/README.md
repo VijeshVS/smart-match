@@ -13,6 +13,8 @@ Phase 9.5 deployment assets for talent.ai.
 | `engagement-service.yaml` | `engagement-service` Deployment + ClusterIP Service (port 5004, PostgreSQL). |
 | `rewards-service.yaml` | `rewards-service` Deployment + ClusterIP Service (port 5005, PostgreSQL). |
 | `ai-matching-service.yaml` | `ai-matching-service` Deployment + ClusterIP Service (port 5006, Qdrant + Redis). |
+| `notification-service.yaml` | `notification-service` Deployment + sticky ClusterIP Service (port 5007, MongoDB + Redis fan-out, WebSocket). |
+| `analytics-service.yaml` | `analytics-service` Deployment + ClusterIP Service (port 5008, PostgreSQL read models). |
 | `api-gateway.yaml` | `api-gateway` Deployment + ClusterIP Service. |
 | `hpa.yaml` | CPU/memory HPAs for every service. |
 | `ingress.yaml` | Nginx ingress for `api.talent.ai`, `talent.ai`, `recruiter.talent.ai`. |
@@ -30,7 +32,9 @@ kubectl -n talent-ai create secret generic talent-ai-secrets \
   --from-literal=RECRUITER_DATABASE_URL='postgresql://talent:...@postgres:5432/talent_recruiter?schema=public' \
   --from-literal=ENGAGEMENT_DATABASE_URL='postgresql://talent:...@postgres:5432/talent_engagement?schema=public' \
   --from-literal=REWARDS_DATABASE_URL='postgresql://talent:...@postgres:5432/talent_rewards?schema=public' \
+  --from-literal=ANALYTICS_DATABASE_URL='postgresql://talent:...@postgres:5432/talent_analytics?schema=public' \
   --from-literal=MONGODB_URI='mongodb://talent:...@mongodb:27017/talent_profiles?replicaSet=rs0' \
+  --from-literal=NOTIFICATION_MONGODB_URI='mongodb://talent:...@mongodb:27017/talent_notif?replicaSet=rs0' \
   --from-literal=REDIS_URL='redis://redis:6379' \
   --from-literal=RABBITMQ_URL='amqp://talent:...@rabbitmq:5672' \
   --from-literal=JWT_ACCESS_SECRET='...' \
@@ -44,6 +48,15 @@ kubectl -n talent-ai create secret generic talent-ai-secrets \
 The AI provider and Qdrant credentials are optional. With `AI_PROVIDER=auto` and
 no provider keys, `ai-matching-service` uses its deterministic local engine;
 `QDRANT_API_KEY` is only required when Qdrant has authentication enabled.
+`SMTP_URL` is optional: without it, notification email is rendered to the log
+rather than sent. Notification pods share live sockets through Redis pub/sub, so
+scaling past one replica does not strand a connected client.
+
+Analytics migrations are applied out of band, once per release:
+
+```bash
+pnpm --filter @talent-ai/analytics-service db:deploy
+```
 
 Prerequisites:
 

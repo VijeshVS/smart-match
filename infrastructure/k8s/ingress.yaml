@@ -7,7 +7,8 @@ metadata:
   annotations:
     nginx.ingress.kubernetes.io/proxy-body-size: 10m
     nginx.ingress.kubernetes.io/proxy-connect-timeout: '10'
-    nginx.ingress.kubernetes.io/proxy-read-timeout: '60'
+    nginx.ingress.kubernetes.io/proxy-read-timeout: '3600'
+    nginx.ingress.kubernetes.io/proxy-send-timeout: '3600'
     nginx.ingress.kubernetes.io/ssl-redirect: 'true'
 spec:
   ingressClassName: nginx
@@ -21,6 +22,15 @@ spec:
     - host: api.talent.ai
       http:
         paths:
+          # WebSocket upgrades bypass the HTTP gateway and hit the notification
+          # service directly; the longer read timeout above keeps them open.
+          - path: /ws
+            pathType: Prefix
+            backend:
+              service:
+                name: notification-service
+                port:
+                  number: 5007
           - path: /
             pathType: Prefix
             backend:

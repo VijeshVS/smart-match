@@ -72,12 +72,13 @@ recruiter-portal ─┘               ├─→ talent-service
 | `engagement-service` | 5004 | PostgreSQL (`talent_engagement`) | Implemented |
 | `rewards-service` | 5005 | PostgreSQL (`talent_rewards`) | Implemented |
 | `ai-matching-service` | 5006 | Qdrant + Redis | Implemented |
-| `notification-service` | 5007 | MongoDB (`talent_notif`) | Planned |
-| `analytics-service` | 5008 | PostgreSQL / ClickHouse | Planned |
+| `notification-service` | 5007 | MongoDB (`talent_notif`) + Redis | Implemented |
+| `analytics-service` | 5008 | PostgreSQL (`talent_analytics`) | Implemented |
 
-> `auth-service`, `api-gateway`, `rewards-service` and `ai-matching-service` are
-> the reference implementations. Each new service follows the same package,
-> observability, Docker, and Kubernetes patterns.
+> `auth-service`, `api-gateway`, `rewards-service`, `ai-matching-service`,
+> `notification-service` and `analytics-service` are the reference
+> implementations. Each new service follows the same package, observability,
+> Docker, and Kubernetes patterns.
 
 ### Shared packages
 
@@ -98,6 +99,9 @@ recruiter-portal ─┘               ├─→ talent-service
   token buckets, health probes, and graceful shutdown.
 - **Observability** — OTLP traces to Jaeger, Prometheus metrics, structured
   logs, and a provisioned Grafana dashboard.
+- **Realtime & analytics** — authenticated WebSocket notifications with Redis
+  fan-out and branded email, plus event-sourced analytics read models guarded by
+  consumer idempotency.
 - **Delivery** — multi-stage Docker images, a unified Compose stack, Kubernetes
   manifests with HPA and ingress, and GitHub Actions pipelines that build and
   push images to GHCR.

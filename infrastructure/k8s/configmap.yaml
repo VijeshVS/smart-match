@@ -44,6 +44,13 @@ data:
   EMBEDDING_PROVIDER: local
   EMBEDDING_DIMENSIONS: '384'
 
+  # Notification service (MongoDB URI, SMTP relay and Redis URL are secrets)
+  NOTIFICATION_MONGODB_DB: talent_notif
+  WEBSOCKET_PATH: /ws/notifications
+  NOTIFICATION_FANOUT_CHANNEL: talent.notifications
+  EMAIL_ENABLED: 'false'
+  EMAIL_FROM: 'talent.ai <no-reply@talent.ai>'
+
   # Gateway
   API_GATEWAY_PORT: '8080'
   AUTH_SERVICE_URL: http://auth-service:5001
