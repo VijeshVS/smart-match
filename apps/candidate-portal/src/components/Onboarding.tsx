@@ -15,13 +15,7 @@ import { talentApi, toApiClientError } from '@talent-ai/api-client';
 import type { CreateTalentProfileRequest } from '@talent-ai/api-client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
@@ -65,6 +59,8 @@ const STEPS = [
   { label: 'Experience', icon: Briefcase },
 ];
 
+const LAST_STEP = STEPS.length - 1;
+
 interface EducationForm {
   college: string;
   degree: string;
@@ -95,6 +91,12 @@ const emptyExperience = (): ExperienceForm => ({
   responsibilities: '',
 });
 
+const isExperienceBlank = (item: ExperienceForm) =>
+  !item.company.trim() && !item.role.trim() && !item.responsibilities.trim();
+
+const isExperienceComplete = (item: ExperienceForm) =>
+  Boolean(item.company.trim() && item.role.trim());
+
 export function Onboarding() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -119,19 +121,72 @@ export function Onboarding() {
     setExperience((items) => items.map((item, i) => (i === index ? { ...item, ...patch } : item)));
   };
 
+  const goToStep = (index: number) => {
+    setError('');
+    setStep(index);
+  };
+
+  const validateStep = (index: number): string | null => {
+    if (index === 0) {
+      if (!name.trim()) return 'Your full name is required.';
+      if (!email.trim()) return 'Your email is required.';
+      if (!phone.trim()) return 'A phone number is required.';
+      if (!field.trim()) return 'Tell us your field of work.';
+      if (skills.length === 0) return 'Select at least one skill.';
+    }
+
+    if (index === 1) {
+      if (education.some((item) => item.college.trim().length < 2 || !item.degree.trim())) {
+        return 'Complete the institution and degree for each education entry.';
+      }
+      if (education.some((item) => !item.branchOfStudy.trim())) {
+        return 'Add the branch of study for each education entry.';
+      }
+    }
+
+    if (index === 2) {
+      const hasIncompleteExperience = experience.some(
+        (item) => !isExperienceBlank(item) && !isExperienceComplete(item),
+      );
+      if (hasIncompleteExperience) {
+        return 'Complete the company and role for each experience entry, or remove the entry.';
+      }
+    }
+
+    return null;
+  };
+
   const validate = (): string | null => {
-    if (!name.trim()) return 'Your full name is required.';
-    if (!phone.trim()) return 'A phone number is required.';
-    if (!field.trim()) return 'Tell us your field of work.';
-    if (skills.length === 0) return 'Select at least one skill.';
-    if (education.some((item) => !item.college.trim() || !item.degree.trim())) {
-      return 'Complete the institution and degree for each education entry.';
+    for (let index = 0; index < STEPS.length; index += 1) {
+      const message = validateStep(index);
+      if (message) return message;
     }
     return null;
   };
 
+  const goToNextStep = () => {
+    const validationError = validateStep(step);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setError('');
+    setStep((value) => Math.min(value + 1, LAST_STEP));
+  };
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
+
+    // Pressing Enter inside an input submits the whole form. Never persist a
+    // partial profile from a section that has not been completed yet.
+    if (step !== LAST_STEP) {
+      goToNextStep();
+      return;
+    }
+
+    if (submitting) return;
+
     const validationError = validate();
     if (validationError) {
       setError(validationError);
@@ -155,7 +210,7 @@ export function Onboarding() {
         yearOfGraduation: item.yearOfGraduation,
         gpa: item.gpa || undefined,
       })),
-      previousExperience: experience.map((item) => ({
+      previousExperience: experience.filter(isExperienceComplete).map((item) => ({
         company: item.company.trim(),
         role: item.role.trim(),
         durationMonths: item.durationMonths,
@@ -235,7 +290,7 @@ export function Onboarding() {
                 <button
                   key={label}
                   type="button"
-                  onClick={() => setStep(index)}
+                  onClick={() => goToStep(index)}
                   className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                     isActive
                       ? 'bg-primary/15 text-foreground'
@@ -543,7 +598,7 @@ export function Onboarding() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => setStep((value) => Math.max(0, value - 1))}
+            onClick={() => goToStep(Math.max(0, step - 1))}
             disabled={step === 0}
           >
             <ArrowLeft data-icon="inline-start" />
@@ -551,13 +606,17 @@ export function Onboarding() {
           </Button>
 
           {step < STEPS.length - 1 ? (
-            <Button type="button" onClick={() => setStep((value) => value + 1)}>
+            <Button type="button" onClick={goToNextStep}>
               Next step
               <ArrowRight data-icon="inline-end" />
             </Button>
           ) : (
             <Button type="submit" disabled={submitting}>
-              {submitting ? <Spinner data-icon="inline-start" /> : <Rocket data-icon="inline-start" />}
+              {submitting ? (
+                <Spinner data-icon="inline-start" />
+              ) : (
+                <Rocket data-icon="inline-start" />
+              )}
               {submitting ? 'Submitting…' : 'Submit profile'}
             </Button>
           )}
