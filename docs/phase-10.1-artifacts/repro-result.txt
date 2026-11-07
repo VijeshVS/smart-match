@@ -1,0 +1,5 @@
+{
+  "uiEmail": "candidate.repro.1794055157886@example.com",
+  "profileCreatedVisible": false,
+  "experienceStepVisible": true
+}

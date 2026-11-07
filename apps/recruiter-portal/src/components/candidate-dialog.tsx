@@ -13,6 +13,7 @@ import {
 import {
   engagementApi,
   toApiClientError,
+  TALENT_CREDIT_RULES,
   type TalentEngagementSummary,
   type TalentProfile,
 } from '@talent-ai/api-client';
@@ -107,7 +108,7 @@ export function CandidateDialog({
             {locked ? (
               <Button className="gap-1.5" onClick={onUnlock}>
                 <Crown className="size-4" />
-                Unlock · 50 TC
+                Unlock · {TALENT_CREDIT_RULES.TIER3_UNLOCK_COST} TC
               </Button>
             ) : null}
           </div>

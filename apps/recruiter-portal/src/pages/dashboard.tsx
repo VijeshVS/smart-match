@@ -105,13 +105,12 @@ export function DashboardPage() {
     setError(null);
 
     const recruiterId = org.profile.id;
-    const userId = snapshot.user?.id ?? recruiterId;
     const results = await Promise.allSettled([
-      analyticsApi.recruiterDashboard(),
+      analyticsApi.recruiterDashboard(recruiterId),
       analyticsApi.funnel(),
       analyticsApi.leaderboard(5),
       analyticsApi.skills(6),
-      engagementApi.getRecruiterHistory(userId),
+      engagementApi.getRecruiterHistory(recruiterId),
       talentApi.listProfiles({ limit: 50 }),
     ]);
 

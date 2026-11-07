@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
 import { CircleCheck, CircleX, Coins, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
-import type { SwipeDecision, TalentProfile } from '@talent-ai/api-client';
+import {
+  TALENT_CREDIT_RULES,
+  type SwipeDecision,
+  type TalentProfile,
+} from '@talent-ai/api-client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -148,7 +152,7 @@ export function ReviewDialog({
             />
             <FieldDescription className="inline-flex items-center gap-1.5 text-warning">
               <Coins className="size-3.5" />
-              Actionable feedback earns +5 TalentCredits.
+              Actionable feedback earns +{TALENT_CREDIT_RULES.REVIEW_FEEDBACK_REWARD} TalentCredits.
             </FieldDescription>
           </Field>
         </FieldGroup>

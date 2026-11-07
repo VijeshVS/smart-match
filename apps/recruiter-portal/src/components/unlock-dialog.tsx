@@ -5,6 +5,7 @@ import {
   ApiClientError,
   rewardsApi,
   toApiClientError,
+  TALENT_CREDIT_RULES,
   type TalentProfile,
 } from '@talent-ai/api-client';
 import {
@@ -39,7 +40,7 @@ export function UnlockDialog({
   if (!profile) return null;
 
   const balance = wallet?.balance ?? 0;
-  const cost = 50;
+  const cost = TALENT_CREDIT_RULES.TIER3_UNLOCK_COST;
   const affordable = balance >= cost;
 
   const handleUnlock = async () => {
