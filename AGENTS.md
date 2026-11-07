@@ -1,9 +1,23 @@
+## Before Starting Any Development
+
+Applies before any development or implementation work, regardless of the request.
+
+1. **Switch to `main` and pull the latest changes.**
+   ```bash
+   git checkout main
+   git pull --ff-only origin main
+   ```
+2. **Create a new branch based on the scope of the given work.**
+   - Choose a descriptive `feature` / `fix` / `docs` / `chore` name that reflects the task, e.g. `feat(candidate): add profile summary` or `fix(recruiter): correct credit deduction`.
+   - Never start implementation on a stale branch or directly on `main`.
+3. **Follow all the rules in the GitHub Workflow below** for commits, pushes, pull requests, and issue linking.
+
 ## GitHub Workflow
 
-Applies when the user asks to push code to GitHub.
+Applies when the user asks to push code to GitHub, and to all development work started under the section above.
 
 - Never push directly to `main`, even when explicitly asked.
-- Create a descriptive feature/fix branch for the finalized changes.
+- Create a descriptive feature/fix branch for the finalized changes (from the latest `main`, per the section above).
 - Fetch the latest `main` and confirm the branch is conflict-free before opening a PR.
 - Commit using Conventional Commits: `<type>(<scope>): <description>`, e.g. `feat(backend): add user authentication`, `fix(frontend): resolve login validation issue`, `docs(redis): document cache TTLs`.
 - Push the branch, then open a PR into `main`.
