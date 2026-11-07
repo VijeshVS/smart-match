@@ -8,7 +8,7 @@ import {
   Phone,
   Sparkles,
 } from 'lucide-react';
-import type { TalentProfile } from '@talent-ai/api-client';
+import { TALENT_CREDIT_RULES, type TalentProfile } from '@talent-ai/api-client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
@@ -129,7 +129,7 @@ export function CandidateCard({
         {locked ? (
           <Button className="flex-1 gap-1.5" onClick={onUnlock}>
             <Crown className="size-4" />
-            Unlock · 50 TC
+            Unlock · {TALENT_CREDIT_RULES.TIER3_UNLOCK_COST} TC
           </Button>
         ) : null}
       </CardFooter>

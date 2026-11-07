@@ -175,16 +175,7 @@ export function Onboarding() {
     setStep((value) => Math.min(value + 1, LAST_STEP));
   };
 
-  const handleSubmit = async (event: FormEvent) => {
-    event.preventDefault();
-
-    // Pressing Enter inside an input submits the whole form. Never persist a
-    // partial profile from a section that has not been completed yet.
-    if (step !== LAST_STEP) {
-      goToNextStep();
-      return;
-    }
-
+  const submitProfile = async () => {
     if (submitting) return;
 
     const validationError = validate();
@@ -240,6 +231,19 @@ export function Onboarding() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+
+    // Pressing Enter inside an input submits the whole form. Never persist a
+    // partial profile from a section that has not been completed yet.
+    if (step !== LAST_STEP) {
+      goToNextStep();
+      return;
+    }
+
+    await submitProfile();
   };
 
   if (submitted) {
@@ -611,7 +615,7 @@ export function Onboarding() {
               <ArrowRight data-icon="inline-end" />
             </Button>
           ) : (
-            <Button type="submit" disabled={submitting}>
+            <Button type="button" onClick={() => void submitProfile()} disabled={submitting}>
               {submitting ? (
                 <Spinner data-icon="inline-start" />
               ) : (
