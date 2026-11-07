@@ -93,7 +93,7 @@ function StatCard({
 }
 
 export function DashboardPage() {
-  const { org, snapshot } = useAuth();
+  const { org } = useAuth();
   const { wallet, transactions } = useWallet();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
