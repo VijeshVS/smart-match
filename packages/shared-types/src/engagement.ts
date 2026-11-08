@@ -1,6 +1,6 @@
 import type { ISODateString, UUID } from './common.js';
 
-export const SWIPE_DECISIONS = ['APPROVE', 'REJECT'] as const;
+export const SWIPE_DECISIONS = ['APPROVE', 'REJECT', 'DEFER'] as const;
 export type SwipeDecision = (typeof SWIPE_DECISIONS)[number];
 
 export interface SwipeInteraction {
@@ -43,6 +43,7 @@ export interface TalentEngagementSummary {
   talentId: UUID;
   rightSwipes: number;
   leftSwipes: number;
+  deferredSwipes: number;
   totalReviews: number;
   reviews: CandidateReview[];
 }

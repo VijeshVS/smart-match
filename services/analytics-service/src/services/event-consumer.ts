@@ -213,6 +213,13 @@ async function applySwipe(tx: Tx, event: DomainEvent<unknown>, occurredAt: Date)
   const payload = swipeRecordedSchema.parse(event.data);
   const recruiterId = await resolveRecruiterId(tx, payload.recruiterId);
   const approve = payload.decision === 'APPROVE';
+  const defer = payload.decision === 'DEFER';
+
+  await bumpFunnel(tx, occurredAt, 'swipesRecorded');
+
+  // A defer keeps the candidate in the pipeline; it is neither an approval nor
+  // a rejection, so it must not move the acceptance ratio or recruiter metrics.
+  if (defer) return;
 
   const existing = await tx.candidateMetric.findUnique({
     where: { talentId: payload.talentId },
@@ -255,7 +262,6 @@ async function applySwipe(tx: Tx, event: DomainEvent<unknown>, occurredAt: Date)
     },
   });
 
-  await bumpFunnel(tx, occurredAt, 'swipesRecorded');
   if (approve) await bumpFunnel(tx, occurredAt, 'approvals');
 }
 

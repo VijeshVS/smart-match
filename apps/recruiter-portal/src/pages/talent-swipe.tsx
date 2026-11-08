@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
+  ArrowDown,
   ArrowLeft,
   ArrowRight,
   BriefcaseBusiness,
   CheckCircle2,
+  Clock3,
   Coins,
   GraduationCap,
   Keyboard,
@@ -120,7 +122,9 @@ export function TalentSwipePage() {
         toast.success(
           decision === 'APPROVE'
             ? `${current.name} advanced to review`
-            : `${current.name} rejected`,
+            : decision === 'REJECT'
+              ? `${current.name} rejected`
+              : `${current.name} deferred for later review`,
         );
       } catch (cause) {
         toast.error(toApiClientError(cause).message);
@@ -134,13 +138,17 @@ export function TalentSwipePage() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+      const key = event.key.toLowerCase();
+      const isDefer = event.key === 'ArrowDown' || key === 'd';
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight' && !isDefer) return;
       if (event.target instanceof HTMLElement) {
         const tag = event.target.tagName;
         if (tag === 'INPUT' || tag === 'TEXTAREA' || event.target.isContentEditable) return;
       }
       event.preventDefault();
-      void decide(event.key === 'ArrowRight' ? 'APPROVE' : 'REJECT');
+      void decide(
+        event.key === 'ArrowRight' ? 'APPROVE' : event.key === 'ArrowLeft' ? 'REJECT' : 'DEFER',
+      );
     };
 
     window.addEventListener('keydown', onKeyDown);
@@ -159,6 +167,8 @@ export function TalentSwipePage() {
       setReviewed((value) => value + 1);
       toast.success('Review submitted — actionable feedback earns TalentCredits');
       void reloadWallet();
+      // The reward is credited by an async consumer; refresh again once it lands.
+      window.setTimeout(() => void reloadWallet(), 2_000);
     } catch (cause) {
       toast.error(toApiClientError(cause).message);
       throw cause;
@@ -169,6 +179,14 @@ export function TalentSwipePage() {
 
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (pending || reviewOpen) return;
+    // Capturing the pointer on the card retargets click events, which would
+    // make the Approve/Reject/Defer/Unlock buttons inside it unclickable.
+    if (
+      event.target instanceof Element &&
+      event.target.closest('button, a, input, textarea, select, [role="button"]')
+    ) {
+      return;
+    }
     pointerOrigin.current = { x: event.clientX, y: event.clientY };
     event.currentTarget.setPointerCapture(event.pointerId);
     setDrag({ x: 0, y: 0, active: true });
@@ -209,7 +227,8 @@ export function TalentSwipePage() {
                 TalentSwipe
               </CardTitle>
               <CardDescription>
-                Swipe right to approve, left to reject. Every decision can carry a review.
+                Swipe right to approve, left to reject, or defer for later. Every decision can carry
+                a review.
               </CardDescription>
             </div>
             <Badge variant="outline" className="gap-1.5">
@@ -387,6 +406,15 @@ export function TalentSwipePage() {
                       Reject
                     </Button>
                     <Button
+                      variant="outline"
+                      className="flex-1"
+                      disabled={pending}
+                      onClick={() => void decide('DEFER')}
+                    >
+                      <Clock3 data-icon="inline-start" />
+                      Defer
+                    </Button>
+                    <Button
                       className="flex-1"
                       disabled={pending}
                       onClick={() => void decide('APPROVE')}
@@ -405,10 +433,14 @@ export function TalentSwipePage() {
               </span>
               <span className="text-muted-foreground/50">·</span>
               <span className="inline-flex items-center gap-1.5">
+                <ArrowDown className="size-3.5" /> Defer
+              </span>
+              <span className="text-muted-foreground/50">·</span>
+              <span className="inline-flex items-center gap-1.5">
                 <ArrowRight className="size-3.5" /> Approve
               </span>
               <span className="text-muted-foreground/50">·</span>
-              <span>Drag the card or use the arrow keys</span>
+              <span>Drag the card, use the arrow keys, or press D to defer</span>
             </div>
           </CardContent>
         </Card>

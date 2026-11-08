@@ -17,6 +17,7 @@ datasource db {
 enum SwipeDecision {
   APPROVE
   REJECT
+  DEFER
 }
 
 enum OutboxStatus {

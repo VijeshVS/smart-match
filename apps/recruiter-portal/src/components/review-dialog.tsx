@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CircleCheck, CircleX, Coins, Sparkles } from 'lucide-react';
+import { CircleCheck, CircleX, Clock3, Coins, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   TALENT_CREDIT_RULES,
@@ -57,6 +57,7 @@ export function ReviewDialog({
   if (!profile) return null;
 
   const approved = decision === 'APPROVE';
+  const deferred = decision === 'DEFER';
   const hasContent = Boolean(rating) || feedbackText.trim().length > 0 || actionableAdvice.trim().length > 0;
 
   const handleSubmit = async () => {
@@ -84,6 +85,8 @@ export function ReviewDialog({
           <DialogTitle className="flex items-center gap-2">
             {approved ? (
               <CircleCheck className="size-5 text-success" />
+            ) : deferred ? (
+              <Clock3 className="size-5 text-warning" />
             ) : (
               <CircleX className="size-5 text-destructive" />
             )}
@@ -106,8 +109,8 @@ export function ReviewDialog({
               </p>
             </div>
           </div>
-          <Badge variant={approved ? 'default' : 'destructive'}>
-            {approved ? 'Approved' : 'Rejected'}
+          <Badge variant={approved ? 'default' : deferred ? 'outline' : 'destructive'}>
+            {approved ? 'Approved' : deferred ? 'Deferred' : 'Rejected'}
           </Badge>
         </div>
 

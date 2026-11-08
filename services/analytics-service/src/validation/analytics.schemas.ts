@@ -33,7 +33,7 @@ export const swipeRecordedSchema = z.object({
   swipeId: id,
   recruiterId: id,
   talentId: id,
-  decision: z.enum(['APPROVE', 'REJECT']),
+  decision: z.enum(['APPROVE', 'REJECT', 'DEFER']),
   timestamp: z.string().min(1),
 });
 
@@ -42,7 +42,7 @@ export const reviewSubmittedSchema = z.object({
   swipeId: id.optional(),
   recruiterId: id,
   talentId: id,
-  decision: z.enum(['APPROVE', 'REJECT']),
+  decision: z.enum(['APPROVE', 'REJECT', 'DEFER']),
   feedbackText: z.string().max(2_000).optional(),
   hasActionableFeedback: z.boolean(),
   timestamp: z.string().min(1),

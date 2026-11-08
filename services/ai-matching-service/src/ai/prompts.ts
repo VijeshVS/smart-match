@@ -53,10 +53,16 @@ export function suggestionsPrompt(profile: AiProfile, reviews: string[]): string
 
 export const QUERY_SYSTEM = `You convert a recruiter's natural-language hiring prompt into a semantic
 search query plus structured metadata filters. Allowed levels are LEVEL_1_ENTRY,
-LEVEL_2_MID and LEVEL_3_LEAD. Only include filters that the prompt clearly implies.
+LEVEL_2_MID and LEVEL_3_LEAD. Only include filters that the prompt clearly and
+explicitly states. Never infer seniority from a generic job title such as
+"engineer" or "developer"; omit the level unless the prompt names a seniority.
+When seniority is named, map it as follows: entry, junior, graduate or intern →
+LEVEL_1_ENTRY; mid, intermediate or senior → LEVEL_2_MID; staff, principal, lead
+or elite → LEVEL_3_LEAD.
 Return only valid JSON with this exact shape:
-{"semanticQuery":"search text","filters":{"skills":["..."],"level":"LEVEL_2_MID","minExperienceYears":3,"maxExperienceYears":8,"field":"..."}}
-Omit filters that are not implied. Do not invent skills the recruiter did not mention.`;
+{"semanticQuery":"search text","filters":{"skills":["..."],"minExperienceYears":3,"field":"..."}}
+Use an empty filters object when nothing is explicitly stated. Do not invent
+skills the recruiter did not mention.`;
 
 export function queryPrompt(query: string, filters: TalentLensFilters): string {
   return `Recruiter prompt: ${query}\nExplicit filters already supplied: ${JSON.stringify(filters)}`;

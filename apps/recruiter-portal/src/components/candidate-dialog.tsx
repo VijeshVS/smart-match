@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   BriefcaseBusiness,
+  Clock3,
   Crown,
   GraduationCap,
   LockKeyhole,
@@ -208,7 +209,7 @@ export function CandidateDialog({
               <p className="text-sm text-muted-foreground">{error}</p>
             ) : summary ? (
               <>
-                <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
                   <div className="rounded-lg border p-2">
                     <ThumbsUp className="mx-auto size-4 text-success" />
                     <p className="mt-1 text-lg font-semibold">{summary.rightSwipes}</p>
@@ -218,6 +219,11 @@ export function CandidateDialog({
                     <ThumbsDown className="mx-auto size-4 text-destructive" />
                     <p className="mt-1 text-lg font-semibold">{summary.leftSwipes}</p>
                     <p className="text-[11px] text-muted-foreground">Rejections</p>
+                  </div>
+                  <div className="rounded-lg border p-2">
+                    <Clock3 className="mx-auto size-4 text-warning" />
+                    <p className="mt-1 text-lg font-semibold">{summary.deferredSwipes}</p>
+                    <p className="text-[11px] text-muted-foreground">Deferred</p>
                   </div>
                   <div className="rounded-lg border p-2">
                     <Star className="mx-auto size-4 text-warning" />
@@ -231,8 +237,20 @@ export function CandidateDialog({
                     {summary.reviews.slice(0, 3).map((review) => (
                       <li key={review.id} className="rounded-lg border p-3 text-sm">
                         <div className="flex items-center justify-between gap-2">
-                          <Badge variant={review.decision === 'APPROVE' ? 'default' : 'destructive'}>
-                            {review.decision === 'APPROVE' ? 'Approved' : 'Rejected'}
+                          <Badge
+                            variant={
+                              review.decision === 'APPROVE'
+                                ? 'default'
+                                : review.decision === 'DEFER'
+                                  ? 'outline'
+                                  : 'destructive'
+                            }
+                          >
+                            {review.decision === 'APPROVE'
+                              ? 'Approved'
+                              : review.decision === 'DEFER'
+                                ? 'Deferred'
+                                : 'Rejected'}
                           </Badge>
                           {review.rating ? (
                             <span className="text-xs text-muted-foreground">{review.rating}/5</span>

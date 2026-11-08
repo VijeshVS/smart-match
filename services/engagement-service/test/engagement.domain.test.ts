@@ -95,6 +95,14 @@ describe('engagement domain', () => {
         createdAt: now,
         updatedAt: now,
       },
+      {
+        id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+        recruiterId: admin.userId,
+        talentId: 'talent-1',
+        decision: 'DEFER' as const,
+        createdAt: now,
+        updatedAt: now,
+      },
     ];
     const reviews = [
       {
@@ -118,6 +126,7 @@ describe('engagement domain', () => {
       talentId: 'talent-1',
       rightSwipes: 2,
       leftSwipes: 1,
+      deferredSwipes: 1,
       totalReviews: 1,
     });
     expect(summary.reviews[0]).toMatchObject({
