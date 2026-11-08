@@ -22,8 +22,7 @@ realistic activity to display:
 # infrastructure + services must be running and migrated
 pnpm infra:up
 pnpm stack:up
-pnpm --filter @talent-ai/auth-service db:deploy
-# …deploy each service's migrations (see the root Readme)
+pnpm db:deploy:all   # apply migrations for every service database
 
 # write the dataset
 pnpm db:seed:realistic

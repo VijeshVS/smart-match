@@ -198,11 +198,14 @@ pnpm infra:up
 This starts PostgreSQL, MongoDB, Redis, RabbitMQ, Qdrant, MailHog, Jaeger,
 Prometheus, and Grafana.
 
-### 3. Prepare the auth database
+### 3. Prepare the databases
+
+Every service owns a separate PostgreSQL database, so all of them must be
+migrated — not just auth:
 
 ```bash
 pnpm db:auth:generate
-pnpm db:auth:migrate
+pnpm db:deploy:all   # auth, recruiter, engagement, rewards and analytics
 pnpm db:auth:seed
 ```
 
