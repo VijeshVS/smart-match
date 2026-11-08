@@ -97,8 +97,9 @@ recruiter-portal ─┘               ├─→ talent-service
   rate limiting, and per-downstream circuit breakers.
 - **Reliability** — transactional outbox for user-registration events, Redis
   token buckets, health probes, and graceful shutdown.
-- **Observability** — OTLP traces to Jaeger, Prometheus metrics, structured
-  logs, and a provisioned Grafana dashboard.
+- **Observability** — OTLP traces to Jaeger, per-service Prometheus metrics,
+  structured logs, six provisioned Grafana dashboards, alert rules with runbooks,
+  and a deterministic realistic seeder for demo/funnel data.
 - **Realtime & analytics** — authenticated WebSocket notifications with Redis
   fan-out and branded email, plus event-sourced analytics read models guarded by
   consumer idempotency.
@@ -143,7 +144,9 @@ talent.ai/
 ├── infrastructure/
 │   ├── docker/               # Compose stacks, Prometheus, Grafana, Dockerfile
 │   └── k8s/                  # Kubernetes manifests and kustomization
-├── docs/                     # Brand and platform documentation
+├── tools/
+│   └── realistic-seeder/     # Deterministic cross-store demo data
+├── docs/                     # Brand, phase docs, alert runbooks
 ├── TODO.md                   # Phase-by-phase delivery roadmap
 └── docker-compose.yml        # Unified infrastructure + application stack
 ```
@@ -224,6 +227,22 @@ pnpm stack:logs
 pnpm stack:down    # preserves named volumes
 ```
 
+### 5. Seed realistic demo data
+
+After every service has applied its migrations, generate deterministic,
+privacy-safe activity across PostgreSQL, MongoDB, Qdrant and (optionally)
+RabbitMQ:
+
+```bash
+pnpm db:seed:realistic --dry-run   # validate the dataset first
+pnpm db:seed:realistic             # upsert into every store
+pnpm db:seed:realistic --reset     # development/test only
+```
+
+Seeded accounts use the password `TalentSeed!2026` and synthetic
+`@synthetic.talent.test` emails. See
+[`tools/realistic-seeder/README.md`](tools/realistic-seeder/README.md).
+
 ### Local endpoints
 
 | Surface | URL |
@@ -238,6 +257,10 @@ pnpm stack:down    # preserves named volumes
 | Jaeger UI | <http://localhost:16686> |
 | Prometheus | <http://localhost:9090> |
 | Grafana | <http://localhost:3100> |
+| PostgreSQL exporter | <http://localhost:9187/metrics> |
+| Redis exporter | <http://localhost:9121/metrics> |
+| MongoDB exporter | <http://localhost:9216/metrics> |
+| RabbitMQ Prometheus | <http://localhost:15692/metrics> |
 
 ---
 
@@ -255,11 +278,21 @@ Every service exposes:
 
 - `GET /health/liveness` — process liveness
 - `GET /health/readiness` — datastore and broker connectivity
-- `GET /metrics` — Prometheus counters, latency histograms, in-flight gauge
+- `GET /metrics` — Prometheus counters, latency histograms, domain/business
+  metrics, and default Node process metrics, all labelled with `service` and
+  `env`
+
+Six Grafana dashboards are provisioned automatically in Compose and Kubernetes.
+Alert rules and their runbooks are documented in
+[`docs/phase-11-observability.md`](docs/phase-11-observability.md) and
+[`docs/runbooks`](docs/runbooks/README.md). Regenerate dashboards with
+`pnpm dashboards:generate`.
 
 Deployment assets live in [`infrastructure/docker`](infrastructure/docker/README.md)
-and [`infrastructure/k8s`](infrastructure/k8s/README.md). The CI matrix builds
-and publishes service images to GHCR on `main` and version tags.
+and [`infrastructure/k8s`](infrastructure/k8s/README.md). Apply the full
+Kubernetes stack, including observability, with `kubectl apply -k infrastructure`.
+The CI matrix builds and publishes service images to GHCR on `main` and version
+tags.
 
 ---
 
@@ -269,6 +302,9 @@ and publishes service images to GHCR on `main` and version tags.
 | :--- | :--- |
 | [`TODO.md`](TODO.md) | Phase-by-phase delivery roadmap and ownership. |
 | [`docs/BRAND_GUIDELINES.md`](docs/BRAND_GUIDELINES.md) | Brand, product vocabulary, colour, and UI rules. |
+| [`docs/phase-11-observability.md`](docs/phase-11-observability.md) | Dashboards, metrics, alerts, provisioning, and verification. |
+| [`docs/runbooks/README.md`](docs/runbooks/README.md) | Alert-to-runbook index and incident triage. |
+| [`tools/realistic-seeder/README.md`](tools/realistic-seeder/README.md) | Deterministic cross-store seeder options and safety. |
 | [`services/README.md`](services/README.md) | Service catalogue and observability contract. |
 | [`infrastructure/docker/README.md`](infrastructure/docker/README.md) | Local stacks, image builds, and observability endpoints. |
 | [`infrastructure/k8s/README.md`](infrastructure/k8s/README.md) | Cluster deployment and service template. |
@@ -283,5 +319,6 @@ the talent profile service and its transactional outbox; Phase 3 delivered the
 recruiter, organization and job-posting service; Phase 4 delivered the engagement,
 swipe and review service; Phase 5 delivered the TalentCredits wallet, ledger and
 Tier-3 unlock service; Phase 9 added observability, containerization,
-Kubernetes manifests, and CI/CD. The remaining domain services
-and portals follow the plan in [`TODO.md`](TODO.md).
+Kubernetes manifests, and CI/CD; Phase 11 added provisioned dashboards, alert
+rules with runbooks, and the deterministic realistic seeder. The remaining
+domain services and portals follow the plan in [`TODO.md`](TODO.md).
