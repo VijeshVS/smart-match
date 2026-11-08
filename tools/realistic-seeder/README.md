@@ -38,6 +38,36 @@ All seeded accounts use the password **`TalentSeed!2026`** and synthetic
 `@synthetic.talent.test` email addresses. Phone numbers use the reserved
 `+1-555-01xx` / `+1-555-02xx` ranges. No real person or company data is used.
 
+## Demo accounts
+
+Recruiters sign in at <http://localhost:3001> and candidates at
+<http://localhost:3000>.
+
+### Recruiters
+
+| Name | Email | Title | Organization |
+| :--- | :--- | :--- | :--- |
+| Aisha Bhat | `recruiter.0.aisha.bhat@synthetic.talent.test` | Talent Partner | Northwind Labs |
+| Dev Kim | `recruiter.1.dev.kim@synthetic.talent.test` | Senior Recruiter | Lumen Systems |
+| Ibrahim Sato | `recruiter.2.ibrahim.sato@synthetic.talent.test` | Engineering Recruiter | Northwind Labs |
+| Maya Desai | `recruiter.3.maya.desai@synthetic.talent.test` | Head of Talent | Lumen Systems |
+
+### Candidates
+
+| Name | Email |
+| :--- | :--- |
+| Aarav D Costa | `candidate.0.aarav.d-costa@synthetic.talent.test` |
+| Aditi Joshi | `candidate.1.aditi.joshi@synthetic.talent.test` |
+| Aisha Nair | `candidate.2.aisha.nair@synthetic.talent.test` |
+| Arjun Shah | `candidate.3.arjun.shah@synthetic.talent.test` |
+| Maya Chen | `candidate.17.maya.chen@synthetic.talent.test` |
+| Priya Agarwal | `candidate.21.priya.agarwal@synthetic.talent.test` |
+| Riya Lee | `candidate.23.riya.lee@synthetic.talent.test` |
+
+The dataset contains 24 candidates by default. Candidate emails follow
+`candidate.<index>.<first-name>.<last-name>@synthetic.talent.test`, e.g.
+`candidate.5.chen.haddad@synthetic.talent.test` is Chen Haddad.
+
 ## Options
 
 | Option | Default | Description |
