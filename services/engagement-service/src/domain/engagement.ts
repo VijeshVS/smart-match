@@ -110,16 +110,19 @@ export function buildTalentSummary(
 ): TalentEngagementSummary {
   let rightSwipes = 0;
   let leftSwipes = 0;
+  let deferredSwipes = 0;
 
   for (const swipe of swipes) {
     if (swipe.decision === 'APPROVE') rightSwipes += 1;
     else if (swipe.decision === 'REJECT') leftSwipes += 1;
+    else if (swipe.decision === 'DEFER') deferredSwipes += 1;
   }
 
   return {
     talentId,
     rightSwipes,
     leftSwipes,
+    deferredSwipes,
     totalReviews: reviews.length,
     reviews: reviews.map(toReview),
   };

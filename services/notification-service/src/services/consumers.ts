@@ -117,13 +117,19 @@ export async function handleCoinsAwarded(event: DomainEvent<unknown>): Promise<v
   // In this platform a recruiter's engagement identity is their user id, so the
   // event can be addressed even before `recruiter.registered` is projected.
   const contact = await RecruiterContactModel.findOne({ userId: payload.recruiterId });
+  const body =
+    payload.type === 'CREDIT_WELCOME_BONUS'
+      ? `Welcome bonus: ${payload.amount} TalentCredits added to your wallet.`
+      : payload.type === 'CREDIT_PURCHASE'
+        ? `${payload.amount} TalentCredits added to your wallet.`
+        : `You earned ${payload.amount} TalentCredits for your candidate review!`;
 
   await createNotification({
     eventId: event.eventId,
     userId: contact?.userId ?? payload.recruiterId,
     type: 'COINS_AWARDED',
     title: 'You earned TalentCredits',
-    body: `You earned ${payload.amount} TalentCredits for your candidate review!`,
+    body,
     data: {
       walletId: payload.walletId,
       amount: payload.amount,

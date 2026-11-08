@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { getCorrelationId } from '@talent-ai/logger';
 import type {
   AiEngine,
+  TalentLevel,
   TalentLensFilters,
   TalentLensMatch,
   TalentLensResponse,
@@ -38,6 +39,31 @@ const rerankSchema = z.object({
   rationale: z.string().max(500).default(''),
 });
 
+const LEVEL_KEYWORDS: ReadonlyArray<[RegExp, TalentLevel]> = [
+  [/\b(entry|junior|graduate|intern|level\s*1)\b/i, 'LEVEL_1_ENTRY'],
+  [/\b(mid|mid-level|intermediate|senior|level\s*2)\b/i, 'LEVEL_2_MID'],
+  [/\b(staff|principal|lead|elite|level\s*3)\b/i, 'LEVEL_3_LEAD'],
+];
+
+/**
+ * Language models tend to copy the example level from the prompt and apply it
+ * to every query, which silently filters out valid candidates. Only trust an
+ * inferred level when the recruiter actually named a seniority, and normalise
+ * the common synonyms to the platform's three tiers.
+ */
+function normalizeInferredFilters(
+  query: string,
+  inferred: TalentLensFilters | undefined,
+): TalentLensFilters | undefined {
+  if (!inferred) return inferred;
+
+  const explicitLevel = LEVEL_KEYWORDS.find(([pattern]) => pattern.test(query));
+  const rest = { ...inferred };
+  delete rest.level;
+
+  return explicitLevel ? { ...rest, level: explicitLevel[1] } : rest;
+}
+
 function mergeFilters(
   explicit: TalentLensFilters | undefined,
   inferred: TalentLensFilters | undefined,
@@ -65,7 +91,7 @@ async function interpretQuery(
   return {
     interpretation: {
       semanticQuery: answer.value.semanticQuery || query,
-      filters: mergeFilters(explicit, answer.value.filters),
+      filters: mergeFilters(explicit, normalizeInferredFilters(query, answer.value.filters)),
     },
     fallback: answer.fallback,
   };

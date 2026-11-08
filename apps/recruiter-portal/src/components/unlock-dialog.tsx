@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Coins, Crown, TriangleAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -36,6 +36,12 @@ export function UnlockDialog({
 }) {
   const { wallet, reload, setWallet } = useWallet();
   const [pending, setPending] = useState(false);
+
+  // Credits are awarded asynchronously by the rewards consumer, so refresh the
+  // balance whenever the dialog opens instead of trusting a stale snapshot.
+  useEffect(() => {
+    if (open) void reload();
+  }, [open, reload]);
 
   if (!profile) return null;
 

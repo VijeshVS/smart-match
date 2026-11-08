@@ -41,10 +41,9 @@ export function profileFromSnapshot(
   snapshot: AiProfileSnapshot,
   fallbackTalentId?: string,
 ): AiProfile {
-  const talentId = snapshot.id ?? fallbackTalentId;
-  if (!talentId) {
-    throw new Error('A talentId is required when no indexed profile is supplied');
-  }
+  // Inline profiles are not persisted, so an id is optional. A stable sentinel
+  // keeps cache keys deterministic when the caller did not supply one.
+  const talentId = snapshot.id ?? fallbackTalentId ?? 'inline-profile';
 
   return {
     talentId,

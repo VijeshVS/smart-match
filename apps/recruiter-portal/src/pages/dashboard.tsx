@@ -93,18 +93,22 @@ function StatCard({
 }
 
 export function DashboardPage() {
-  const { org } = useAuth();
+  const { org, snapshot } = useAuth();
   const { wallet, transactions } = useWallet();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Analytics and engagement are keyed by the recruiter's auth user id. The
+  // recruiter profile id is a separate resource id and is rejected by those
+  // services.
+  const recruiterId = snapshot.user?.id ?? org?.profile.id ?? null;
+
   const load = useCallback(async () => {
-    if (!org) return;
+    if (!org || !recruiterId) return;
     setLoading(true);
     setError(null);
 
-    const recruiterId = org.profile.id;
     const results = await Promise.allSettled([
       analyticsApi.recruiterDashboard(recruiterId),
       analyticsApi.funnel(),
@@ -145,7 +149,7 @@ export function DashboardPage() {
       talent: talent.status === 'fulfilled' ? talent.value.data : [],
     });
     setLoading(false);
-  }, [org]);
+  }, [org, recruiterId]);
 
   useEffect(() => {
     void load();
@@ -410,8 +414,20 @@ export function DashboardPage() {
                             {formatRelativeTime(review.createdAt)}
                           </p>
                         </div>
-                        <Badge variant={review.decision === 'APPROVE' ? 'default' : 'destructive'}>
-                          {review.decision === 'APPROVE' ? 'Approved' : 'Rejected'}
+                        <Badge
+                          variant={
+                            review.decision === 'APPROVE'
+                              ? 'default'
+                              : review.decision === 'DEFER'
+                                ? 'outline'
+                                : 'destructive'
+                          }
+                        >
+                          {review.decision === 'APPROVE'
+                            ? 'Approved'
+                            : review.decision === 'DEFER'
+                              ? 'Deferred'
+                              : 'Rejected'}
                         </Badge>
                         {review.rating ? (
                           <span className="text-xs text-muted-foreground">{review.rating}/5</span>
@@ -444,7 +460,7 @@ export function DashboardPage() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm">
-                      {entry.recruiterId === org.profile.id
+                      {entry.recruiterId === recruiterId
                         ? 'You'
                         : `Recruiter ${entry.recruiterId.slice(0, 6)}`}
                     </p>

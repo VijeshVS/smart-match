@@ -4,6 +4,7 @@ import {
   Bell,
   Briefcase,
   CheckCircle2,
+  Clock3,
   GraduationCap,
   Lightbulb,
   Mail,
@@ -512,23 +513,28 @@ export function Dashboard() {
             <div className="grid gap-4 md:grid-cols-2">
               {engagement.reviews.map((review) => {
                 const approved = review.decision === 'APPROVE';
+                const deferred = review.decision === 'DEFER';
                 return (
                   <div
                     key={review.id}
                     className={`flex flex-col gap-2 rounded-xl border p-4 ${
                       approved
                         ? 'border-success/20 bg-success/5'
-                        : 'border-destructive/20 bg-destructive/5'
+                        : deferred
+                          ? 'border-warning/20 bg-warning/5'
+                          : 'border-destructive/20 bg-destructive/5'
                     }`}
                   >
                     <div className="flex items-center gap-2">
                       {approved ? (
                         <CheckCircle2 className="size-4 text-success" />
+                      ) : deferred ? (
+                        <Clock3 className="size-4 text-warning" />
                       ) : (
                         <XCircle className="size-4 text-destructive" />
                       )}
                       <span className="text-xs font-medium">
-                        {approved ? 'Approved' : 'Rejected'}
+                        {approved ? 'Approved' : deferred ? 'Deferred' : 'Rejected'}
                       </span>
                       <span className="ml-auto text-xs text-muted-foreground">
                         {formatDate(review.createdAt)}
