@@ -1,3 +1,4 @@
+import { getServiceMetrics } from '@talent-ai/observability/metrics';
 import type { AiEngine, LLMProvider } from '@talent-ai/shared-types';
 import type { ZodType } from 'zod';
 import { config } from '../config.js';
@@ -5,6 +6,14 @@ import { logger } from '../lib/logger.js';
 import { CircuitBreaker } from '../lib/circuit-breaker.js';
 import { createLlmClients, ProviderError } from './providers.js';
 import type { LlmAnswer, LlmClient } from './types.js';
+
+const { domain } = getServiceMetrics(config.serviceName);
+
+const CIRCUIT_STATE_VALUES = {
+  CLOSED: 0,
+  HALF_OPEN: 1,
+  OPEN: 2,
+} as const;
 
 export interface GenerateJsonOptions<T> {
   system: string;
@@ -89,12 +98,23 @@ export class LlmService {
     return this.breaker.currentState;
   }
 
+  private syncCircuitMetric(): void {
+    domain.aiCircuitState.set(
+      { breaker: this.breaker.name },
+      CIRCUIT_STATE_VALUES[this.breaker.currentState],
+    );
+  }
+
   async generateJson<T>(options: GenerateJsonOptions<T>): Promise<LlmAnswer<T>> {
     if (this.primary === 'local') {
+      domain.aiProviderRequests.inc({ provider: 'local', outcome: 'skipped' });
+      this.syncCircuitMetric();
       return { value: options.fallback(), provider: 'local', fallback: false };
     }
 
     if (!this.breaker.canRequest()) {
+      domain.aiProviderRequests.inc({ provider: this.primary, outcome: 'circuit_open' });
+      this.syncCircuitMetric();
       logger.warn(
         { provider: this.primary, circuit: this.breaker.currentState },
         'AI provider circuit open; using deterministic fallback',
@@ -104,9 +124,12 @@ export class LlmService {
 
     const client = this.clients.get(this.primary);
     if (!client) {
+      domain.aiProviderRequests.inc({ provider: this.primary, outcome: 'unconfigured' });
+      this.syncCircuitMetric();
       return { value: options.fallback(), provider: 'local', fallback: true };
     }
 
+    const startedAt = process.hrtime.bigint();
     try {
       const text = await client.complete({
         system: options.system,
@@ -116,9 +139,21 @@ export class LlmService {
       });
       const parsed = options.schema.parse(extractJson(text));
       this.breaker.recordSuccess();
+      domain.aiProviderRequests.inc({ provider: this.primary, outcome: 'success' });
+      domain.aiProviderDuration.observe(
+        { provider: this.primary, outcome: 'success' },
+        Number(process.hrtime.bigint() - startedAt) / 1e9,
+      );
+      this.syncCircuitMetric();
       return { value: parsed, provider: this.primary, fallback: false };
     } catch (error) {
       this.breaker.recordFailure();
+      domain.aiProviderRequests.inc({ provider: this.primary, outcome: 'error' });
+      domain.aiProviderDuration.observe(
+        { provider: this.primary, outcome: 'error' },
+        Number(process.hrtime.bigint() - startedAt) / 1e9,
+      );
+      this.syncCircuitMetric();
       logger.warn(
         {
           err: error,

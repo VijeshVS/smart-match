@@ -1,5 +1,7 @@
+import { getServiceMetrics } from '@talent-ai/observability/metrics';
 import type { DomainEvent } from '@talent-ai/shared-types';
 import { EVENT_QUEUES, EVENT_ROUTING_KEYS } from '@talent-ai/shared-types';
+import { config } from '../config.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { matchDelayMs, uniqueSkills, utcDay, type FunnelField } from '../domain/analytics.js';
 import { eventBus } from '../lib/event-bus.js';
@@ -17,6 +19,8 @@ import {
 } from '../validation/analytics.schemas.js';
 
 type Tx = Prisma.TransactionClient;
+
+const { domain } = getServiceMetrics(config.serviceName);
 
 function isPrismaUniqueViolation(error: unknown): boolean {
   return (
@@ -385,6 +389,12 @@ export async function handleAnalyticsEvent(event: DomainEvent<unknown>): Promise
     }
     throw error;
   }
+
+  domain.analyticsEventsProcessed.inc({ event_type: event.eventType });
+  domain.analyticsProjectionLag.observe(
+    { event_type: event.eventType },
+    Math.max(0, (Date.now() - occurredAt.getTime()) / 1_000),
+  );
 
   logger.debug({ eventId: event.eventId, eventType: event.eventType }, 'analytics event applied');
 }

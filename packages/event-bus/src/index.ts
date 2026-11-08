@@ -17,6 +17,17 @@ export interface ReconnectOptions {
   maxRetries?: number;
 }
 
+export type EventConsumerOutcome = 'success' | 'failure' | 'invalid';
+
+/**
+ * Optional observability hooks. Implementations live in each service so the
+ * event-bus package stays free of a Prometheus dependency.
+ */
+export interface EventBusMetricsHooks {
+  onPublish?: (eventType: EventType) => void;
+  onConsume?: (eventType: string, outcome: EventConsumerOutcome, durationSeconds: number) => void;
+}
+
 export interface EventBusOptions {
   /** AMQP connection URL, e.g. `amqp://guest:guest@localhost:5672`. */
   url: string;
@@ -29,6 +40,7 @@ export interface EventBusOptions {
   prefetch?: number;
   logger?: Logger;
   reconnect?: ReconnectOptions;
+  metrics?: EventBusMetricsHooks;
 }
 
 export interface SubscribeOptions<T = unknown> {
@@ -120,6 +132,7 @@ export class EventBus {
   private readonly prefetch: number;
   private readonly reconnect: Required<ReconnectOptions>;
   private readonly logger: Logger;
+  private readonly metrics?: EventBusMetricsHooks;
 
   private connection?: ChannelModel;
   private publishChannel?: ConfirmChannel;
@@ -142,6 +155,16 @@ export class EventBus {
     this.prefetch = options.prefetch ?? 10;
     this.reconnect = { ...DEFAULT_RECONNECT, ...options.reconnect };
     this.logger = options.logger ?? createLogger({ serviceName: options.serviceName });
+    this.metrics = options.metrics;
+  }
+
+  /** Metrics must never break message delivery, so hook errors are swallowed. */
+  private recordMetric(operation: () => void): void {
+    try {
+      operation();
+    } catch {
+      // Intentionally ignored.
+    }
   }
 
   get isConnected(): boolean {
@@ -267,6 +290,8 @@ export class EventBus {
       });
     });
 
+    this.recordMetric(() => this.metrics?.onPublish?.(eventType));
+
     this.logger.debug(
       { eventId: event.eventId, eventType, aggregateId, correlationId: event.correlationId },
       'domain event published',
@@ -336,6 +361,9 @@ export class EventBus {
     const channel = this.consumeChannel;
     if (!channel) return;
 
+    const startedAt = process.hrtime.bigint();
+    const elapsedSeconds = (): number => Number(process.hrtime.bigint() - startedAt) / 1e9;
+
     let event: DomainEvent<unknown>;
     try {
       event = parseDomainEvent<unknown>(message);
@@ -344,6 +372,7 @@ export class EventBus {
         { err: error, queue: consumer.queue },
         'invalid event envelope; routing to dead-letter queue',
       );
+      this.recordMetric(() => this.metrics?.onConsume?.('unknown', 'invalid', elapsedSeconds()));
       channel.nack(message, false, false);
       return;
     }
@@ -351,6 +380,9 @@ export class EventBus {
     try {
       await consumer.handler(event, message);
       channel.ack(message);
+      this.recordMetric(() =>
+        this.metrics?.onConsume?.(event.eventType, 'success', elapsedSeconds()),
+      );
     } catch (error) {
       this.logger.error(
         {
@@ -361,6 +393,9 @@ export class EventBus {
           correlationId: event.correlationId,
         },
         'event handler failed; routing to dead-letter queue',
+      );
+      this.recordMetric(() =>
+        this.metrics?.onConsume?.(event.eventType, 'failure', elapsedSeconds()),
       );
       channel.nack(message, false, false);
     }

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { getCorrelationId } from '@talent-ai/logger';
+import { getServiceMetrics } from '@talent-ai/observability/metrics';
 import {
   TALENT_CREDIT_RULES,
   type CoinsAwardedPayload,
@@ -22,12 +23,15 @@ import {
   toLedgerTransaction,
   toWallet,
 } from '../domain/rewards.js';
+import { config } from '../config.js';
 import type { RewardsPrincipal } from '../middleware/auth.js';
 import { AppError } from '../lib/errors.js';
 import { logger } from '../lib/logger.js';
 import { enqueueOutbox } from '../lib/outbox.js';
 import { prisma } from '../lib/prisma.js';
 import type { UnlockTier3Input } from '../validation/rewards.schemas.js';
+
+const { domain } = getServiceMetrics(config.serviceName);
 
 /** Tier unlocked by the Level-3 access product. */
 const TIER3 = 'LEVEL_3_LEAD' as const;
@@ -132,6 +136,7 @@ async function ensureWelcomeBonus(
       balanceAfter: updated.balance,
     },
   });
+  domain.ledgerTransactions.inc({ type: 'CREDIT_WELCOME_BONUS' });
 
   const payload: CoinsAwardedPayload = {
     walletId: updated.id,
@@ -261,6 +266,7 @@ async function applyCredit(
       balanceAfter: updated.balance,
     },
   });
+  domain.ledgerTransactions.inc({ type: input.type });
 
   const refreshed = await tx.wallet.findUniqueOrThrow({ where: { id: wallet.id } });
 
@@ -381,6 +387,7 @@ export async function unlockTier3(
           balanceAfter,
         },
       });
+      domain.ledgerTransactions.inc({ type: 'DEBIT_TIER3_UNLOCK' });
 
       const grant = existing
         ? await tx.talentAccessGrant.update({
@@ -419,7 +426,15 @@ export async function unlockTier3(
         chargedCredits: cost,
       };
     }),
-  );
+  ).catch((error: unknown) => {
+    domain.rewardsSaga.inc({ saga: 'tier3_unlock', outcome: 'failed' });
+    throw error;
+  });
+
+  domain.rewardsSaga.inc({
+    saga: 'tier3_unlock',
+    outcome: result.chargedCredits === 0 ? 'already_unlocked' : 'granted',
+  });
 
   logger.info(
     {
@@ -462,7 +477,15 @@ export async function creditReviewFeedback(input: {
         correlationId: input.correlationId,
       });
     }),
-  );
+  ).catch((error: unknown) => {
+    domain.rewardsSaga.inc({ saga: 'review_credit', outcome: 'failed' });
+    throw error;
+  });
+
+  domain.rewardsSaga.inc({
+    saga: 'review_credit',
+    outcome: result.credited ? 'awarded' : 'duplicate',
+  });
 
   logger.info(
     {

@@ -1,10 +1,12 @@
 import { Types } from 'mongoose';
+import { getServiceMetrics } from '@talent-ai/observability/metrics';
 import type {
   Notification,
   NotificationListResponse,
   NotificationType,
   PaginationMeta,
 } from '@talent-ai/shared-types';
+import { config } from '../config.js';
 import { AppError } from '../lib/errors.js';
 import { eventBus } from '../lib/event-bus.js';
 import { logger } from '../lib/logger.js';
@@ -16,6 +18,8 @@ import {
 import type { NotificationListQuery } from '../validation/notification.schemas.js';
 import { sendNotificationEmail } from './email.js';
 import { broadcastNotification } from './websocket.js';
+
+const { domain } = getServiceMetrics(config.serviceName);
 
 export interface CreateNotificationInput {
   /** Domain event id; makes at-least-once delivery idempotent. */
@@ -93,6 +97,10 @@ export async function createNotification(
   // In-app delivery is complete once the document is persisted.
   doc.deliveryStatus = 'SENT';
   await doc.save();
+  domain.notificationsCreated.inc({
+    type: notification.type,
+    delivery_status: 'SENT',
+  });
 
   await broadcastNotification(notification.userId, notification);
   publishNotificationSent(notification);
