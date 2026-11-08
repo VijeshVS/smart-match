@@ -49,6 +49,9 @@
     "db:analytics:generate": "pnpm --filter @talent-ai/analytics-service db:generate",
     "db:analytics:migrate": "pnpm --filter @talent-ai/analytics-service db:migrate",
     "db:analytics:deploy": "pnpm --filter @talent-ai/analytics-service db:deploy",
+    "db:seed:realistic": "pnpm --filter @talent-ai/realistic-seeder seed:realistic",
+    "db:seed:realistic:reset": "pnpm --filter @talent-ai/realistic-seeder seed:realistic:reset",
+    "dashboards:generate": "node scripts/generate-grafana-dashboards.mjs",
     "legacy:candidate": "node candidate/backend/index.js",
     "legacy:recruiter": "node hr/backend/index.js",
     "db:migrate:seed": "node scripts/migrate-monolith-to-microservices.mjs"
