@@ -1,0 +1,331 @@
+groups:
+  - name: talent-ai-red
+    interval: 30s
+    rules:
+      - record: talent:http_request_rate5m
+        expr: sum by (service) (rate(http_requests_total[5m]))
+      - record: talent:http_error_ratio5m
+        expr: |
+          sum by (service) (rate(http_requests_total{status_code=~"5.."}[5m]))
+          /
+          clamp_min(sum by (service) (rate(http_requests_total[5m])), 0.000001)
+      - record: talent:http_latency_p95_5m
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (service, le) (rate(http_request_duration_seconds_bucket[5m]))
+          )
+      - record: talent:event_failure_ratio5m
+        expr: |
+          sum by (service, event_type) (
+            rate(talent_domain_events_consumed_total{outcome="failure"}[5m])
+          )
+          /
+          clamp_min(
+            sum by (service, event_type) (rate(talent_domain_events_consumed_total[5m])),
+            0.000001
+          )
+
+  - name: talent-ai-availability
+    rules:
+      - alert: TalentServiceDown
+        expr: up{job="talent-services"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: '{{ $labels.service }} is not being scraped'
+          description: >-
+            Prometheus has failed to scrape {{ $labels.service }} for more than
+            2 minutes. Check the pod/container, its /health/liveness probe and
+            the service port.
+          runbook_url: https://github.com/VijeshVS/talent.ai/blob/main/docs/runbooks/service-health.md
+
+      - alert: TalentServiceDependencyDown
+        expr: |
+          (pg_up == 0)
+          or (redis_up == 0)
+          or (mongodb_up == 0)
+          or (up{job="rabbitmq"} == 0)
+          or (up{job="qdrant"} == 0)
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: 'A platform dependency exporter reports down'
+          description: >-
+            One of PostgreSQL, Redis, MongoDB, RabbitMQ or Qdrant is reporting
+            down from its Prometheus exporter. Existing requests may still
+            succeed from pools/caches, but new work will start failing.
+          runbook_url: https://github.com/VijeshVS/talent.ai/blob/main/docs/runbooks/database-connectivity.md
+
+  - name: talent-ai-http-slo
+    rules:
+      - alert: TalentHighErrorRate
+        expr: talent:http_error_ratio5m > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: '{{ $labels.service }} 5xx error rate is above 5%'
+          description: >-
+            {{ $labels.service }} has served more than 5% 5xx responses for
+            5 minutes. Inspect the error logs, recent deploys, downstream
+            dependency health and the API Gateway circuit breaker.
+          runbook_url: https://github.com/VijeshVS/talent.ai/blob/main/docs/runbooks/service-health.md
+
+      - alert: TalentHighLatencyP95
+        expr: talent:http_latency_p95_5m > 2
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: '{{ $labels.service }} p95 latency is above 2s'
+          description: >-
+            The p95 HTTP latency for {{ $labels.service }} has been above 2
+            seconds for 10 minutes. Check database pool saturation, slow queries,
+            provider latency (AI) and event-loop lag.
+          runbook_url: https://github.com/VijeshVS/talent.ai/blob/main/docs/runbooks/service-health.md
+
+      - alert: TalentErrorBudgetBurn
+        expr: |
+          (
+            sum by (service) (rate(http_requests_total{status_code=~"5.."}[1h]))
+            /
+            clamp_min(sum by (service) (rate(http_requests_total[1h])), 0.000001)
+          ) > 0.15
+          and
+          (
+            sum by (service) (rate(http_requests_total{status_code=~"5.."}[5m]))
+            /
+            clamp_min(sum by (service) (rate(http_requests_total[5m])), 0.000001)
+          ) > 0.15
+        for: 5m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: '{{ $labels.service }} is burning the error budget rapidly'
+          description: >-
+            Both the 1h and 5m 5xx ratios are above 15%, which indicates a
+            sustained incident rather than a short spike.
+          runbook_url: https://github.com/VijeshVS/talent.ai/blob/main/docs/runbooks/service-health.md
+
+  - name: talent-ai-events
+    rules:
+      - alert: TalentEventHandlerFailures
+        expr: talent:event_failure_ratio5m > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: '{{ $labels.service }} is failing {{ $labels.event_type }} handlers'
+          description: >-
+            More than 10% of consumed {{ $labels.event_type }} events are being
+            nacked to the dead-letter queue by {{ $labels.service }}. Check the
+            service logs and the DLQ dashboard panel.
+          runbook_url: https://github.com/VijeshVS/talent.ai/blob/main/docs/runbooks/queue-backlog-dlq.md
+
+      - alert: TalentQueueBacklog
+        expr: sum by (queue) (rabbitmq_queue_messages_ready) > 1000
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: 'Queue {{ $labels.queue }} has a backlog above 1000'
+          description: >-
+            Ready messages have stayed above 1000 for 10 minutes. Scale the
+            consumer, check its error rate and confirm the handler is not
+            blocking on a dependency.
+          runbook_url: https://github.com/VijeshVS/talent.ai/blob/main/docs/runbooks/queue-backlog-dlq.md
+
+      - alert: TalentConsumerLag
+        expr: |
+          sum by (queue) (
+            rabbitmq_queue_messages_ready + rabbitmq_queue_messages_unacked
+          ) > 500
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: 'Consumer lag on {{ $labels.queue }} is above 500'
+          description: >-
+            Ready plus unacked messages have stayed above 500 for 10 minutes.
+            This signals consumers are slower than producers or have stopped.
+          runbook_url: https://github.com/VijeshVS/talent.ai/blob/main/docs/runbooks/queue-backlog-dlq.md
+
+      - alert: TalentDeadLetterGrowth
+        expr: increase(rabbitmq_queue_messages_ready{queue="talent.events.dlq"}[10m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: 'The shared dead-letter queue is growing'
+          description: >-
+            New messages landed in talent.events.dlq in the last 10 minutes.
+            Replay only after fixing the consumer; inspect the event headers for
+            the original routing key and service.
+          runbook_url: https://github.com/VijeshVS/talent.ai/blob/main/docs/runbooks/queue-backlog-dlq.md
+
+      - alert: TalentDeadLetterNotEmpty
+        expr: rabbitmq_queue_messages_ready{queue="talent.events.dlq"} > 0
+        for: 15m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: 'The shared dead-letter queue is non-empty'
+          description: >-
+            The DLQ still has unprocessed poison messages. Triage, fix the
+            consumer and replay or purge using the runbook.
+          runbook_url: https://github.com/VijeshVS/talent.ai/blob/main/docs/runbooks/queue-backlog-dlq.md
+
+  - name: talent-ai-provider
+    rules:
+      - alert: TalentAiProviderFailures
+        expr: |
+          sum by (provider) (
+            rate(talent_ai_provider_requests_total{outcome=~"error|circuit_open|unconfigured"}[5m])
+          )
+          /
+          clamp_min(sum by (provider) (rate(talent_ai_provider_requests_total[5m])), 0.000001)
+          > 0.2
+        for: 5m
+        labels:
+          severity: warning
+          team: ai
+        annotations:
+          summary: 'AI provider {{ $labels.provider }} failure rate is above 20%'
+          description: >-
+            Provider calls are failing or being short-circuited for 5 minutes.
+            TalentLens is still answering from the deterministic local fallback,
+            but match quality is degraded. Check provider status, API keys and
+            rate limits.
+          runbook_url: https://github.com/VijeshVS/talent.ai/blob/main/docs/runbooks/ai-provider-failures.md
+
+      - alert: TalentAiCircuitOpen
+        expr: talent_ai_circuit_breaker_state == 2
+        for: 2m
+        labels:
+          severity: critical
+          team: ai
+        annotations:
+          summary: 'AI circuit breaker {{ $labels.breaker }} is open'
+          description: >-
+            The AI provider circuit breaker has been open for 2 minutes. All
+            calls are using the local fallback. Confirm the provider outage and
+            the configured reset timeout.
+          runbook_url: https://github.com/VijeshVS/talent.ai/blob/main/docs/runbooks/ai-provider-failures.md
+
+      - alert: TalentAiCacheHitRateLow
+        expr: |
+          (
+            sum(rate(talent_ai_cache_requests_total{result="hit"}[30m]))
+            /
+            clamp_min(sum(rate(talent_ai_cache_requests_total{result=~"hit|miss"}[30m])), 0.000001)
+          ) < 0.1
+          and
+          sum(rate(talent_ai_cache_requests_total{result=~"hit|miss"}[30m])) > 0.01
+        for: 15m
+        labels:
+          severity: warning
+          team: ai
+        annotations:
+          summary: 'AI response cache hit rate is below 10%'
+          description: >-
+            Cache hit rate is low despite steady traffic. Check Redis
+            connectivity, TTLs and whether cache keys are varying unexpectedly.
+          runbook_url: https://github.com/VijeshVS/talent.ai/blob/main/docs/runbooks/ai-provider-failures.md
+
+  - name: talent-ai-business
+    rules:
+      - alert: TalentRewardsApiErrors
+        expr: |
+          sum(rate(http_requests_total{service="rewards-service",status_code=~"5.."}[5m]))
+          /
+          clamp_min(sum(rate(http_requests_total{service="rewards-service"}[5m])), 0.000001)
+          > 0.02
+        for: 5m
+        labels:
+          severity: critical
+          team: rewards
+        annotations:
+          summary: 'Rewards service 5xx rate is above 2%'
+          description: >-
+            Wallet, ledger or unlock requests are failing. Check PostgreSQL
+            connectivity, optimistic-lock retries and the review consumer.
+          runbook_url: https://github.com/VijeshVS/talent.ai/blob/main/docs/runbooks/rewards-and-notifications.md
+
+      - alert: TalentRewardsSagaFailure
+        expr: sum(rate(talent_rewards_saga_total{outcome=~"failed|error"}[10m])) > 0
+        for: 2m
+        labels:
+          severity: critical
+          team: rewards
+        annotations:
+          summary: 'A rewards Saga emitted a failure outcome'
+          description: >-
+            Review-credit or Tier-3 unlock Saga steps are failing. Inspect the
+            rewards logs with the correlation id and the outbox backlog.
+          runbook_url: https://github.com/VijeshVS/talent.ai/blob/main/docs/runbooks/rewards-and-notifications.md
+
+      - alert: TalentNotificationEmailFailures
+        expr: |
+          sum(rate(talent_notification_email_total{status="FAILED"}[10m]))
+          /
+          clamp_min(sum(rate(talent_notification_email_total[10m])), 0.000001)
+          > 0.1
+        for: 10m
+        labels:
+          severity: warning
+          team: notifications
+        annotations:
+          summary: 'Notification email failure rate is above 10%'
+          description: >-
+            Email delivery is failing while in-app notifications may still be
+            persisted. Check SMTP configuration, MailHog in local development
+            and provider credentials in deployed environments.
+          runbook_url: https://github.com/VijeshVS/talent.ai/blob/main/docs/runbooks/rewards-and-notifications.md
+
+      - alert: TalentAnalyticsProjectionStale
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (rate(talent_analytics_projection_lag_seconds_bucket[10m]))
+          ) > 300
+        for: 10m
+        labels:
+          severity: warning
+          team: analytics
+        annotations:
+          summary: 'Analytics projections are more than 5 minutes behind'
+          description: >-
+            The p95 event-to-projection lag exceeds 5 minutes. Check the
+            analytics consumer queue depth, PostgreSQL health and recent
+            migration state.
+          runbook_url: https://github.com/VijeshVS/talent.ai/blob/main/docs/runbooks/stale-analytics-projections.md
+
+      - alert: TalentAnalyticsEventsStalled
+        expr: |
+          sum(rate(talent_analytics_events_processed_total[15m])) == 0
+          and
+          sum(rabbitmq_queue_messages_ready{queue="analytics-service.all-events"}) > 0
+        for: 10m
+        labels:
+          severity: critical
+          team: analytics
+        annotations:
+          summary: 'Analytics projection consumer appears stalled'
+          description: >-
+            Events are waiting on the analytics queue but none have been applied
+            for 15 minutes. Restart or scale analytics-service and check its
+            logs for Prisma/PostgreSQL errors.
+          runbook_url: https://github.com/VijeshVS/talent.ai/blob/main/docs/runbooks/stale-analytics-projections.md

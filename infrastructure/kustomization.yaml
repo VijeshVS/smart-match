@@ -1,0 +1,38 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Phase 11 — apply the application and its observability stack together:
+#
+#   kubectl apply -k infrastructure
+#
+# The dashboards and alert rules are generated from the same files that Docker
+# Compose mounts, so there is one version-controlled source of truth.
+namespace: talent-ai
+
+resources:
+  - k8s
+  - k8s/observability/prometheus.yaml
+  - k8s/observability/grafana.yaml
+
+configMapGenerator:
+  - name: talent-ai-grafana-dashboards
+    files:
+      - docker/grafana/dashboards/talent-platform-overview.json
+      - docker/grafana/dashboards/talent-service-health.json
+      - docker/grafana/dashboards/talent-conversion-funnels.json
+      - docker/grafana/dashboards/talent-ai-talentlens.json
+      - docker/grafana/dashboards/talent-events-rabbitmq.json
+      - docker/grafana/dashboards/talent-rewards-notifications-analytics.json
+    options:
+      disableNameSuffixHash: true
+  - name: talent-ai-prometheus-rules
+    files:
+      - docker/prometheus/rules/talent-ai.yml
+    options:
+      disableNameSuffixHash: true
+
+labels:
+  - pairs:
+      app.kubernetes.io/managed-by: kustomize
+      app.kubernetes.io/part-of: talent-ai
+    includeSelectors: false

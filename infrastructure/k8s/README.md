@@ -18,21 +18,47 @@ Phase 9.5 deployment assets for talent.ai.
 | `api-gateway.yaml` | `api-gateway` Deployment + ClusterIP Service. |
 | `hpa.yaml` | CPU/memory HPAs for every service. |
 | `ingress.yaml` | Nginx ingress for `api.talent.ai`, `talent.ai`, `recruiter.talent.ai`. |
-| `kustomization.yaml` | Renders everything above. |
+| `observability/prometheus.yaml` | Prometheus ConfigMap (scrape config), Deployment and Service. |
+| `observability/grafana.yaml` | Grafana datasources/provider ConfigMaps, Deployment (with the generated dashboards ConfigMap) and Service. |
+| `secret.grafana.example.yaml` | Template for the optional `talent-ai-grafana-admin` secret. |
+| `kustomization.yaml` | Renders the application manifests above. |
+| `../kustomization.yaml` | Renders the application **plus** observability and generates the dashboard/rule ConfigMaps from the Compose files. |
 
 ## Render and apply
 
-```bash
-kubectl kustomize infrastructure/k8s            # preview
-kubectl apply -k infrastructure/k8s
+Use the parent kustomization to deploy the application and observability
+together:
 
-# Secrets are created out of band:
+```bash
+kubectl kustomize infrastructure            # preview
+kubectl apply -k infrastructure
+
+# application manifests only
+kubectl kustomize infrastructure/k8s
+kubectl apply -k infrastructure/k8s
+```
+
+`infrastructure/kustomization.yaml` generates
+`talent-ai-grafana-dashboards` and `talent-ai-prometheus-rules` directly from
+`infrastructure/docker/grafana/dashboards/` and
+`infrastructure/docker/prometheus/rules/`. Do not copy dashboards into
+`infrastructure/k8s/`.
+
+Create the Grafana admin secret before exposing Grafana:
+
+```bash
+kubectl apply -f infrastructure/k8s/secret.grafana.example.yaml   # edit first
+```
+
+Secrets are created out of band:
 kubectl -n talent-ai create secret generic talent-ai-secrets \
   --from-literal=DATABASE_URL='postgresql://talent:...@postgres:5432/talent_auth' \
   --from-literal=RECRUITER_DATABASE_URL='postgresql://talent:...@postgres:5432/talent_recruiter?schema=public' \
   --from-literal=ENGAGEMENT_DATABASE_URL='postgresql://talent:...@postgres:5432/talent_engagement?schema=public' \
   --from-literal=REWARDS_DATABASE_URL='postgresql://talent:...@postgres:5432/talent_rewards?schema=public' \
   --from-literal=ANALYTICS_DATABASE_URL='postgresql://talent:...@postgres:5432/talent_analytics?schema=public' \
+  --from-literal=ANALYTICS_DB_USER='talent' \
+  --from-literal=ANALYTICS_DB_PASSWORD='...' \
   --from-literal=MONGODB_URI='mongodb://talent:...@mongodb:27017/talent_profiles?replicaSet=rs0' \
   --from-literal=NOTIFICATION_MONGODB_URI='mongodb://talent:...@mongodb:27017/talent_notif?replicaSet=rs0' \
   --from-literal=REDIS_URL='redis://redis:6379' \
@@ -65,8 +91,12 @@ Prerequisites:
   referenced in the secret / ConfigMap (in-cluster or managed services).
 - An OTLP endpoint at `jaeger-collector.observability.svc.cluster.local:4318`
   or an override of `OTEL_EXPORTER_OTLP_ENDPOINT` in the ConfigMap.
-- Metrics scraping: the pods carry `prometheus.io/scrape` annotations, so either
-  Prometheus Kubernetes SD or the Prometheus Operator can discover them.
+- Metrics scraping: the bundled Prometheus deployment scrapes the service
+  ClusterIPs and the RabbitMQ/Qdrant/exporter endpoints in
+  `observability/prometheus.yaml`. Replace those targets when the dependencies
+  are managed outside the cluster.
+- Grafana reads the analytics datasource from `ANALYTICS_DB_*` env vars backed
+  by `talent-ai-secrets`; see `observability/grafana.yaml`.
 
 ## Adding a service
 

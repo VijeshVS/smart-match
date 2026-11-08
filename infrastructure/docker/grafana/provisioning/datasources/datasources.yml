@@ -10,3 +10,22 @@ datasources:
     editable: false
     jsonData:
       timeInterval: 15s
+
+  # Analytics read models power the conversion-funnel dashboard. Docker Compose
+  # supplies the local defaults; Kubernetes supplies the same variables from
+  # the observability ConfigMap/Secret.
+  - name: Analytics PostgreSQL
+    uid: talent-analytics-db
+    type: postgres
+    access: proxy
+    url: $ANALYTICS_DB_HOST:$ANALYTICS_DB_PORT
+    database: $ANALYTICS_DB_NAME
+    user: $ANALYTICS_DB_USER
+    isDefault: false
+    editable: false
+    jsonData:
+      sslmode: $ANALYTICS_DB_SSLMODE
+      postgresVersion: 1600
+      timescaledb: false
+    secureJsonData:
+      password: $ANALYTICS_DB_PASSWORD

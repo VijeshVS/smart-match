@@ -4,9 +4,11 @@ providers:
   - name: talent-ai
     orgId: 1
     folder: talent.ai
+    folderUid: talent-ai
     type: file
-    disableDeletion: false
+    disableDeletion: true
     updateIntervalSeconds: 30
-    allowUiUpdates: true
+    allowUiUpdates: false
     options:
       path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

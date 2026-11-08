@@ -10,10 +10,12 @@
 | `postgres/init/01-create-databases.sql` | Creates `talent_recruiter`, `talent_engagement`, `talent_rewards` (and the `pgcrypto` extension in each database). `talent_auth` is created by the Postgres image via `POSTGRES_DB`. |
 | `mongo/init-replica.js` | Initiates the `rs0` single-node replica set required for transactions and change streams. |
 | `rabbitmq/rabbitmq.conf` | Loads the exchange/queue definitions on boot. |
+| `rabbitmq/enabled_plugins` | Enables `rabbitmq_management` and `rabbitmq_prometheus` (scraped on `:15692`). |
 | `rabbitmq/definitions.json` | Declares the `talent.events.topic` exchange, the `talent.events.dlx` dead-letter exchange, the `talent.events.dlq` queue, and the `talent` administrator user. |
-| `prometheus/prometheus.yml` | Scrapes `auth-service:5001`, `talent-service:5002`, `recruiter-service:5003`, `engagement-service:5004`, `rewards-service:5005`, `ai-matching-service:5006`, `api-gateway:8080` and Prometheus itself every 15s. |
-| `grafana/provisioning/` | Prometheus datasource and dashboard provider. |
-| `grafana/dashboards/talent-overview.json` | Service health, request rate, error rate, latency, in-flight requests and memory. |
+| `prometheus/prometheus.yml` | Scrapes every service, RabbitMQ (`:15692`), Qdrant and the PostgreSQL/Redis/MongoDB exporters every 15s. |
+| `prometheus/rules/talent-ai.yml` | Recording and alerting rules for availability, RED metrics, events, AI, rewards and analytics. |
+| `grafana/provisioning/` | Prometheus + analytics PostgreSQL datasources and the read-only dashboard provider. |
+| `grafana/dashboards/*.json` | Six generated dashboards: platform overview, service health, conversion funnels, AI/TalentLens, events/RabbitMQ, rewards/notifications/analytics. |
 
 ## Usage
 
@@ -63,6 +65,7 @@ needs, builds workspace packages, then produces a production-only bundle with
 | Redis | `redis://localhost:6379` |
 | RabbitMQ AMQP | `amqp://talent:talent@localhost:5672` |
 | RabbitMQ Management | <http://localhost:15672> (`talent` / `talent`) |
+| RabbitMQ Prometheus | <http://localhost:15692/metrics> |
 | Qdrant | <http://localhost:6333> |
 | MailHog SMTP | `localhost:1025` |
 | MailHog UI | <http://localhost:8025> |
@@ -71,6 +74,9 @@ needs, builds workspace packages, then produces a production-only bundle with
 | OTLP/gRPC collector | `localhost:4317` |
 | Prometheus | <http://localhost:9090> |
 | Grafana | <http://localhost:3100> (`admin` / `admin`) |
+| PostgreSQL exporter | <http://localhost:9187/metrics> |
+| Redis exporter | <http://localhost:9121/metrics> |
+| MongoDB exporter | <http://localhost:9216/metrics> |
 | auth-service (app stack) | <http://localhost:5001> |
 | talent-service (app stack) | <http://localhost:5002> |
 | recruiter-service (app stack) | <http://localhost:5003> |
@@ -86,8 +92,23 @@ needs, builds workspace packages, then produces a production-only bundle with
 - Spans are exported over OTLP/HTTP to `OTEL_EXPORTER_OTLP_ENDPOINT`
   (`http://jaeger:4318` inside Compose, `http://localhost:4318` from the host).
 - `GET /metrics` exposes `http_requests_total`,
-  `http_request_duration_seconds`, `http_requests_in_flight` and the default
-  Node process metrics (prefixed `talent_`).
+  `http_request_duration_seconds`, `http_requests_in_flight`, domain/business
+  metrics, and the default Node process metrics (prefixed `talent_`). Every
+  metric carries `service` and `env` labels.
+- Grafana dashboards are generated from
+  `scripts/generate-grafana-dashboards.mjs`, committed under
+  `grafana/dashboards/`, and auto-provisioned. Edit the generator, then run
+  `pnpm dashboards:generate`.
+- Alert rules live in `prometheus/rules/talent-ai.yml` and link to the runbooks
+  in `docs/runbooks/`. Check them with:
+  ```bash
+  docker run --rm -v "$PWD/infrastructure/docker/prometheus:/etc/prometheus" \
+    --entrypoint promtool prom/prometheus:v3.1.0 \
+    check rules /etc/prometheus/rules/talent-ai.yml
+  ```
+- Seed deterministic demo activity across every store with
+  `pnpm db:seed:realistic` (see `tools/realistic-seeder/README.md`). Use
+  `--reset` only in local/development/test.
 - `GET /health/liveness` and `GET /health/readiness` are the Kubernetes/Docker
   probe endpoints; `/health/readiness` verifies downstream dependencies.
 - Pino log lines include `trace_id` / `span_id` from the active OpenTelemetry
