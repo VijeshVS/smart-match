@@ -81,7 +81,7 @@ function NotificationsMenu() {
           </Button>
         </div>
 
-        <ScrollArea className="max-h-80">
+        <ScrollArea className="h-80 max-h-[calc(100vh-9rem)]">
           {loading ? (
             <div className="flex items-center justify-center py-10">
               <Spinner className="size-5 text-muted-foreground" />
