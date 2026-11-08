@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { getCorrelationId } from '@talent-ai/logger';
+import { getServiceMetrics } from '@talent-ai/observability/metrics';
 import type {
   AiEngine,
   TalentLevel,
@@ -22,6 +23,8 @@ import { qdrant } from '../lib/qdrant.js';
 import type { AiPrincipal } from '../middleware/auth.js';
 import { talentLensFiltersSchema, type TalentLensInput } from '../validation/ai.schemas.js';
 import { cacheKey, responseCache } from './cache.js';
+
+const { domain } = getServiceMetrics(config.serviceName);
 
 const queryInterpretationSchema = z.object({
   semanticQuery: z.string().trim().min(1).max(4_000),
@@ -251,6 +254,7 @@ export async function talentLens(
   };
 
   await responseCache.set(key, response, config.ai.cacheTtlSeconds);
+  domain.aiTalentLensSearches.inc({ outcome: results.length > 0 ? 'success' : 'empty' });
   publishHighAffinity(principal, results[0]);
 
   logger.info(

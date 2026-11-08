@@ -1,7 +1,16 @@
 import { createHash } from 'node:crypto';
+import { getServiceMetrics } from '@talent-ai/observability/metrics';
 import type { Redis } from 'ioredis';
+import { config } from '../config.js';
 import { redis } from '../lib/redis.js';
 import { logger } from '../lib/logger.js';
+
+const { domain } = getServiceMetrics(config.serviceName);
+
+/** `ai-matching:v1:<namespace>:<digest>` → `<namespace>`. */
+function cacheNamespace(key: string): string {
+  return key.split(':')[2] ?? 'unknown';
+}
 
 /** Deterministic JSON so cache keys do not depend on object key order. */
 export function stableStringify(value: unknown): string {
@@ -27,8 +36,13 @@ export class ResponseCache {
   async get<T>(key: string): Promise<T | undefined> {
     try {
       const value = await this.client.get(key);
+      domain.aiCacheRequests.inc({
+        cache: cacheNamespace(key),
+        result: value ? 'hit' : 'miss',
+      });
       return value ? (JSON.parse(value) as T) : undefined;
     } catch (error) {
+      domain.aiCacheRequests.inc({ cache: cacheNamespace(key), result: 'error' });
       logger.warn({ err: error }, 'redis cache read failed; continuing without cache');
       return undefined;
     }

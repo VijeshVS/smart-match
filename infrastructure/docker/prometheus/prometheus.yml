@@ -4,22 +4,91 @@ global:
   external_labels:
     platform: talent-ai
 
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
 scrape_configs:
   - job_name: prometheus
     static_configs:
       - targets: ['localhost:9090']
+        labels:
+          env: development
 
   # Containerised services on the talent-ai-network. When running a service on
-  # the host instead, swap its target for `host.docker.internal:<port>`.
+  # the host instead, swap its target for `host.docker.internal:<port>`. The
+  # `service` label is repeated here so `up` can be filtered the same way as
+  # the service-emitted metrics, which carry `service` and `env` defaults.
   - job_name: talent-services
     metrics_path: /metrics
     static_configs:
       - targets: ['auth-service:5001']
+        labels:
+          service: auth-service
+          env: development
       - targets: ['talent-service:5002']
+        labels:
+          service: talent-service
+          env: development
       - targets: ['recruiter-service:5003']
+        labels:
+          service: recruiter-service
+          env: development
       - targets: ['engagement-service:5004']
+        labels:
+          service: engagement-service
+          env: development
       - targets: ['rewards-service:5005']
+        labels:
+          service: rewards-service
+          env: development
       - targets: ['ai-matching-service:5006']
+        labels:
+          service: ai-matching-service
+          env: development
       - targets: ['notification-service:5007']
+        labels:
+          service: notification-service
+          env: development
       - targets: ['analytics-service:5008']
+        labels:
+          service: analytics-service
+          env: development
       - targets: ['api-gateway:8080']
+        labels:
+          service: api-gateway
+          env: development
+
+  # Broker, queues, consumer counts and DLQ depth. Requires
+  # `rabbitmq_prometheus` to be enabled (see rabbitmq/enabled_plugins).
+  - job_name: rabbitmq
+    static_configs:
+      - targets: ['rabbitmq:15692']
+        labels:
+          env: development
+
+  # Qdrant exposes its own Prometheus endpoint on the HTTP port.
+  - job_name: qdrant
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['qdrant:6333']
+        labels:
+          env: development
+
+  # Datastore connectivity and saturation.
+  - job_name: postgres
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+        labels:
+          env: development
+
+  - job_name: redis
+    static_configs:
+      - targets: ['redis-exporter:9121']
+        labels:
+          env: development
+
+  - job_name: mongodb
+    static_configs:
+      - targets: ['mongodb-exporter:9216']
+        labels:
+          env: development

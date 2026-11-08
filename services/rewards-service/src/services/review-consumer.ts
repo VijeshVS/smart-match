@@ -1,9 +1,13 @@
+import { getServiceMetrics } from '@talent-ai/observability/metrics';
 import type { DomainEvent, ReviewSubmittedPayload } from '@talent-ai/shared-types';
 import { EVENT_QUEUES } from '@talent-ai/shared-types';
+import { config } from '../config.js';
 import { eventBus } from '../lib/event-bus.js';
 import { logger } from '../lib/logger.js';
 import { reviewSubmittedPayloadSchema } from '../validation/rewards.schemas.js';
 import { creditReviewFeedback } from './rewards.service.js';
+
+const { domain } = getServiceMetrics(config.serviceName);
 
 /**
  * Consumes `review.submitted` and credits the reviewer when the review carries
@@ -26,6 +30,7 @@ export async function handleReviewSubmitted(
   }
 
   if (!parsed.data.hasActionableFeedback) {
+    domain.rewardsSaga.inc({ saga: 'review_credit', outcome: 'skipped' });
     logger.debug(
       { eventId: event.eventId, reviewId: parsed.data.reviewId },
       'review has no actionable feedback; no credit awarded',

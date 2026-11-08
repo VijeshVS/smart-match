@@ -103,10 +103,12 @@ services:
     ports:
       - '${RABBITMQ_PORT:-5672}:5672'
       - '${RABBITMQ_MANAGEMENT_PORT:-15672}:15672'
+      - '${RABBITMQ_PROMETHEUS_PORT:-15692}:15692'
     volumes:
       - talent_ai_rabbitmq_data:/var/lib/rabbitmq
       - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
       - ./rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
+      - ./rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins:ro
     healthcheck:
       test: ['CMD', 'rabbitmq-diagnostics', '-q', 'ping']
       interval: 10s
@@ -141,6 +143,56 @@ services:
     networks:
       - talent-ai-network
 
+  # ── Datastore exporters (Prometheus) ──────────────────
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.16.0
+    container_name: talent-ai-postgres-exporter
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: postgresql://${POSTGRES_USER:-talent}:${POSTGRES_PASSWORD:-talent}@postgres:5432/postgres?sslmode=disable
+      PG_EXPORTER_AUTO_DISCOVER_DATABASES: 'true'
+      PG_EXPORTER_DISABLE_DEFAULT_METRICS: 'false'
+    ports:
+      - '${POSTGRES_EXPORTER_PORT:-9187}:9187'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - talent-ai-network
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.67.0
+    container_name: talent-ai-redis-exporter
+    restart: unless-stopped
+    environment:
+      REDIS_ADDR: redis://redis:6379
+    ports:
+      - '${REDIS_EXPORTER_PORT:-9121}:9121'
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - talent-ai-network
+
+  mongodb-exporter:
+    image: percona/mongodb_exporter:0.42.0
+    container_name: talent-ai-mongodb-exporter
+    restart: unless-stopped
+    command:
+      - '--mongodb.uri=mongodb://mongodb:27017/?replicaSet=rs0'
+      - '--discovering-mode'
+      - '--collect-all'
+      - '--compatible-mode'
+    ports:
+      - '${MONGODB_EXPORTER_PORT:-9216}:9216'
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      mongodb-init:
+        condition: service_completed_successfully
+    networks:
+      - talent-ai-network
+
   # ── Observability ─────────────────────────────────────
   jaeger:
     image: jaegertracing/all-in-one:1.62.0
@@ -168,6 +220,7 @@ services:
       - '${PROMETHEUS_PORT:-9090}:9090'
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/rules:/etc/prometheus/rules:ro
       - talent_ai_prometheus_data:/prometheus
     networks:
       - talent-ai-network
@@ -180,7 +233,14 @@ services:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
       GF_USERS_ALLOW_SIGN_UP: 'false'
-      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/talent-overview.json
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/talent-platform-overview.json
+      # Analytics PostgreSQL datasource (conversion funnels).
+      ANALYTICS_DB_HOST: ${ANALYTICS_DB_HOST:-postgres}
+      ANALYTICS_DB_PORT: ${ANALYTICS_DB_PORT:-5432}
+      ANALYTICS_DB_NAME: ${ANALYTICS_DB_NAME:-talent_analytics}
+      ANALYTICS_DB_USER: ${ANALYTICS_DB_USER:-talent}
+      ANALYTICS_DB_PASSWORD: ${ANALYTICS_DB_PASSWORD:-talent}
+      ANALYTICS_DB_SSLMODE: ${ANALYTICS_DB_SSLMODE:-disable}
     ports:
       - '${GRAFANA_PORT:-3100}:3000'
     volumes:

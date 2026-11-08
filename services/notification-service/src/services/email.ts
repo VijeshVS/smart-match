@@ -1,8 +1,11 @@
 import nodemailer, { type Transporter } from 'nodemailer';
+import { getServiceMetrics } from '@talent-ai/observability/metrics';
 import type { NotificationType } from '@talent-ai/shared-types';
 import { config } from '../config.js';
 import { logger } from '../lib/logger.js';
 import type { EmailStatus } from '../models/notification.model.js';
+
+const { domain } = getServiceMetrics(config.serviceName);
 
 export interface EmailMessage {
   subject: string;
@@ -117,6 +120,7 @@ export async function sendNotificationEmail(input: {
   body: string;
 }): Promise<EmailStatus> {
   if (!config.email.enabled) {
+    domain.notificationEmails.inc({ status: 'SKIPPED' });
     return 'SKIPPED';
   }
 
@@ -135,9 +139,11 @@ export async function sendNotificationEmail(input: {
       { to: input.to, messageId: info.messageId, type: input.type },
       'notification email accepted by transport',
     );
+    domain.notificationEmails.inc({ status: 'SENT' });
     return 'SENT';
   } catch (error) {
     logger.error({ err: error, to: input.to, type: input.type }, 'notification email failed');
+    domain.notificationEmails.inc({ status: 'FAILED' });
     return 'FAILED';
   }
 }

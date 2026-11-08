@@ -1,0 +1,22 @@
+{
+  "name": "@talent-ai/realistic-seeder",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Deterministic, privacy-safe cross-store seeder for the talent.ai development stack",
+  "type": "module",
+  "main": "./src/index.js",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "seed:realistic": "node src/index.js",
+    "seed:realistic:reset": "node src/index.js --reset",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "amqplib": "^0.10.9",
+    "dotenv": "^16.4.7",
+    "mongodb": "^6.20.0",
+    "pg": "^8.13.1"
+  }
+}
