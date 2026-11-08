@@ -44,12 +44,17 @@ function isDuplicateKeyError(error: unknown): boolean {
   );
 }
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export function isMongoObjectId(value: string): boolean {
   return mongoose.isValidObjectId(value) && String(new mongoose.Types.ObjectId(value)) === value;
 }
 
 function assertValidId(id: string): void {
-  if (!isMongoObjectId(id)) {
+  // UUID is the current contract. Legacy ObjectId profiles created before the
+  // UUID migration remain readable until they are re-created.
+  if (!UUID_PATTERN.test(id) && !isMongoObjectId(id)) {
     throw new AppError(400, 'INVALID_IDENTIFIER', 'The talent profile id is not valid');
   }
 }

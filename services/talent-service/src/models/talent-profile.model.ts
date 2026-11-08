@@ -1,4 +1,5 @@
-import { Schema, model, type HydratedDocument, type Types } from 'mongoose';
+import { randomUUID } from 'node:crypto';
+import { Schema, model, type HydratedDocument } from 'mongoose';
 import {
   TALENT_LEVELS,
   type Education,
@@ -25,6 +26,8 @@ export interface WorkExperienceRecord {
 }
 
 export interface TalentProfileRecord {
+  /** UUID that is stable across the service boundary. */
+  _id: string;
   userId: string;
   name: string;
   email: string;
@@ -44,9 +47,7 @@ export interface TalentProfileRecord {
   updatedAt: Date;
 }
 
-export type TalentProfileDocument = HydratedDocument<TalentProfileRecord> & {
-  _id: Types.ObjectId;
-};
+export type TalentProfileDocument = HydratedDocument<TalentProfileRecord>;
 
 const educationSchema = new Schema<EducationRecord>(
   {
@@ -74,6 +75,10 @@ const workExperienceSchema = new Schema<WorkExperienceRecord>(
 
 const talentProfileSchema = new Schema<TalentProfileRecord>(
   {
+    // Talent profile ids are part of the cross-service contract and must be
+    // UUIDs so the UUID-typed columns in engagement, rewards and analytics can
+    // store them. Mongo's default ObjectId would violate that contract.
+    _id: { type: String, default: () => randomUUID() },
     userId: { type: String, required: true, trim: true },
     name: { type: String, required: true, trim: true, maxlength: 120 },
     email: { type: String, required: true, trim: true, lowercase: true, maxlength: 254 },
