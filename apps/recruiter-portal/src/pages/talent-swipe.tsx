@@ -46,6 +46,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ReviewDialog, type ReviewSubmission } from '@/components/review-dialog';
 import { useWallet } from '@/lib/wallet';
 import { formatNumber } from '@/lib/format';
+import { shuffle } from '@/lib/shuffle';
 import { cn } from '@/lib/utils';
 
 const SWIPE_THRESHOLD = 110;
@@ -94,12 +95,17 @@ export function TalentSwipePage() {
   const [reviewDecision, setReviewDecision] = useState<SwipeDecision>('APPROVE');
   const [reviewSwipeId, setReviewSwipeId] = useState<string | null>(null);
   const [reviewed, setReviewed] = useState(0);
+  const [sessionDecisions, setSessionDecisions] = useState(0);
   const [sessionCredits, setSessionCredits] = useState(0);
   const creditedReferences = useRef(new Set<string>());
+  // Candidates deferred in this session. The API keeps deferred profiles in the
+  // blind pool, but this map guarantees they survive a reload and gives the
+  // merge step a stable local source for them.
+  const deferredCandidates = useRef(new Map<string, BlindTalentProfile>());
 
   const current = queue[0] ?? null;
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (options?: { announce?: boolean }) => {
     setLoading(true);
     setError(null);
     try {
@@ -114,8 +120,27 @@ export function TalentSwipePage() {
         if (!result.meta.hasNextPage) break;
         page += 1;
       }
-      setQueue(profiles);
-      setTotal(profiles.length);
+
+      // Merge fresh profiles with locally deferred candidates, deduplicating by
+      // id, then shuffle so every reload presents a fresh deck order.
+      const merged = new Map<string, BlindTalentProfile>();
+      for (const profile of profiles) merged.set(profile.id, profile);
+      for (const profile of deferredCandidates.current.values()) {
+        if (!merged.has(profile.id)) merged.set(profile.id, profile);
+      }
+
+      const shuffled = shuffle([...merged.values()]);
+      setQueue(shuffled);
+      setTotal(shuffled.length);
+
+      if (options?.announce) {
+        toast.success('Queue shuffled', {
+          description:
+            shuffled.length > 0
+              ? `${shuffled.length} candidate${shuffled.length === 1 ? '' : 's'} ready in a fresh order.`
+              : 'No candidates are waiting right now.',
+        });
+      }
     } catch (cause) {
       setError(toApiClientError(cause).message);
     } finally {
@@ -201,6 +226,13 @@ export function TalentSwipePage() {
       try {
         const requestedAt = new Date().toISOString();
         const swipe = await engagementApi.recordSwipe({ talentId: current.id, decision });
+        if (decision === 'DEFER') {
+          deferredCandidates.current.set(current.id, current);
+        } else {
+          // A terminal decision supersedes an earlier defer.
+          deferredCandidates.current.delete(current.id);
+        }
+        setSessionDecisions((value) => value + 1);
         setReviewDecision(decision);
         setReviewTarget(current);
         setReviewSwipeId(swipe.id);
@@ -257,6 +289,9 @@ export function TalentSwipePage() {
     });
 
     if (result.created) setReviewed((value) => value + 1);
+    // Submitting feedback permanently screens the candidate, so it must not be
+    // re-added to the deck from the local deferred map on the next reload.
+    deferredCandidates.current.delete(reviewTarget.id);
 
     toast.success(result.updated ? 'Review updated' : 'Review submitted', {
       description: `Candidate feedback earns +${TALENT_CREDIT_RULES.REVIEW_FEEDBACK_REWARD} TalentCredits.`,
@@ -363,8 +398,11 @@ export function TalentSwipePage() {
                   </EmptyDescription>
                 </EmptyHeader>
                 <div className="flex flex-wrap justify-center gap-2">
-                  <Button onClick={() => void load()}>
-                    <RotateCcw data-icon="inline-start" />
+                  <Button onClick={() => void load({ announce: true })} disabled={loading}>
+                    <RotateCcw
+                      data-icon="inline-start"
+                      className={loading ? 'animate-spin' : undefined}
+                    />
                     Reload queue
                   </Button>
                   <Button variant="outline" asChild>
@@ -593,7 +631,7 @@ export function TalentSwipePage() {
             <CardContent className="flex flex-col gap-3">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Decisions</span>
-                <span className="font-medium">{completed}</span>
+                <span className="font-medium">{sessionDecisions}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Reviews submitted</span>
@@ -603,8 +641,16 @@ export function TalentSwipePage() {
                 <span className="text-muted-foreground">TalentCredits earned</span>
                 <span className="font-medium text-warning">+{sessionCredits} TC</span>
               </div>
-              <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
-                <RotateCcw data-icon="inline-start" />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => void load({ announce: true })}
+                disabled={loading}
+              >
+                <RotateCcw
+                  data-icon="inline-start"
+                  className={loading ? 'animate-spin' : undefined}
+                />
                 Reload queue
               </Button>
             </CardContent>
