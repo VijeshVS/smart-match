@@ -89,28 +89,42 @@ function toSkillArray(value: unknown): string[] | undefined {
   return skills.length > 0 ? skills : undefined;
 }
 
-export const talentQuerySchema = z
-  .object({
-    page: z.coerce.number().int().positive().default(1),
-    limit: z.coerce.number().int().positive().max(100).default(20),
-    search: z.string().trim().min(1).max(120).optional(),
-    field: z.string().trim().min(1).max(120).optional(),
-    skills: z.preprocess(
-      toSkillArray,
-      z.array(z.string().trim().min(1).max(60)).max(20).optional(),
-    ),
-    level: talentLevelSchema.optional(),
-    minExperienceYears: z.coerce.number().min(0).max(60).optional(),
-    maxExperienceYears: z.coerce.number().min(0).max(60).optional(),
-  })
-  .refine(
-    (value) =>
-      value.minExperienceYears === undefined ||
-      value.maxExperienceYears === undefined ||
-      value.minExperienceYears <= value.maxExperienceYears,
-    { message: 'minExperienceYears must be less than or equal to maxExperienceYears' },
+const talentQueryBaseSchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(20),
+  search: z.string().trim().min(1).max(120).optional(),
+  field: z.string().trim().min(1).max(120).optional(),
+  skills: z.preprocess(toSkillArray, z.array(z.string().trim().min(1).max(60)).max(20).optional()),
+  minExperienceYears: z.coerce.number().min(0).max(60).optional(),
+  maxExperienceYears: z.coerce.number().min(0).max(60).optional(),
+});
+
+function hasValidExperienceRange(value: {
+  minExperienceYears?: number;
+  maxExperienceYears?: number;
+}): boolean {
+  return (
+    value.minExperienceYears === undefined ||
+    value.maxExperienceYears === undefined ||
+    value.minExperienceYears <= value.maxExperienceYears
   );
+}
+
+export const talentQuerySchema = talentQueryBaseSchema
+  .extend({ level: talentLevelSchema.optional() })
+  .refine(hasValidExperienceRange, {
+    message: 'minExperienceYears must be less than or equal to maxExperienceYears',
+  });
+
+/**
+ * Blind review queries deliberately omit tier filtering so callers cannot probe
+ * for Elite candidates while reviewing anonymously.
+ */
+export const blindTalentQuerySchema = talentQueryBaseSchema.refine(hasValidExperienceRange, {
+  message: 'minExperienceYears must be less than or equal to maxExperienceYears',
+});
 
 export type CreateTalentProfileInput = z.infer<typeof createTalentProfileSchema>;
 export type UpdateTalentProfileInput = z.infer<typeof updateTalentProfileSchema>;
 export type TalentQueryInput = z.infer<typeof talentQuerySchema>;
+export type BlindTalentQueryInput = z.infer<typeof blindTalentQuerySchema>;

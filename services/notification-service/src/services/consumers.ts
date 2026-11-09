@@ -122,7 +122,11 @@ export async function handleCoinsAwarded(event: DomainEvent<unknown>): Promise<v
       ? `Welcome bonus: ${payload.amount} TalentCredits added to your wallet.`
       : payload.type === 'CREDIT_PURCHASE'
         ? `${payload.amount} TalentCredits added to your wallet.`
-        : `You earned ${payload.amount} TalentCredits for your candidate review!`;
+        : payload.type === 'CREDIT_SWIPE_DECISION'
+          ? `You earned ${payload.amount} TalentCredit${
+              payload.amount === 1 ? '' : 's'
+            } for reviewing a candidate.`
+          : `You earned ${payload.amount} TalentCredits for your candidate feedback!`;
 
   await createNotification({
     eventId: event.eventId,

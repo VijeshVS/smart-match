@@ -1,4 +1,6 @@
 import type {
+  BlindTalentProfile,
+  BlindTalentQueryParams,
   CreateTalentProfileRequest,
   PaginatedResult,
   TalentLevel,
@@ -39,11 +41,27 @@ export const talentApi = {
     return data;
   },
 
-  updateProfile: async (id: string, input: UpdateTalentProfileRequest): Promise<TalentProfile> => {
-    const { data } = await api.put<Envelope<TalentProfile>>(
-      `${API_PREFIXES.talent}/${id}`,
-      input,
+  /**
+   * Blind review queue for Talent Swipe. The response never contains names,
+   * contact details, tier or other identity-bearing fields.
+   */
+  listBlindProfiles: async (
+    query: BlindTalentQueryParams = {},
+  ): Promise<PaginatedResult<BlindTalentProfile>> => {
+    const { data } = await api.get<PaginatedResult<BlindTalentProfile>>(
+      `${API_PREFIXES.talent}/blind`,
+      {
+        params: {
+          ...query,
+          skills: query.skills?.length ? query.skills.join(',') : undefined,
+        },
+      },
     );
+    return data;
+  },
+
+  updateProfile: async (id: string, input: UpdateTalentProfileRequest): Promise<TalentProfile> => {
+    const { data } = await api.put<Envelope<TalentProfile>>(`${API_PREFIXES.talent}/${id}`, input);
     return data.data;
   },
 

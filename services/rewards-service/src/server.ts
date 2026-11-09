@@ -9,13 +9,15 @@ import { logger } from './lib/logger.js';
 import { startOutboxRelay } from './lib/outbox.js';
 import { prisma } from './lib/prisma.js';
 import { startReviewConsumer } from './services/review-consumer.js';
+import { startSwipeConsumer } from './services/swipe-consumer.js';
 
 const app = createApp();
 
 await prisma.$connect();
 
-// Register the consumer before connecting so it is also started on the first
+// Register consumers before connecting so they are also started on the first
 // successful reconnect if RabbitMQ is unavailable at boot.
+await startSwipeConsumer();
 await startReviewConsumer();
 
 try {

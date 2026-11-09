@@ -16,6 +16,7 @@ datasource db {
 }
 
 enum LedgerTransactionType {
+  CREDIT_SWIPE_DECISION
   CREDIT_REVIEW_FEEDBACK
   CREDIT_PURCHASE
   CREDIT_WELCOME_BONUS

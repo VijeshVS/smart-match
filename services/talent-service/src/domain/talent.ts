@@ -1,5 +1,10 @@
 import type { FilterQuery } from 'mongoose';
-import type { TalentQueryParams } from '@talent-ai/shared-types';
+import type {
+  BlindTalentProfile,
+  BlindTalentQueryParams,
+  TalentProfile,
+  TalentQueryParams,
+} from '@talent-ai/shared-types';
 import type { TalentProfileRecord } from '../models/talent-profile.model.js';
 
 export const LEVEL_THRESHOLDS = {
@@ -80,6 +85,69 @@ export function buildTalentFilter(params: TalentQueryParams): FilterQuery<Talent
   }
 
   return filter;
+}
+
+/**
+ * Blind review filter. Unlike the directory filter it never exposes tier
+ * filtering and only searches professional fields, so recruiters cannot probe
+ * for a candidate by name, bio or Elite status.
+ */
+export function buildBlindTalentFilter(
+  params: BlindTalentQueryParams,
+): FilterQuery<TalentProfileRecord> {
+  const filter: FilterQuery<TalentProfileRecord> = {};
+
+  if (params.field) {
+    filter.field = caseInsensitiveExact(params.field);
+  }
+
+  if (params.skills && params.skills.length > 0) {
+    filter.skills = { $all: params.skills.map(caseInsensitiveExact) };
+  }
+
+  if (params.minExperienceYears !== undefined || params.maxExperienceYears !== undefined) {
+    filter.experienceYears = {
+      ...(params.minExperienceYears === undefined ? {} : { $gte: params.minExperienceYears }),
+      ...(params.maxExperienceYears === undefined ? {} : { $lte: params.maxExperienceYears }),
+    };
+  }
+
+  if (params.search) {
+    const pattern = new RegExp(escapeRegex(params.search), 'i');
+    filter.$or = [{ field: pattern }, { skills: pattern }];
+  }
+
+  return filter;
+}
+
+/** Stable, non-identifying label for a candidate in a blind review. */
+export function blindCandidateRef(talentId: string): string {
+  const suffix = talentId.replaceAll('-', '').slice(0, 6).toUpperCase();
+  return `Candidate #${suffix}`;
+}
+
+/**
+ * Strips every identity-bearing field from a talent profile. Only professional
+ * qualifications and work samples remain, and the platform tier is omitted so
+ * Elite status cannot influence the decision.
+ */
+export function toBlindTalentProfile(profile: TalentProfile): BlindTalentProfile {
+  return {
+    id: profile.id,
+    candidateRef: blindCandidateRef(profile.id),
+    field: profile.field,
+    skills: [...profile.skills],
+    experienceYears: profile.experienceYears,
+    education: profile.education.map((entry) => ({ ...entry })),
+    previousExperience: profile.previousExperience.map((entry) => ({
+      ...entry,
+      responsibilities: [...entry.responsibilities],
+    })),
+    ...(profile.portfolioUrl === undefined ? {} : { portfolioUrl: profile.portfolioUrl }),
+    ...(profile.githubUrl === undefined ? {} : { githubUrl: profile.githubUrl }),
+    createdAt: profile.createdAt,
+    updatedAt: profile.updatedAt,
+  };
 }
 
 export function buildPaginationMeta(input: { page: number; limit: number; total: number }): {

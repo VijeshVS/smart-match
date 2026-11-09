@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest';
+import type { TalentProfile } from '@talent-ai/shared-types';
 import {
+  blindCandidateRef,
+  buildBlindTalentFilter,
   buildPaginationMeta,
   buildTalentFilter,
   caseInsensitiveExact,
   deriveTalentLevel,
   escapeRegex,
   normalizeSkills,
+  toBlindTalentProfile,
 } from '../src/domain/talent.js';
 
 describe('deriveTalentLevel', () => {
@@ -89,6 +93,84 @@ describe('buildTalentFilter', () => {
     expect(buildTalentFilter({ minExperienceYears: 5 }).experienceYears).toEqual({
       $gte: 5,
     });
+  });
+});
+
+describe('blind review', () => {
+  const profile: TalentProfile = {
+    id: '99999999-9999-4999-8999-999999999999',
+    userId: '11111111-1111-4111-8111-111111111111',
+    name: 'Neha Chatterjee',
+    email: 'neha@example.com',
+    phone: '+91-9123456780',
+    field: 'DevOps Engineer',
+    skills: ['Docker', 'Kubernetes'],
+    experienceYears: 6,
+    education: [
+      {
+        college: 'MIT Academy of Engineering',
+        degree: 'B.E.',
+        branchOfStudy: 'Information Technology',
+        yearOfGraduation: 2021,
+      },
+    ],
+    previousExperience: [
+      {
+        company: 'Zensar',
+        role: 'DevOps Engineer',
+        durationMonths: 36,
+        responsibilities: ['Managed CI/CD pipelines'],
+      },
+    ],
+    level: 'LEVEL_3_LEAD',
+    bio: 'Neha is a platform engineer reachable at neha@example.com.',
+    portfolioUrl: 'https://portfolio.example.com',
+    linkedinUrl: 'https://linkedin.com/in/neha',
+    githubUrl: 'https://github.com/platform-labs',
+    resumeUrl: 'https://resume.example.com/neha.pdf',
+    createdAt: '2026-11-05T00:00:00.000Z',
+    updatedAt: '2026-11-05T00:00:00.000Z',
+  };
+
+  it('derives a stable, non-identifying candidate reference', () => {
+    expect(blindCandidateRef(profile.id)).toBe('Candidate #999999');
+    expect(blindCandidateRef('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')).toBe('Candidate #AAAAAA');
+  });
+
+  it('strips identity, contact details, tier and profile links', () => {
+    const blind = toBlindTalentProfile(profile);
+
+    expect(blind).not.toHaveProperty('name');
+    expect(blind).not.toHaveProperty('email');
+    expect(blind).not.toHaveProperty('phone');
+    expect(blind).not.toHaveProperty('userId');
+    expect(blind).not.toHaveProperty('level');
+    expect(blind).not.toHaveProperty('bio');
+    expect(blind).not.toHaveProperty('linkedinUrl');
+    expect(blind).not.toHaveProperty('resumeUrl');
+    expect(JSON.stringify(blind)).not.toContain('neha');
+  });
+
+  it('keeps the qualifications needed to evaluate the candidate', () => {
+    const blind = toBlindTalentProfile(profile);
+
+    expect(blind.candidateRef).toBe('Candidate #999999');
+    expect(blind.field).toBe('DevOps Engineer');
+    expect(blind.skills).toEqual(['Docker', 'Kubernetes']);
+    expect(blind.experienceYears).toBe(6);
+    expect(blind.education[0]?.college).toBe('MIT Academy of Engineering');
+    expect(blind.previousExperience[0]?.role).toBe('DevOps Engineer');
+    expect(blind.portfolioUrl).toBe('https://portfolio.example.com');
+    expect(blind.githubUrl).toBe('https://github.com/platform-labs');
+  });
+
+  it('cannot filter or search by tier, name or bio', () => {
+    const filter = buildBlindTalentFilter({ search: 'neha', minExperienceYears: 3 });
+
+    expect(filter.level).toBeUndefined();
+    expect(filter.experienceYears).toEqual({ $gte: 3 });
+    expect(filter.$or).toHaveLength(2);
+    expect(JSON.stringify(filter)).not.toContain('name');
   });
 });
 

@@ -3,6 +3,7 @@ import { isDeepStrictEqual } from 'node:util';
 import mongoose from 'mongoose';
 import { getCorrelationId } from '@talent-ai/logger';
 import type {
+  BlindTalentProfile,
   PaginatedResult,
   TalentProfile,
   TalentProfileCreatedPayload,
@@ -10,10 +11,12 @@ import type {
   TalentQueryParams,
 } from '@talent-ai/shared-types';
 import {
+  buildBlindTalentFilter,
   buildPaginationMeta,
   buildTalentFilter,
   deriveTalentLevel,
   normalizeSkills,
+  toBlindTalentProfile,
 } from '../domain/talent.js';
 import { AppError } from '../lib/errors.js';
 import { logger } from '../lib/logger.js';
@@ -27,6 +30,7 @@ import {
 } from '../models/talent-profile.model.js';
 import { isOwnerOrAdmin, type TalentPrincipal } from '../middleware/auth.js';
 import type {
+  BlindTalentQueryInput,
   CreateTalentProfileInput,
   UpdateTalentProfileInput,
 } from '../validation/talent.schemas.js';
@@ -44,8 +48,7 @@ function isDuplicateKeyError(error: unknown): boolean {
   );
 }
 
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export function isMongoObjectId(value: string): boolean {
   return mongoose.isValidObjectId(value) && String(new mongoose.Types.ObjectId(value)) === value;
@@ -349,6 +352,33 @@ export async function listTalentProfiles(
 
   return {
     data: documents.map(toTalentProfile),
+    meta: buildPaginationMeta({ page, limit, total }),
+  };
+}
+
+/**
+ * Recruiter-facing blind queue for Talent Swipe. Profiles are mapped through
+ * `toBlindTalentProfile`, so identity, contact details and tier never leave the
+ * service.
+ */
+export async function listBlindTalentProfiles(
+  params: BlindTalentQueryInput,
+): Promise<PaginatedResult<BlindTalentProfile>> {
+  const page = params.page ?? 1;
+  const limit = params.limit ?? 20;
+
+  const filter = buildBlindTalentFilter(params);
+
+  const [documents, total] = await Promise.all([
+    TalentProfileModel.find(filter)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit),
+    TalentProfileModel.countDocuments(filter),
+  ]);
+
+  return {
+    data: documents.map((document) => toBlindTalentProfile(toTalentProfile(document))),
     meta: buildPaginationMeta({ page, limit, total }),
   };
 }

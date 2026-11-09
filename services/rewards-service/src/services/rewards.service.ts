@@ -457,9 +457,10 @@ export interface ReviewCreditResult {
 }
 
 /**
- * Credits the reviewer for actionable feedback. Called by the
+ * Credits the reviewer for submitted candidate feedback. Called by the
  * `review.submitted` consumer; `reviewId` is the idempotency key, so at-least-
- * once delivery never double-credits.
+ * once delivery (or a retried/updated review that reuses the review id) never
+ * double-credits.
  */
 export async function creditReviewFeedback(input: {
   reviewId: string;
@@ -473,7 +474,7 @@ export async function creditReviewFeedback(input: {
         amount: TALENT_CREDIT_RULES.REVIEW_FEEDBACK_REWARD,
         type: 'CREDIT_REVIEW_FEEDBACK',
         referenceId: input.reviewId,
-        description: 'Actionable review feedback reward',
+        description: 'Candidate feedback reward',
         correlationId: input.correlationId,
       });
     }),
@@ -495,6 +496,61 @@ export async function creditReviewFeedback(input: {
       balance: result.wallet.balance,
     },
     result.credited ? 'review feedback credited' : 'review feedback already credited',
+  );
+
+  return {
+    credited: result.credited,
+    wallet: toWallet(result.wallet),
+    transaction: toLedgerTransaction(result.transaction),
+  };
+}
+
+export interface SwipeCreditResult {
+  credited: boolean;
+  wallet: Wallet;
+  transaction: LedgerTransaction;
+}
+
+/**
+ * Credits the recruiter for accepting or rejecting a candidate. Called by the
+ * `swipe.recorded` consumer; `swipeId` is the idempotency key, so a retried
+ * request or a changed decision never awards a second TalentCredit for the same
+ * candidate.
+ */
+export async function creditSwipeDecision(input: {
+  swipeId: string;
+  recruiterId: string;
+  correlationId?: string;
+}): Promise<SwipeCreditResult> {
+  const result = await withRetry(() =>
+    prisma.$transaction(async (tx) => {
+      return applyCredit(tx, {
+        recruiterId: input.recruiterId,
+        amount: TALENT_CREDIT_RULES.SWIPE_DECISION_REWARD,
+        type: 'CREDIT_SWIPE_DECISION',
+        referenceId: input.swipeId,
+        description: 'Swipe decision reward',
+        correlationId: input.correlationId,
+      });
+    }),
+  ).catch((error: unknown) => {
+    domain.rewardsSaga.inc({ saga: 'swipe_credit', outcome: 'failed' });
+    throw error;
+  });
+
+  domain.rewardsSaga.inc({
+    saga: 'swipe_credit',
+    outcome: result.credited ? 'awarded' : 'duplicate',
+  });
+
+  logger.info(
+    {
+      swipeId: input.swipeId,
+      recruiterId: input.recruiterId,
+      credited: result.credited,
+      balance: result.wallet.balance,
+    },
+    result.credited ? 'swipe decision credited' : 'swipe decision already credited',
   );
 
   return {

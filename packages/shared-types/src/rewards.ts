@@ -2,6 +2,7 @@ import type { ISODateString, UUID } from './common.js';
 import type { TalentLevel } from './talent.js';
 
 export const LEDGER_TRANSACTION_TYPES = [
+  'CREDIT_SWIPE_DECISION',
   'CREDIT_REVIEW_FEEDBACK',
   'CREDIT_PURCHASE',
   'CREDIT_WELCOME_BONUS',
@@ -59,6 +60,9 @@ export interface UnlockTier3Response {
 
 /** Business rules for the TalentCredits economy. */
 export const TALENT_CREDIT_RULES = {
+  /** Accepting or rejecting a candidate earns this once per swipe. */
+  SWIPE_DECISION_REWARD: 1,
+  /** Submitting candidate feedback earns this once per review. */
   REVIEW_FEEDBACK_REWARD: 5,
   TIER3_UNLOCK_COST: 50,
   WELCOME_BONUS: 20,

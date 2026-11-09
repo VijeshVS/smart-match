@@ -16,8 +16,10 @@ TalentCredits wallet, immutable coin ledger and Tier-3 access service for talent
 - Creates a wallet on first use and credits the shared welcome bonus
   (`TALENT_CREDIT_RULES.WELCOME_BONUS`, 20 TC) with a
   `CREDIT_WELCOME_BONUS` ledger entry.
-- Consumes `review.submitted` and credits `REVIEW_FEEDBACK_REWARD` (5 TC) only
-  when `hasActionableFeedback` is true.
+- Consumes `swipe.recorded` and credits `SWIPE_DECISION_REWARD` (1 TC) for an
+  accept or reject decision. Deferrals are skipped.
+- Consumes `review.submitted` and credits `REVIEW_FEEDBACK_REWARD` (5 TC) for
+  every submitted candidate review.
 - Charges `TIER3_UNLOCK_COST` (50 TC) to unlock a candidate's Level-3 profile,
   returning an active grant without a second charge.
 - Publishes `rewards.coins_awarded` and `rewards.tier3_unlocked` through a
@@ -79,8 +81,9 @@ the cost the service returns `402 INSUFFICIENT_CREDITS` with
 - `ledger_transactions.balance_after` snapshots the wallet balance for audit.
 - Debits use optimistic locking: the update is predicated on the previously read
   `wallets.version`, and the whole transaction is retried if it changed.
-- The unique `(type, reference_id)` index is the idempotency key. Review credits
-  use `referenceId = reviewId`, so at-least-once delivery never double-credits.
+- The unique `(type, reference_id)` index is the idempotency key. Swipe credits
+  use `referenceId = swipeId` and review credits use `referenceId = reviewId`,
+  so at-least-once delivery, retries and decision changes never double-credit.
 - Unlock performs the balance check, debit, grant insert and outbox insert in a
   single PostgreSQL transaction. Any failure rolls everything back — that
   rollback is the compensation path. The unique
@@ -91,14 +94,16 @@ the cost the service returns `402 INSUFFICIENT_CREDITS` with
 
 | Direction | Routing key | Payload |
 | :--- | :--- | :--- |
-| Consume | `review.submitted` | Credits 5 TC when `hasActionableFeedback` is true. |
+| Consume | `swipe.recorded` | Credits 1 TC for `APPROVE`/`REJECT`; `DEFER` is skipped. |
+| Consume | `review.submitted` | Credits 5 TC for submitted candidate feedback. |
 | Publish | `rewards.coins_awarded` | `walletId`, `recruiterId`, `amount`, `type`, optional `referenceId`, `balanceAfter`, `timestamp`. |
 | Publish | `rewards.tier3_unlocked` | `grantId`, `recruiterId`, `talentId`, `chargedCredits`, optional `expiresAt`, `timestamp`. |
 
-The review consumer is durable on
-`EVENT_QUEUES.rewardsReviewConsumer` (`rewards-service.review-consumer`).
-Malformed payloads and handler failures are nacked to the shared dead-letter
-queue rather than acknowledged silently.
+The swipe consumer is durable on
+`EVENT_QUEUES.rewardsSwipeConsumer` (`rewards-service.swipe-consumer`) and the
+review consumer on `EVENT_QUEUES.rewardsReviewConsumer`
+(`rewards-service.review-consumer`). Malformed payloads and handler failures are
+nacked to the shared dead-letter queue rather than acknowledged silently.
 
 ## Database
 

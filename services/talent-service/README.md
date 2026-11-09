@@ -25,6 +25,7 @@ Candidate profile aggregate for talent.ai.
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/v1/talent` | Candidate, Admin | Create the caller's profile. |
 | `GET` | `/api/v1/talent/me` | Authenticated | Fetch the caller's profile. |
+| `GET` | `/api/v1/talent/blind` | Recruiter, Admin | Blind Talent Swipe queue. Omits identity, contact details, tier and profile links; keeps qualifications and work samples. |
 | `GET` | `/api/v1/talent/:id` | Owner, Recruiter, Admin | Fetch one profile. |
 | `GET` | `/api/v1/talent` | Recruiter, Admin | Paginated directory with search, skill, tier, field and experience filters. |
 | `PUT` | `/api/v1/talent/:id` | Owner, Admin | Partial update; emits `talent.profile.updated` only when values change. |
@@ -38,6 +39,10 @@ Query parameters for `GET /api/v1/talent`:
 - `skills` — comma-separated or repeated; every skill must be present
 - `level` — `LEVEL_1_ENTRY` | `LEVEL_2_MID` | `LEVEL_3_LEAD`
 - `minExperienceYears`, `maxExperienceYears`
+
+`GET /api/v1/talent/blind` accepts the same pagination, `field`, `skills` and
+experience parameters, but deliberately drops `level` and searches only field
+and skills so a recruiter cannot probe for identity or Elite status.
 
 When `level` is omitted on creation it is derived from `experienceYears`:
 `>= 8` → Elite Principal, `>= 3` → Pro Engineer, otherwise Junior Fellow.

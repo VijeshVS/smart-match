@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { CircleCheck, CircleX, Clock3, Coins, Sparkles } from 'lucide-react';
+import { CircleCheck, CircleX, Clock3, Coins, EyeOff, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   TALENT_CREDIT_RULES,
+  type BlindTalentProfile,
   type SwipeDecision,
-  type TalentProfile,
 } from '@talent-ai/api-client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,7 +20,7 @@ import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui
 import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Spinner } from '@/components/ui/spinner';
-import { initials } from '@/lib/format';
+import { formatNumber } from '@/lib/format';
 
 export interface ReviewSubmission {
   rating?: number;
@@ -35,7 +35,7 @@ export function ReviewDialog({
   onOpenChange,
   onSubmit,
 }: {
-  profile: TalentProfile | null;
+  profile: BlindTalentProfile | null;
   decision: SwipeDecision;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -58,7 +58,8 @@ export function ReviewDialog({
 
   const approved = decision === 'APPROVE';
   const deferred = decision === 'DEFER';
-  const hasContent = Boolean(rating) || feedbackText.trim().length > 0 || actionableAdvice.trim().length > 0;
+  const hasContent =
+    Boolean(rating) || feedbackText.trim().length > 0 || actionableAdvice.trim().length > 0;
 
   const handleSubmit = async () => {
     setPending(true);
@@ -90,22 +91,24 @@ export function ReviewDialog({
             ) : (
               <CircleX className="size-5 text-destructive" />
             )}
-            Review {profile.name}
+            Review {profile.candidateRef}
           </DialogTitle>
           <DialogDescription>
-            Feedback sharpens the talent graph and earns TalentCredits when it is actionable.
+            Blind review — identity and Elite status stay hidden. Submitted feedback earns +
+            {TALENT_CREDIT_RULES.REVIEW_FEEDBACK_REWARD} TalentCredits.
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex items-center justify-between gap-3 rounded-lg border bg-muted/40 px-3 py-2">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex size-8 items-center justify-center rounded-md bg-primary/15 text-xs font-semibold text-primary">
-              {initials(profile.name)}
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary">
+              <EyeOff className="size-4" />
             </span>
-            <div className="text-xs">
-              <p className="font-medium">{profile.field}</p>
-              <p className="text-muted-foreground">
-                {profile.experienceYears} yrs · {profile.level.replaceAll('_', ' ').toLowerCase()}
+            <div className="min-w-0 text-xs">
+              <p className="truncate font-medium">{profile.field}</p>
+              <p className="truncate text-muted-foreground">
+                {formatNumber(profile.experienceYears)} yrs ·{' '}
+                {profile.skills.slice(0, 3).join(' · ') || 'No skills listed'}
               </p>
             </div>
           </div>
@@ -155,7 +158,7 @@ export function ReviewDialog({
             />
             <FieldDescription className="inline-flex items-center gap-1.5 text-warning">
               <Coins className="size-3.5" />
-              Actionable feedback earns +{TALENT_CREDIT_RULES.REVIEW_FEEDBACK_REWARD} TalentCredits.
+              Actionable advice helps the candidate improve and is shared with them.
             </FieldDescription>
           </Field>
         </FieldGroup>

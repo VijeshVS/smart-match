@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  blindTalentQuerySchema,
   createTalentProfileSchema,
   talentQuerySchema,
   updateTalentProfileSchema,
@@ -115,5 +116,23 @@ describe('talentQuerySchema', () => {
 
   it('caps the page size at 100', () => {
     expect(talentQuerySchema.safeParse({ limit: '101' }).success).toBe(false);
+  });
+});
+
+describe('blindTalentQuerySchema', () => {
+  it('applies the same pagination, skill and experience parsing', () => {
+    const parsed = blindTalentQuerySchema.parse({
+      page: '2',
+      skills: 'Docker, AWS',
+      minExperienceYears: '3',
+    });
+
+    expect(parsed.page).toBe(2);
+    expect(parsed.skills).toEqual(['Docker', 'AWS']);
+    expect(parsed.minExperienceYears).toBe(3);
+  });
+
+  it('drops tier filtering so Elite status cannot be probed', () => {
+    expect(blindTalentQuerySchema.parse({ level: 'LEVEL_3_LEAD' })).not.toHaveProperty('level');
   });
 });

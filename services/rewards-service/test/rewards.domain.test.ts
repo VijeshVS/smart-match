@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   assertRecruiterAccess,
   isGrantActive,
+  isRewardingSwipeDecision,
   permissionsForRole,
   resolveRecruiterId,
   toAccessGrant,
@@ -97,6 +98,12 @@ describe('rewards domain', () => {
     });
     expect(entry.referenceId).toBe('cccccccc-cccc-4ccc-8ccc-cccccccccccc');
     expect(entry.description).toBeUndefined();
+  });
+
+  it('rewards only terminal swipe decisions', () => {
+    expect(isRewardingSwipeDecision('APPROVE')).toBe(true);
+    expect(isRewardingSwipeDecision('REJECT')).toBe(true);
+    expect(isRewardingSwipeDecision('DEFER')).toBe(false);
   });
 
   it('maps access grants and treats a missing expiry as active', () => {
