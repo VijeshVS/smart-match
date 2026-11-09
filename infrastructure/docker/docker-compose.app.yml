@@ -283,6 +283,8 @@ services:
       QDRANT_COLLECTION: ${QDRANT_COLLECTION:-talent_profiles}
       QDRANT_TIMEOUT_MS: ${QDRANT_TIMEOUT_MS:-5000}
       REDIS_URL: redis://redis:6379
+      REWARDS_SERVICE_URL: http://rewards-service:5005
+      REWARDS_TIMEOUT_MS: ${REWARDS_TIMEOUT_MS:-3000}
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-talent}:${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD is required}@rabbitmq:5672
       RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-talent.events.topic}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET is required}
@@ -319,6 +321,8 @@ services:
         condition: service_healthy
       qdrant:
         condition: service_started
+      rewards-service:
+        condition: service_healthy
     healthcheck:
       test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:5006/health/liveness >/dev/null || exit 1']
       interval: 15s

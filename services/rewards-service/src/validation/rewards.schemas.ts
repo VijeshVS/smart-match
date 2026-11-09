@@ -10,6 +10,14 @@ export const unlockTier3Schema = z.object({
   talentId: z.string().uuid('talentId must be a UUID'),
 });
 
+/**
+ * `queryId` is the client-generated idempotency key for one TalentLens search.
+ * A retried request reuses the same key so the wallet is debited at most once.
+ */
+export const talentLensQuerySchema = z.object({
+  queryId: z.string().uuid('queryId must be a UUID'),
+});
+
 const swipeDecisionSchema = z.enum([...SWIPE_DECISIONS] as [SwipeDecision, ...SwipeDecision[]]);
 
 /**
@@ -37,5 +45,6 @@ export const reviewSubmittedPayloadSchema = z.object({
 
 export type WalletQueryInput = z.infer<typeof walletQuerySchema>;
 export type UnlockTier3Input = z.infer<typeof unlockTier3Schema>;
+export type TalentLensQueryInput = z.infer<typeof talentLensQuerySchema>;
 export type ReviewSubmittedPayloadInput = z.infer<typeof reviewSubmittedPayloadSchema>;
 export type SwipeRecordedPayloadInput = z.infer<typeof swipeRecordedPayloadSchema>;

@@ -1,8 +1,17 @@
 import { Router } from 'express';
 import { asyncHandler } from '../lib/errors.js';
 import { requireAuth, requireRoles } from '../middleware/auth.js';
-import { getWalletSummary, unlockTier3 } from '../services/rewards.service.js';
-import { unlockTier3Schema, walletQuerySchema } from '../validation/rewards.schemas.js';
+import {
+  chargeTalentLensQuery,
+  getWalletSummary,
+  refundTalentLensQuery,
+  unlockTier3,
+} from '../services/rewards.service.js';
+import {
+  talentLensQuerySchema,
+  unlockTier3Schema,
+  walletQuerySchema,
+} from '../validation/rewards.schemas.js';
 
 export const rewardsRouter: Router = Router();
 
@@ -26,6 +35,29 @@ rewardsRouter.post(
   asyncHandler(async (req, res) => {
     const input = unlockTier3Schema.parse(req.body);
     const result = await unlockTier3(input, req.auth!);
+    res.status(200).json({ data: result });
+  }),
+);
+
+// Internal charge/refund endpoints used by ai-matching-service before and after
+// a TalentLens search. They are self-scoped: a recruiter can only spend their
+// own wallet, and the identity is forwarded from the gateway/service caller.
+rewardsRouter.post(
+  '/talent-lens/charge',
+  requireRoles('RECRUITER', 'ADMIN'),
+  asyncHandler(async (req, res) => {
+    const input = talentLensQuerySchema.parse(req.body);
+    const result = await chargeTalentLensQuery(input, req.auth!);
+    res.status(200).json({ data: result });
+  }),
+);
+
+rewardsRouter.post(
+  '/talent-lens/refund',
+  requireRoles('RECRUITER', 'ADMIN'),
+  asyncHandler(async (req, res) => {
+    const input = talentLensQuerySchema.parse(req.body);
+    const result = await refundTalentLensQuery(input, req.auth!);
     res.status(200).json({ data: result });
   }),
 );

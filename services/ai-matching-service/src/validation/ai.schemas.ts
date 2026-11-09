@@ -75,6 +75,8 @@ export const talentLensRequestSchema = z.object({
   query: z.string().trim().min(3, 'query must be at least 3 characters').max(2_000),
   limit: z.number().int().min(1).max(50).default(10),
   filters: talentLensFiltersSchema.optional(),
+  /** Client-generated idempotency key for the 15 TC query debit. */
+  requestId: z.string().uuid('requestId must be a UUID').optional(),
 });
 
 /**

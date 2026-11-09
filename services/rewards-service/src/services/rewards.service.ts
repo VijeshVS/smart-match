@@ -6,6 +6,8 @@ import {
   type CoinsAwardedPayload,
   type LedgerTransaction,
   type LedgerTransactionType,
+  type TalentLensChargeResult,
+  type TalentLensRefundResult,
   type Tier3UnlockedPayload,
   type UnlockTier3Response,
   type Wallet,
@@ -29,7 +31,7 @@ import { AppError } from '../lib/errors.js';
 import { logger } from '../lib/logger.js';
 import { enqueueOutbox } from '../lib/outbox.js';
 import { prisma } from '../lib/prisma.js';
-import type { UnlockTier3Input } from '../validation/rewards.schemas.js';
+import type { TalentLensQueryInput, UnlockTier3Input } from '../validation/rewards.schemas.js';
 
 const { domain } = getServiceMetrics(config.serviceName);
 
@@ -445,6 +447,206 @@ export async function unlockTier3(
       balance: result.wallet.balance,
     },
     result.chargedCredits === 0 ? 'tier3 grant reused' : 'tier3 access granted',
+  );
+
+  return result;
+}
+
+/**
+ * Charges the recruiter for one TalentLens search.
+ *
+ * The debit, ledger row and wallet version bump commit together. The ledger's
+ * unique `(type, referenceId)` constraint keyed on the client's `queryId` makes
+ * retries idempotent: a redelivered request observes the original debit and is
+ * not charged a second time.
+ */
+export async function chargeTalentLensQuery(
+  input: TalentLensQueryInput,
+  principal: RewardsPrincipal,
+): Promise<TalentLensChargeResult> {
+  const recruiterId = resolveRecruiterId(undefined, principal);
+  const correlationId = getCorrelationId() ?? undefined;
+  const cost = TALENT_CREDIT_RULES.TALENT_LENS_QUERY_COST;
+
+  const result = await withRetry(() =>
+    prisma.$transaction(async (tx) => {
+      const wallet = await ensureWallet(tx, recruiterId, correlationId);
+
+      const existing = await tx.ledgerTransaction.findUnique({
+        where: {
+          type_referenceId: {
+            type: 'DEBIT_TALENT_LENS_QUERY',
+            referenceId: input.queryId,
+          },
+        },
+      });
+
+      if (existing) {
+        return {
+          wallet: toWallet(wallet),
+          transaction: toLedgerTransaction(existing),
+          charged: false,
+          chargedCredits: 0,
+        };
+      }
+
+      if (wallet.balance < cost) {
+        throw new AppError(
+          402,
+          'INSUFFICIENT_CREDITS',
+          `A TalentLens search requires ${cost} TalentCredits`,
+          { details: { requiredCredits: cost, balance: wallet.balance } },
+        );
+      }
+
+      const balanceAfter = wallet.balance - cost;
+
+      // Optimistic debit: the version predicate guarantees no lost updates.
+      const debited = await tx.wallet.updateMany({
+        where: { id: wallet.id, version: wallet.version },
+        data: {
+          balance: { decrement: cost },
+          version: { increment: 1 },
+        },
+      });
+
+      if (debited.count === 0) throw new OptimisticLockError();
+
+      const transaction = await tx.ledgerTransaction.create({
+        data: {
+          walletId: wallet.id,
+          amount: -cost,
+          type: 'DEBIT_TALENT_LENS_QUERY',
+          referenceId: input.queryId,
+          description: 'TalentLens search query',
+          balanceAfter,
+        },
+      });
+      domain.ledgerTransactions.inc({ type: 'DEBIT_TALENT_LENS_QUERY' });
+
+      const updatedWallet = await tx.wallet.findUniqueOrThrow({ where: { id: wallet.id } });
+
+      return {
+        wallet: toWallet(updatedWallet),
+        transaction: toLedgerTransaction(transaction),
+        charged: true,
+        chargedCredits: cost,
+      };
+    }),
+  ).catch((error: unknown) => {
+    domain.rewardsSaga.inc({ saga: 'talent_lens_query', outcome: 'failed' });
+    throw error;
+  });
+
+  domain.rewardsSaga.inc({
+    saga: 'talent_lens_query',
+    outcome: result.charged ? 'charged' : 'duplicate',
+  });
+
+  logger.info(
+    {
+      queryId: input.queryId,
+      recruiterId,
+      charged: result.charged,
+      balance: result.wallet.balance,
+    },
+    result.charged ? 'talent lens query charged' : 'talent lens query already charged',
+  );
+
+  return result;
+}
+
+/**
+ * Reverses a TalentLens debit when the AI search fails after the charge.
+ *
+ * A refund is only written when the debit exists and has not already been
+ * reversed, so repeated failure reports converge on a single credit. The
+ * balance and ledger row commit atomically, leaving the wallet net unchanged.
+ */
+export async function refundTalentLensQuery(
+  input: TalentLensQueryInput,
+  principal: RewardsPrincipal,
+): Promise<TalentLensRefundResult> {
+  const recruiterId = resolveRecruiterId(undefined, principal);
+  const correlationId = getCorrelationId() ?? undefined;
+  const cost = TALENT_CREDIT_RULES.TALENT_LENS_QUERY_COST;
+
+  const result = await withRetry(() =>
+    prisma.$transaction(async (tx) => {
+      const wallet = await ensureWallet(tx, recruiterId, correlationId);
+
+      const debit = await tx.ledgerTransaction.findUnique({
+        where: {
+          type_referenceId: {
+            type: 'DEBIT_TALENT_LENS_QUERY',
+            referenceId: input.queryId,
+          },
+        },
+      });
+
+      if (!debit) {
+        return { wallet: toWallet(wallet), refunded: false, refundedCredits: 0 };
+      }
+
+      const existingRefund = await tx.ledgerTransaction.findUnique({
+        where: {
+          type_referenceId: {
+            type: 'CREDIT_TALENT_LENS_REFUND',
+            referenceId: input.queryId,
+          },
+        },
+      });
+
+      if (existingRefund) {
+        return { wallet: toWallet(wallet), refunded: false, refundedCredits: 0 };
+      }
+
+      // Increments are atomic; the unique ledger row below is the idempotency
+      // guard, so a concurrent duplicate refund rolls back its own increment.
+      const updatedWallet = await tx.wallet.update({
+        where: { id: wallet.id },
+        data: {
+          balance: { increment: cost },
+          version: { increment: 1 },
+        },
+      });
+
+      await tx.ledgerTransaction.create({
+        data: {
+          walletId: wallet.id,
+          amount: cost,
+          type: 'CREDIT_TALENT_LENS_REFUND',
+          referenceId: input.queryId,
+          description: 'TalentLens query refund',
+          balanceAfter: updatedWallet.balance,
+        },
+      });
+      domain.ledgerTransactions.inc({ type: 'CREDIT_TALENT_LENS_REFUND' });
+
+      return {
+        wallet: toWallet(updatedWallet),
+        refunded: true,
+        refundedCredits: cost,
+      };
+    }),
+  ).catch((error: unknown) => {
+    domain.rewardsSaga.inc({ saga: 'talent_lens_refund', outcome: 'failed' });
+    throw error;
+  });
+
+  domain.rewardsSaga.inc({
+    saga: 'talent_lens_refund',
+    outcome: result.refunded ? 'refunded' : 'skipped',
+  });
+
+  logger.info(
+    {
+      queryId: input.queryId,
+      recruiterId,
+      refunded: result.refunded,
+      balance: result.wallet.balance,
+    },
+    result.refunded ? 'talent lens query refunded' : 'talent lens query refund skipped',
   );
 
   return result;

@@ -20,6 +20,7 @@ import { AppError } from '../lib/errors.js';
 import { eventBus } from '../lib/event-bus.js';
 import { logger } from '../lib/logger.js';
 import { qdrant } from '../lib/qdrant.js';
+import { chargeTalentLensQuery, refundTalentLensQuery } from '../lib/rewards-client.js';
 import type { AiPrincipal } from '../middleware/auth.js';
 import { talentLensFiltersSchema, type TalentLensInput } from '../validation/ai.schemas.js';
 import { cacheKey, responseCache } from './cache.js';
@@ -183,10 +184,13 @@ function publishHighAffinity(principal: AiPrincipal, top: TalentLensMatch | unde
     });
 }
 
-export async function talentLens(
+/** The cacheable portion of a TalentLens response; wallet data is per-request. */
+type TalentLensSearchResult = Omit<TalentLensResponse, 'chargedCredits' | 'wallet'>;
+
+async function searchTalentLens(
   input: TalentLensInput,
   principal: AiPrincipal,
-): Promise<TalentLensResponse> {
+): Promise<TalentLensSearchResult> {
   const key = cacheKey('talent-lens', {
     query: input.query,
     limit: input.limit,
@@ -194,7 +198,7 @@ export async function talentLens(
     provider: llm.provider,
   });
 
-  const cached = await responseCache.get<TalentLensResponse>(key);
+  const cached = await responseCache.get<TalentLensSearchResult>(key);
   if (cached) {
     return { ...cached, cached: true };
   }
@@ -245,7 +249,7 @@ export async function talentLens(
   const fallback = interpretationFallback || rerankFallback;
   const provider: AiEngine = fallback ? 'local' : llm.provider;
 
-  const response: TalentLensResponse = {
+  const response: TalentLensSearchResult = {
     query: input.query,
     results,
     cached: false,
@@ -270,4 +274,52 @@ export async function talentLens(
   );
 
   return response;
+}
+
+/**
+ * Runs a TalentLens query after debiting the recruiter's wallet.
+ *
+ * The debit happens before any AI work so an empty wallet cannot consume
+ * provider quota. If the search fails after the debit, the charge is reversed;
+ * a lost charge response is also reversed because a refund is a no-op when no
+ * debit exists. `requestId` makes a retried request reuse its original debit.
+ */
+export async function talentLens(
+  input: TalentLensInput,
+  principal: AiPrincipal,
+  authorization?: string,
+): Promise<TalentLensResponse> {
+  const queryId = input.requestId ?? randomUUID();
+
+  let charge: Awaited<ReturnType<typeof chargeTalentLensQuery>>;
+  try {
+    charge = await chargeTalentLensQuery(principal, queryId, authorization);
+  } catch (error) {
+    await refundTalentLensQuery(principal, queryId, authorization).catch((refundError) => {
+      logger.error(
+        { err: refundError, queryId, recruiterId: principal.userId },
+        'failed to reverse an unconfirmed TalentLens charge',
+      );
+    });
+    throw error;
+  }
+
+  try {
+    const result = await searchTalentLens(input, principal);
+    return {
+      ...result,
+      chargedCredits: charge.chargedCredits,
+      wallet: charge.wallet,
+    };
+  } catch (error) {
+    if (charge.charged) {
+      await refundTalentLensQuery(principal, queryId, authorization).catch((refundError) => {
+        logger.error(
+          { err: refundError, queryId, recruiterId: principal.userId },
+          'failed to refund TalentLens query',
+        );
+      });
+    }
+    throw error;
+  }
 }
