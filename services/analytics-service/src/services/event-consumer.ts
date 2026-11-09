@@ -1,6 +1,10 @@
 import { getServiceMetrics } from '@talent-ai/observability/metrics';
-import type { DomainEvent } from '@talent-ai/shared-types';
-import { EVENT_QUEUES, EVENT_ROUTING_KEYS } from '@talent-ai/shared-types';
+import {
+  EVENT_QUEUES,
+  EVENT_ROUTING_KEYS,
+  hasTalentQualificationChanges,
+  type DomainEvent,
+} from '@talent-ai/shared-types';
 import { config } from '../config.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { matchDelayMs, uniqueSkills, utcDay, type FunnelField } from '../domain/analytics.js';
@@ -132,6 +136,9 @@ async function applyTalentProfile(
   occurredAt: Date,
 ): Promise<void> {
   const payload = talentProfileEventSchema.parse(event.data);
+  const qualificationsChanged =
+    event.eventType === 'talent.profile.updated' &&
+    (payload.qualificationsChanged ?? hasTalentQualificationChanges(payload.changedFields));
 
   await tx.candidateMetric.upsert({
     where: { talentId: payload.talentId },
@@ -139,14 +146,33 @@ async function applyTalentProfile(
       talentId: payload.talentId,
       userId: payload.userId,
       profileCreatedAt: occurredAt,
+      ...(qualificationsChanged ? { qualificationsUpdatedAt: occurredAt } : {}),
     },
     update: {
       userId: payload.userId,
       ...(event.eventType === 'talent.profile.created' ? { profileCreatedAt: occurredAt } : {}),
+      // A qualification change invalidates the active evaluation: old swipe
+      // decisions and feedback must not bias the refreshed profile.
+      ...(qualificationsChanged
+        ? {
+            rightSwipes: 0,
+            leftSwipes: 0,
+            totalReviews: 0,
+            firstApprovedAt: null,
+            qualificationsUpdatedAt: occurredAt,
+          }
+        : {}),
     },
   });
 
   await applySkillSupply(tx, payload.talentId, payload.skills, payload.experienceYears);
+
+  if (qualificationsChanged) {
+    logger.info(
+      { talentId: payload.talentId, changedFields: payload.changedFields },
+      'candidate analytics reset after qualification update',
+    );
+  }
 
   if (event.eventType === 'talent.profile.created') {
     await bumpFunnel(tx, occurredAt, 'profilesCreated');
@@ -218,8 +244,12 @@ async function applySwipe(tx: Tx, event: DomainEvent<unknown>, occurredAt: Date)
   const recruiterId = await resolveRecruiterId(tx, payload.recruiterId);
   const approve = payload.decision === 'APPROVE';
   const defer = payload.decision === 'DEFER';
+  const parsedTimestamp = new Date(payload.timestamp);
+  const swipeAt = Number.isNaN(parsedTimestamp.getTime()) ? occurredAt : parsedTimestamp;
 
-  await bumpFunnel(tx, occurredAt, 'swipesRecorded');
+  // Funnel totals are historical: the swipe really happened even if the
+  // candidate has since reset their evaluation profile.
+  await bumpFunnel(tx, swipeAt, 'swipesRecorded');
 
   // A defer keeps the candidate in the pipeline; it is neither an approval nor
   // a rejection, so it must not move the acceptance ratio or recruiter metrics.
@@ -228,10 +258,22 @@ async function applySwipe(tx: Tx, event: DomainEvent<unknown>, occurredAt: Date)
   const existing = await tx.candidateMetric.findUnique({
     where: { talentId: payload.talentId },
   });
+
+  // Ignore late events from a profile version that has already been reset;
+  // otherwise a delayed pre-update decision would re-inflate the clean slate.
+  if (
+    existing?.qualificationsUpdatedAt &&
+    swipeAt.getTime() <= existing.qualificationsUpdatedAt.getTime()
+  ) {
+    logger.debug(
+      { talentId: payload.talentId, swipeId: payload.swipeId, swipeAt },
+      'swipe predates the latest qualification reset; candidate counter unchanged',
+    );
+    return;
+  }
+
   const firstApproval = approve && !existing?.firstApprovedAt;
-  const delayMs = firstApproval
-    ? matchDelayMs(occurredAt, existing?.profileCreatedAt, occurredAt)
-    : 0;
+  const delayMs = firstApproval ? matchDelayMs(swipeAt, existing?.profileCreatedAt, swipeAt) : 0;
 
   await tx.candidateMetric.upsert({
     where: { talentId: payload.talentId },
@@ -239,11 +281,11 @@ async function applySwipe(tx: Tx, event: DomainEvent<unknown>, occurredAt: Date)
       talentId: payload.talentId,
       rightSwipes: approve ? 1 : 0,
       leftSwipes: approve ? 0 : 1,
-      ...(firstApproval ? { firstApprovedAt: occurredAt } : {}),
+      ...(firstApproval ? { firstApprovedAt: swipeAt } : {}),
     },
     update: {
       ...(approve ? { rightSwipes: { increment: 1 } } : { leftSwipes: { increment: 1 } }),
-      ...(firstApproval ? { firstApprovedAt: occurredAt } : {}),
+      ...(firstApproval ? { firstApprovedAt: swipeAt } : {}),
     },
   });
 
@@ -266,19 +308,38 @@ async function applySwipe(tx: Tx, event: DomainEvent<unknown>, occurredAt: Date)
     },
   });
 
-  if (approve) await bumpFunnel(tx, occurredAt, 'approvals');
+  if (approve) await bumpFunnel(tx, swipeAt, 'approvals');
 }
 
 async function applyReview(tx: Tx, event: DomainEvent<unknown>, occurredAt: Date): Promise<void> {
   const payload = reviewSubmittedSchema.parse(event.data);
   const recruiterId = await resolveRecruiterId(tx, payload.recruiterId);
+  const parsedTimestamp = new Date(payload.timestamp);
+  const reviewAt = Number.isNaN(parsedTimestamp.getTime()) ? occurredAt : parsedTimestamp;
 
-  await tx.candidateMetric.upsert({
+  const existing = await tx.candidateMetric.findUnique({
     where: { talentId: payload.talentId },
-    create: { talentId: payload.talentId, totalReviews: 1 },
-    update: { totalReviews: { increment: 1 } },
   });
 
+  // Reviews submitted against a previous profile version must not reappear in
+  // the candidate's refreshed review count.
+  const resetAt = existing?.qualificationsUpdatedAt ?? null;
+  const stale = resetAt !== null && reviewAt.getTime() <= resetAt.getTime();
+
+  if (stale) {
+    logger.debug(
+      { talentId: payload.talentId, reviewId: payload.reviewId, reviewAt },
+      'review predates the latest qualification reset; candidate review count unchanged',
+    );
+  } else {
+    await tx.candidateMetric.upsert({
+      where: { talentId: payload.talentId },
+      create: { talentId: payload.talentId, totalReviews: 1 },
+      update: { totalReviews: { increment: 1 } },
+    });
+  }
+
+  // Recruiter history is not reset: the review really was submitted.
   await tx.recruiterMetric.upsert({
     where: { recruiterId },
     create: {
@@ -292,7 +353,7 @@ async function applyReview(tx: Tx, event: DomainEvent<unknown>, occurredAt: Date
     },
   });
 
-  await bumpFunnel(tx, occurredAt, 'reviewsSubmitted');
+  await bumpFunnel(tx, reviewAt, 'reviewsSubmitted');
 }
 
 async function applyCoinsAwarded(tx: Tx, event: DomainEvent<unknown>): Promise<void> {

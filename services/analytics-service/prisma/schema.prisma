@@ -27,6 +27,9 @@ model CandidateMetric {
   totalReviews     Int       @default(0) @map("total_reviews")
   profileCreatedAt DateTime? @map("profile_created_at") @db.Timestamptz(3)
   firstApprovedAt  DateTime? @map("first_approved_at") @db.Timestamptz(3)
+  /// When the candidate last changed qualifications. Swipe/review events older
+  /// than this point belong to a previous profile version and are ignored.
+  qualificationsUpdatedAt DateTime? @map("qualifications_updated_at") @db.Timestamptz(3)
   updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@index([userId])

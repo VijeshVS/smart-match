@@ -114,6 +114,32 @@ export interface TalentQueryParams extends PaginationParams {
 /** Blind review queries cannot filter by tier or search identity fields. */
 export type BlindTalentQueryParams = Omit<TalentQueryParams, 'level'>;
 
+/**
+ * Profile fields that change the substance of a candidate's evaluation. Updates
+ * to these fields invalidate prior swipe decisions and feedback, while identity
+ * or contact-only edits keep the existing engagement history.
+ */
+export const TALENT_QUALIFICATION_FIELDS = [
+  'field',
+  'skills',
+  'experienceYears',
+  'education',
+  'previousExperience',
+  'bio',
+  'portfolioUrl',
+  'githubUrl',
+  'resumeUrl',
+] as const;
+
+export type TalentQualificationField = (typeof TALENT_QUALIFICATION_FIELDS)[number];
+
+const TALENT_QUALIFICATION_FIELD_SET: ReadonlySet<string> = new Set(TALENT_QUALIFICATION_FIELDS);
+
+/** Returns true when at least one changed field invalidates prior evaluation. */
+export function hasTalentQualificationChanges(changedFields: readonly string[]): boolean {
+  return changedFields.some((field) => TALENT_QUALIFICATION_FIELD_SET.has(field));
+}
+
 export interface TalentProfileCreatedPayload {
   talentId: UUID;
   userId: UUID;
@@ -132,4 +158,10 @@ export interface TalentProfileCreatedPayload {
 
 export interface TalentProfileUpdatedPayload extends TalentProfileCreatedPayload {
   changedFields: string[];
+  /**
+   * True when the update touched a qualification field, meaning downstream
+   * services should reset the candidate's active evaluation. Optional so events
+   * produced by older deployments remain consumable via `changedFields`.
+   */
+  qualificationsChanged?: boolean;
 }

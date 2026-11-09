@@ -68,6 +68,22 @@ model Review {
   @@map("reviews")
 }
 
+/// Immutable snapshot of a candidate's engagement before a qualification update
+/// reset it. Also doubles as the consumer idempotency guard: one row per
+/// `talent.profile.updated` event id.
+model ProfileResetArchive {
+  id        String   @id @default(uuid()) @db.Uuid
+  eventId   String   @unique @map("event_id") @db.VarChar(120)
+  talentId  String   @map("talent_id") @db.Uuid
+  resetAt   DateTime @map("reset_at") @db.Timestamptz(3)
+  swipes    Json
+  reviews   Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([talentId, resetAt])
+  @@map("profile_reset_archives")
+}
+
 /// Transactional outbox: written in the same transaction as the business
 /// mutation, then relayed to RabbitMQ by the background worker.
 model OutboxEvent {

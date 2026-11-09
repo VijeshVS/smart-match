@@ -8,15 +8,20 @@ import { eventBus } from './lib/event-bus.js';
 import { logger } from './lib/logger.js';
 import { startOutboxRelay } from './lib/outbox.js';
 import { prisma } from './lib/prisma.js';
+import { startTalentProfileConsumer } from './services/talent-profile-consumer.js';
 
 const app = createApp();
 
 await prisma.$connect();
 
+// Register consumers before connecting so they also start on the first
+// successful reconnect if RabbitMQ is unavailable at boot.
+await startTalentProfileConsumer();
+
 try {
   await eventBus.connect();
 } catch (error) {
-  logger.warn({ err: error }, 'RabbitMQ not reachable at startup; outbox will retry');
+  logger.warn({ err: error }, 'RabbitMQ not reachable at startup; consumer and outbox will retry');
 }
 
 const stopOutboxRelay = startOutboxRelay(eventBus);

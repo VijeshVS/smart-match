@@ -14,7 +14,8 @@ Event-sourced hiring analytics and read models for talent.ai.
   queue (`analytics-service.all-events`).
 - Projects events into denormalised read models so dashboards never replay the
   event log:
-  - candidate acceptance vs rejection ratios and review counts,
+  - candidate acceptance vs rejection ratios and review counts, reset when the
+    candidate changes qualifications,
   - top in-demand skills with candidate supply and average experience,
   - average time to first match, per recruiter and per candidate,
   - recruiter engagement leaderboards,
@@ -67,7 +68,7 @@ One durable queue (`EVENT_QUEUES.analyticsAllEvents`) binds every routing key in
 
 | Routing key | Projection |
 | :--- | :--- |
-| `talent.profile.created` / `talent.profile.updated` | Candidate metric, skill supply diff, funnel profile count. |
+| `talent.profile.created` / `talent.profile.updated` | Candidate metric, skill supply diff, funnel profile count. A qualification-changing update also resets the candidate's swipe/review counters and records `qualificationsUpdatedAt`. |
 | `recruiter.registered` | Recruiter identity mapping and metric row. |
 | `recruiter.job_posted` | Recruiter open-job count, skill demand and per-recruiter top skills. |
 | `swipe.recorded` | Candidate right/left swipes, first-approval time, funnel counters. |
@@ -86,12 +87,20 @@ queue.
 Skill supply is diffed through `candidate_skills`, so a profile update that adds
 or removes a skill adjusts `skill_metrics` instead of incrementing twice.
 
+Qualification changes (detected from `qualificationsChanged`, falling back to
+`changedFields`) zero `rightSwipes`, `leftSwipes`, `totalReviews` and
+`firstApprovedAt`, and stamp `qualifications_updated_at`. Delayed swipe/review
+events whose business timestamp is not newer than that stamp are ignored for the
+candidate projection, so a pre-update decision cannot re-inflate the clean slate.
+Recruiter metrics and daily funnel totals stay historical and are never reset.
+
 ## Data model
 
 PostgreSQL database `talent_analytics` (Prisma migrations under
 `prisma/migrations`):
 
-- `candidate_metrics` — swipes, reviews, first approval, profile creation, user id.
+- `candidate_metrics` — swipes, reviews, first approval, profile creation, user id
+  and the last qualification reset.
 - `recruiter_metrics` — reviews, actionable feedback, credits, approvals,
   rejections, open jobs and match delay sum.
 - `recruiter_identities` — profile id ↔ user id mapping.

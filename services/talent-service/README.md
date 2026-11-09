@@ -16,6 +16,10 @@ Candidate profile aggregate for talent.ai.
   belong to `engagement-service` and are fetched over REST/events.
 - Publishes `talent.profile.created` and `talent.profile.updated` through a
   MongoDB transactional outbox so the AI indexer never sees a phantom profile.
+- Marks qualification changes (`field`, `skills`, `experienceYears`, `education`,
+  `previousExperience`, `bio`, work-sample links and `resumeUrl`) on the update
+  event so downstream services can reset the candidate's engagement. Identity
+  and contact-only edits such as name, email, phone and LinkedIn do not reset it.
 - Verifies the caller's identity from gateway `x-user-*` headers, or directly
   from the bearer JWT when the gateway is bypassed in local development.
 
@@ -58,9 +62,12 @@ When `level` is omitted on creation it is derived from `experienceYears`:
 | Routing key | When | Payload |
 | :--- | :--- | :--- |
 | `talent.profile.created` | Profile transaction commits | `talentId`, `userId`, `name`, `skills`, `experienceYears`, `level`, `field` |
-| `talent.profile.updated` | A field actually changes | Created payload plus `changedFields` |
+| `talent.profile.updated` | A field actually changes | Created payload plus `changedFields` and `qualificationsChanged` |
 
 Both events follow the shared CloudEvents envelope from `@talent-ai/shared-types`.
+`qualificationsChanged` is `true` when at least one changed field is in
+`TALENT_QUALIFICATION_FIELDS`; consumers that predate the flag can fall back to
+`changedFields`.
 
 ## Transactional outbox
 

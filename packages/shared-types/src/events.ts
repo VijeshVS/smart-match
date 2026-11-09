@@ -90,6 +90,7 @@ export const EVENT_TOPOLOGY = {
 /** Queue naming convention: `<consumer-service>.<domain>`. */
 export const EVENT_QUEUES = {
   aiTalentIndexer: 'ai-matching-service.talent-indexer',
+  engagementTalentProfileConsumer: 'engagement-service.talent-profile-consumer',
   rewardsSwipeConsumer: 'rewards-service.swipe-consumer',
   rewardsReviewConsumer: 'rewards-service.review-consumer',
   notificationReviewConsumer: 'notification-service.review-consumer',
