@@ -8,10 +8,12 @@ import {
   CheckCircle2,
   Clock3,
   Coins,
+  ExternalLink,
+  EyeOff,
   GraduationCap,
   Keyboard,
-  LockKeyhole,
   RotateCcw,
+  ShieldCheck,
   Shuffle,
   Sparkles,
   XCircle,
@@ -19,38 +21,37 @@ import {
 import { toast } from 'sonner';
 import {
   engagementApi,
+  rewardsApi,
   talentApi,
   toApiClientError,
   TALENT_CREDIT_RULES,
+  type BlindTalentProfile,
+  type LedgerTransaction,
   type SwipeDecision,
-  type TalentProfile,
 } from '@talent-ai/api-client';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { LevelBadge } from '@/components/candidate-card';
 import { ReviewDialog, type ReviewSubmission } from '@/components/review-dialog';
-import { UnlockDialog } from '@/components/unlock-dialog';
-import { useAuth } from '@/lib/auth';
-import { useUnlockedTalent } from '@/lib/unlocked';
 import { useWallet } from '@/lib/wallet';
-import { formatNumber, initials } from '@/lib/format';
+import { formatNumber } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 const SWIPE_THRESHOLD = 110;
 const QUEUE_SIZE = 25;
+const CREDIT_POLL_ATTEMPTS = 6;
+const CREDIT_POLL_INTERVAL_MS = 700;
 
 interface DragState {
   x: number;
@@ -60,12 +61,26 @@ interface DragState {
 
 const NO_DRAG: DragState = { x: 0, y: 0, active: false };
 
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function formatDuration(months: number): string {
+  if (months <= 0) return '—';
+  const years = Math.floor(months / 12);
+  const rest = months % 12;
+  const parts: string[] = [];
+  if (years > 0) parts.push(`${years} yr${years === 1 ? '' : 's'}`);
+  if (rest > 0) parts.push(`${rest} mo`);
+  return parts.join(' ');
+}
+
 export function TalentSwipePage() {
   const { reload: reloadWallet } = useWallet();
-  const { org } = useAuth();
-  const { unlocked, markUnlocked } = useUnlockedTalent(org?.profile.id ?? null);
 
-  const [queue, setQueue] = useState<TalentProfile[]>([]);
+  const [queue, setQueue] = useState<BlindTalentProfile[]>([]);
   const [index, setIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -75,21 +90,20 @@ export function TalentSwipePage() {
 
   const [pending, setPending] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
-  const [reviewTarget, setReviewTarget] = useState<TalentProfile | null>(null);
+  const [reviewTarget, setReviewTarget] = useState<BlindTalentProfile | null>(null);
   const [reviewDecision, setReviewDecision] = useState<SwipeDecision>('APPROVE');
+  const [reviewSwipeId, setReviewSwipeId] = useState<string | null>(null);
   const [reviewed, setReviewed] = useState(0);
-  const [unlockTarget, setUnlockTarget] = useState<TalentProfile | null>(null);
+  const [sessionCredits, setSessionCredits] = useState(0);
+  const creditedReferences = useRef(new Set<string>());
 
   const current = queue[index] ?? null;
-  const locked = current
-    ? current.level === 'LEVEL_3_LEAD' && !unlocked.has(current.id)
-    : false;
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await talentApi.listProfiles({ limit: QUEUE_SIZE });
+      const result = await talentApi.listBlindProfiles({ limit: QUEUE_SIZE });
       setQueue(result.data);
       setIndex(0);
     } catch (cause) {
@@ -109,23 +123,87 @@ export function TalentSwipePage() {
     setIndex((value) => value + 1);
   }, []);
 
+  /**
+   * Rewards are applied by an asynchronous consumer. Poll the wallet for the
+   * matching ledger entry so the recruiter sees a confirmed balance change
+   * instead of an optimistic claim.
+   */
+  const confirmCredit = useCallback(
+    async (
+      type: LedgerTransaction['type'],
+      referenceId: string,
+      label: string,
+      requestedAt: string,
+    ) => {
+      if (creditedReferences.current.has(referenceId)) return;
+
+      // Allow a little clock skew between the portal and the rewards service.
+      const earliest = Date.parse(requestedAt) - 5_000;
+
+      for (let attempt = 0; attempt < CREDIT_POLL_ATTEMPTS; attempt += 1) {
+        try {
+          const summary = await rewardsApi.getWallet();
+          const match = summary.transactions.find(
+            (transaction) => transaction.type === type && transaction.referenceId === referenceId,
+          );
+
+          if (match) {
+            creditedReferences.current.add(referenceId);
+            void reloadWallet();
+
+            if (Date.parse(match.createdAt) >= earliest) {
+              setSessionCredits((value) => value + match.amount);
+              toast.success(
+                `+${match.amount} TalentCredit${match.amount === 1 ? '' : 's'} awarded`,
+                { description: label },
+              );
+            } else {
+              toast.info('TalentCredit already awarded', {
+                description: `${label} This action was rewarded earlier.`,
+              });
+            }
+            return;
+          }
+        } catch {
+          // Keep polling; a transient wallet read must not hide a saved action.
+        }
+
+        if (attempt < CREDIT_POLL_ATTEMPTS - 1) {
+          await delay(CREDIT_POLL_INTERVAL_MS);
+        }
+      }
+
+      void reloadWallet();
+      toast.info('TalentCredit pending', {
+        description: `${label} It will appear in your wallet as soon as the reward settles.`,
+      });
+    },
+    [reloadWallet],
+  );
+
   const decide = useCallback(
     async (decision: SwipeDecision) => {
       if (!current || pending || reviewOpen) return;
 
       setPending(true);
       try {
-        await engagementApi.recordSwipe({ talentId: current.id, decision });
+        const requestedAt = new Date().toISOString();
+        const swipe = await engagementApi.recordSwipe({ talentId: current.id, decision });
         setReviewDecision(decision);
         setReviewTarget(current);
+        setReviewSwipeId(swipe.id);
         setReviewOpen(true);
         toast.success(
           decision === 'APPROVE'
-            ? `${current.name} advanced to review`
+            ? `${current.candidateRef} advanced to review`
             : decision === 'REJECT'
-              ? `${current.name} rejected`
-              : `${current.name} deferred for later review`,
+              ? `${current.candidateRef} rejected`
+              : `${current.candidateRef} deferred for later review`,
         );
+
+        if (decision !== 'DEFER') {
+          void confirmCredit('CREDIT_SWIPE_DECISION', swipe.id, 'Decision recorded.', requestedAt);
+        }
       } catch (cause) {
         toast.error(toApiClientError(cause).message);
         setDrag(NO_DRAG);
@@ -133,7 +211,7 @@ export function TalentSwipePage() {
         setPending(false);
       }
     },
-    [current, pending, reviewOpen],
+    [current, pending, reviewOpen, confirmCredit],
   );
 
   useEffect(() => {
@@ -159,18 +237,27 @@ export function TalentSwipePage() {
     if (!reviewTarget) return;
 
     try {
-      await engagementApi.submitReview({
+      const requestedAt = new Date().toISOString();
+      const result = await engagementApi.submitReview({
         talentId: reviewTarget.id,
         decision: reviewDecision,
+        ...(reviewSwipeId ? { swipeId: reviewSwipeId } : {}),
         ...submission,
       });
-      setReviewed((value) => value + 1);
-      toast.success('Review submitted — actionable feedback earns TalentCredits');
-      void reloadWallet();
-      // The reward is credited by an async consumer; refresh again once it lands.
-      window.setTimeout(() => void reloadWallet(), 2_000);
+
+      if (result.created) setReviewed((value) => value + 1);
+
+      toast.success(result.updated ? 'Review updated' : 'Review submitted', {
+        description: `Candidate feedback earns +${TALENT_CREDIT_RULES.REVIEW_FEEDBACK_REWARD} TalentCredits.`,
+      });
+      void confirmCredit(
+        'CREDIT_REVIEW_FEEDBACK',
+        result.review.id,
+        'Candidate feedback confirmed.',
+        requestedAt,
+      );
     } catch (cause) {
-      toast.error(toApiClientError(cause).message);
+      // The dialog owns the inline error state and surfaces the message.
       throw cause;
     }
     // The dialog closes itself after a successful submit; `onOpenChange`
@@ -180,7 +267,7 @@ export function TalentSwipePage() {
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (pending || reviewOpen) return;
     // Capturing the pointer on the card retargets click events, which would
-    // make the Approve/Reject/Defer/Unlock buttons inside it unclickable.
+    // make the Approve/Reject/Defer buttons inside it unclickable.
     if (
       event.target instanceof Element &&
       event.target.closest('button, a, input, textarea, select, [role="button"]')
@@ -227,13 +314,12 @@ export function TalentSwipePage() {
                 TalentSwipe
               </CardTitle>
               <CardDescription>
-                Swipe right to approve, left to reject, or defer for later. Every decision can carry
-                a review.
+                Blind review: personal details and Elite status stay hidden. Swipe right to approve,
+                left to reject, or defer for later.
               </CardDescription>
             </div>
             <Badge variant="outline" className="gap-1.5">
-              <Keyboard className="size-3.5" />
-              ← →
+              <Keyboard className="size-3.5" />← →
             </Badge>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
@@ -253,7 +339,7 @@ export function TalentSwipePage() {
             ) : null}
 
             {loading ? (
-              <Skeleton className="mx-auto h-[26rem] w-full max-w-md rounded-2xl" />
+              <Skeleton className="mx-auto h-[30rem] w-full max-w-md rounded-2xl" />
             ) : !current ? (
               <Empty>
                 <EmptyHeader>
@@ -289,13 +375,13 @@ export function TalentSwipePage() {
                 />
                 <div
                   role="group"
-                  aria-label={`Candidate ${current.name}`}
+                  aria-label={`Blind candidate ${current.candidateRef}`}
                   onPointerDown={onPointerDown}
                   onPointerMove={onPointerMove}
                   onPointerUp={onPointerUp}
                   onPointerCancel={onPointerUp}
                   className={cn(
-                    'relative flex min-h-[26rem] cursor-grab touch-none flex-col gap-4 rounded-2xl border bg-card p-6 shadow-2xl shadow-black/40',
+                    'relative flex min-h-[30rem] cursor-grab touch-none flex-col gap-4 rounded-2xl border bg-card p-6 shadow-2xl shadow-black/40',
                     drag.active ? 'cursor-grabbing' : 'transition-transform duration-200',
                   )}
                   style={{
@@ -315,27 +401,21 @@ export function TalentSwipePage() {
                     </div>
                   ) : null}
 
-                  <div className="flex items-start gap-4">
-                    <Avatar className="size-16 rounded-2xl">
-                      <AvatarFallback className="rounded-2xl bg-gradient-to-br from-primary/30 to-brand-cyan/20 text-lg font-semibold">
-                        {initials(current.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-heading text-xl font-semibold">{current.name}</p>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <Badge variant="outline" className="gap-1.5">
+                        <EyeOff className="size-3" />
+                        Blind review
+                      </Badge>
+                      <p className="mt-2 truncate font-heading text-xl font-semibold">
+                        {current.candidateRef}
+                      </p>
                       <p className="truncate text-sm text-muted-foreground">{current.field}</p>
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        <LevelBadge level={current.level} />
-                        <Badge variant="outline">
-                          {formatNumber(current.experienceYears)} yrs
-                        </Badge>
-                      </div>
                     </div>
+                    <Badge variant="secondary" className="shrink-0">
+                      {formatNumber(current.experienceYears)} yrs
+                    </Badge>
                   </div>
-
-                  {current.bio ? (
-                    <p className="line-clamp-3 text-sm text-muted-foreground">{current.bio}</p>
-                  ) : null}
 
                   <div className="flex flex-wrap gap-1.5">
                     {current.skills.slice(0, 8).map((skill) => (
@@ -352,76 +432,103 @@ export function TalentSwipePage() {
 
                   <Separator />
 
-                  {locked ? (
-                    <div className="flex flex-col gap-3 rounded-xl border border-warning/25 bg-warning/5 p-4">
-                      <div className="flex items-start gap-3">
-                        <LockKeyhole className="mt-0.5 size-4 shrink-0 text-warning" />
-                        <div className="flex flex-col gap-1">
-                          <p className="text-sm font-medium">Elite Principal details locked</p>
-                          <p className="text-xs text-muted-foreground">
-                            Unlock with {TALENT_CREDIT_RULES.TIER3_UNLOCK_COST} TC to reveal
-                            education and the full work history.
-                          </p>
-                        </div>
-                      </div>
+                  <section className="flex flex-col gap-2">
+                    <p className="flex items-center gap-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                      <GraduationCap className="size-3.5 text-brand-cyan" />
+                      Education
+                    </p>
+                    {current.education.length > 0 ? (
+                      <ul className="flex flex-col gap-1.5 text-sm text-muted-foreground">
+                        {current.education.slice(0, 2).map((entry, entryIndex) => (
+                          <li key={`${entry.college}-${entryIndex}`} className="truncate">
+                            {entry.degree} · {entry.branchOfStudy} · {entry.college} (
+                            {entry.yearOfGraduation})
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No education listed</p>
+                    )}
+                  </section>
+
+                  <section className="flex flex-col gap-2">
+                    <p className="flex items-center gap-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                      <BriefcaseBusiness className="size-3.5 text-brand-cyan" />
+                      Experience
+                    </p>
+                    {current.previousExperience.length > 0 ? (
+                      <ul className="flex flex-col gap-2 text-sm text-muted-foreground">
+                        {current.previousExperience.slice(0, 2).map((entry, entryIndex) => (
+                          <li key={`${entry.company}-${entry.role}-${entryIndex}`}>
+                            <p className="truncate font-medium text-foreground">
+                              {entry.role} · {entry.company}
+                            </p>
+                            <p className="text-xs">
+                              {formatDuration(entry.durationMonths)}
+                              {entry.responsibilities[0] ? ` · ${entry.responsibilities[0]}` : ''}
+                            </p>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No work history listed</p>
+                    )}
+                  </section>
+
+                  {current.portfolioUrl || current.githubUrl ? (
+                    <div className="flex flex-wrap gap-2">
+                      {current.portfolioUrl ? (
+                        <Button variant="outline" size="sm" asChild>
+                          <a href={current.portfolioUrl} target="_blank" rel="noreferrer noopener">
+                            <ExternalLink data-icon="inline-start" />
+                            Portfolio
+                          </a>
+                        </Button>
+                      ) : null}
+                      {current.githubUrl ? (
+                        <Button variant="outline" size="sm" asChild>
+                          <a href={current.githubUrl} target="_blank" rel="noreferrer noopener">
+                            <ExternalLink data-icon="inline-start" />
+                            Work samples
+                          </a>
+                        </Button>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  <div className="mt-auto flex flex-col gap-2 pt-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <Button
+                        variant="destructive"
+                        className="flex-1"
+                        disabled={pending}
+                        onClick={() => void decide('REJECT')}
+                      >
+                        <XCircle data-icon="inline-start" />
+                        Reject
+                      </Button>
                       <Button
                         variant="outline"
-                        size="sm"
-                        className="w-fit"
-                        onClick={() => setUnlockTarget(current)}
+                        className="flex-1"
+                        disabled={pending}
+                        onClick={() => void decide('DEFER')}
                       >
-                        <Coins data-icon="inline-start" />
-                        Unlock profile
+                        <Clock3 data-icon="inline-start" />
+                        Defer
+                      </Button>
+                      <Button
+                        className="flex-1"
+                        disabled={pending}
+                        onClick={() => void decide('APPROVE')}
+                      >
+                        <CheckCircle2 data-icon="inline-start" />
+                        Approve
                       </Button>
                     </div>
-                  ) : (
-                    <ul className="flex flex-col gap-2 text-sm text-muted-foreground">
-                      <li className="flex items-center gap-2">
-                        <GraduationCap className="size-4 shrink-0 text-brand-cyan" />
-                        <span className="truncate">
-                          {current.education[0]
-                            ? `${current.education[0].degree} · ${current.education[0].college}`
-                            : 'No education listed'}
-                        </span>
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <BriefcaseBusiness className="size-4 shrink-0 text-brand-cyan" />
-                        <span className="truncate">
-                          {current.previousExperience[0]
-                            ? `${current.previousExperience[0].role} · ${current.previousExperience[0].company}`
-                            : 'No work history listed'}
-                        </span>
-                      </li>
-                    </ul>
-                  )}
-
-                  <div className="mt-auto flex items-center justify-between gap-3 pt-2">
-                    <Button
-                      variant="destructive"
-                      className="flex-1"
-                      disabled={pending}
-                      onClick={() => void decide('REJECT')}
-                    >
-                      <XCircle data-icon="inline-start" />
-                      Reject
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      disabled={pending}
-                      onClick={() => void decide('DEFER')}
-                    >
-                      <Clock3 data-icon="inline-start" />
-                      Defer
-                    </Button>
-                    <Button
-                      className="flex-1"
-                      disabled={pending}
-                      onClick={() => void decide('APPROVE')}
-                    >
-                      <CheckCircle2 data-icon="inline-start" />
-                      Approve
-                    </Button>
+                    <p className="text-center text-xs text-muted-foreground">
+                      Accept or reject earns +{TALENT_CREDIT_RULES.SWIPE_DECISION_REWARD}{' '}
+                      TalentCredit. Feedback earns +{TALENT_CREDIT_RULES.REVIEW_FEEDBACK_REWARD}.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -453,16 +560,19 @@ export function TalentSwipePage() {
             </CardHeader>
             <CardContent className="flex flex-col gap-3 text-sm text-muted-foreground">
               <p className="flex items-start gap-2">
-                <Sparkles className="mt-0.5 size-4 shrink-0 text-brand-cyan" />
-                Every swipe feeds the talent graph used by TalentLens.
+                <ShieldCheck className="mt-0.5 size-4 shrink-0 text-brand-cyan" />
+                Names, contact details and Elite status stay hidden. Only qualifications are
+                visible.
               </p>
               <p className="flex items-start gap-2">
                 <Coins className="mt-0.5 size-4 shrink-0 text-warning" />
-                Actionable reviews earn +5 TalentCredits.
+                Accepting or rejecting earns +{TALENT_CREDIT_RULES.SWIPE_DECISION_REWARD}{' '}
+                TalentCredit. Deferring earns none.
               </p>
               <p className="flex items-start gap-2">
-                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" />
-                Approvals advance candidates into your review pipeline.
+                <Sparkles className="mt-0.5 size-4 shrink-0 text-brand-cyan" />
+                Candidate feedback earns +{TALENT_CREDIT_RULES.REVIEW_FEEDBACK_REWARD}{' '}
+                TalentCredits.
               </p>
             </CardContent>
           </Card>
@@ -479,6 +589,10 @@ export function TalentSwipePage() {
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Reviews submitted</span>
                 <span className="font-medium">{reviewed}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">TalentCredits earned</span>
+                <span className="font-medium text-warning">+{sessionCredits} TC</span>
               </div>
               <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
                 <RotateCcw data-icon="inline-start" />
@@ -498,18 +612,6 @@ export function TalentSwipePage() {
           if (!open) advance();
         }}
         onSubmit={handleReviewSubmit}
-      />
-
-      <UnlockDialog
-        profile={unlockTarget}
-        open={Boolean(unlockTarget)}
-        onOpenChange={(open) => {
-          if (!open) setUnlockTarget(null);
-        }}
-        onUnlocked={(talentId) => {
-          markUnlocked(talentId);
-          void reloadWallet();
-        }}
       />
     </div>
   );

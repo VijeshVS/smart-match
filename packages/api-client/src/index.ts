@@ -16,7 +16,7 @@ export {
 export { authApi, bootstrapSession, type AuthSession, type CurrentUserResponse } from './api/auth.js';
 export { talentApi } from './api/talent.js';
 export { recruiterApi } from './api/recruiters.js';
-export { engagementApi } from './api/engagement.js';
+export { engagementApi, type SubmitReviewResult } from './api/engagement.js';
 export { rewardsApi } from './api/rewards.js';
 export { aiApi } from './api/ai.js';
 export { analyticsApi } from './api/analytics.js';
@@ -39,6 +39,8 @@ export {
 export type {
   AuthTokens,
   AuthUser,
+  BlindTalentProfile,
+  BlindTalentQueryParams,
   CandidateAnalytics,
   CandidateReview,
   CreateReviewRequest,

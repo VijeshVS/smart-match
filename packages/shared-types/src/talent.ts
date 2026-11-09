@@ -56,6 +56,28 @@ export interface TalentProfile {
   updatedAt: ISODateString;
 }
 
+/**
+ * Candidate profile shown during blind Talent Swipe reviews.
+ *
+ * Identity, contact details and the platform tier are deliberately absent so a
+ * recruiter can only evaluate professional qualifications. `candidateRef` is a
+ * stable pseudonym derived from the talent id and is safe to display.
+ */
+export interface BlindTalentProfile {
+  id: UUID;
+  candidateRef: string;
+  field: string;
+  skills: string[];
+  experienceYears: number;
+  education: Education[];
+  previousExperience: WorkExperience[];
+  /** Work sample links only; profile/contact links are never exposed. */
+  portfolioUrl?: string;
+  githubUrl?: string;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
 export interface CreateTalentProfileRequest {
   userId?: UUID;
   name: string;
@@ -88,6 +110,9 @@ export interface TalentQueryParams extends PaginationParams {
   minExperienceYears?: number;
   maxExperienceYears?: number;
 }
+
+/** Blind review queries cannot filter by tier or search identity fields. */
+export type BlindTalentQueryParams = Omit<TalentQueryParams, 'level'>;
 
 export interface TalentProfileCreatedPayload {
   talentId: UUID;

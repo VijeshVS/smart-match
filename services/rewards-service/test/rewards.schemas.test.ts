@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   reviewSubmittedPayloadSchema,
+  swipeRecordedPayloadSchema,
   unlockTier3Schema,
   walletQuerySchema,
 } from '../src/validation/rewards.schemas.js';
@@ -8,6 +9,7 @@ import {
 const recruiterId = '11111111-1111-4111-8111-111111111111';
 const talentId = '99999999-9999-4999-8999-999999999999';
 const reviewId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const swipeId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 
 describe('rewards validation', () => {
   it('parses an unlock request and keeps recruiterId optional', () => {
@@ -28,6 +30,24 @@ describe('rewards validation', () => {
     expect(walletQuerySchema.parse({})).toEqual({});
     expect(walletQuerySchema.parse({ recruiterId })).toEqual({ recruiterId });
     expect(() => walletQuerySchema.parse({ recruiterId: 'not-a-uuid' })).toThrow();
+  });
+
+  it('validates the swipe.recorded payload', () => {
+    const payload = {
+      swipeId,
+      recruiterId,
+      talentId,
+      decision: 'APPROVE',
+    };
+
+    expect(swipeRecordedPayloadSchema.parse(payload)).toEqual(payload);
+    expect(swipeRecordedPayloadSchema.parse({ ...payload, decision: 'DEFER' })).toEqual({
+      ...payload,
+      decision: 'DEFER',
+    });
+    expect(() => swipeRecordedPayloadSchema.parse({ ...payload, decision: 'MAYBE' })).toThrow();
+    expect(() => swipeRecordedPayloadSchema.parse({ ...payload, swipeId: 'swipe-1' })).toThrow();
+    expect(() => swipeRecordedPayloadSchema.parse({ recruiterId, talentId })).toThrow();
   });
 
   it('validates the review.submitted payload', () => {

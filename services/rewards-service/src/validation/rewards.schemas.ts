@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { SWIPE_DECISIONS, type SwipeDecision } from '@talent-ai/shared-types';
 
 export const walletQuerySchema = z.object({
   recruiterId: z.string().uuid('recruiterId must be a UUID').optional(),
@@ -7,6 +8,19 @@ export const walletQuerySchema = z.object({
 export const unlockTier3Schema = z.object({
   recruiterId: z.string().uuid('recruiterId must be a UUID').optional(),
   talentId: z.string().uuid('talentId must be a UUID'),
+});
+
+const swipeDecisionSchema = z.enum([...SWIPE_DECISIONS] as [SwipeDecision, ...SwipeDecision[]]);
+
+/**
+ * Runtime guard for the `swipe.recorded` event consumed from RabbitMQ. Only
+ * the fields needed to credit the recruiter are required.
+ */
+export const swipeRecordedPayloadSchema = z.object({
+  swipeId: z.string().uuid('swipeId must be a UUID'),
+  recruiterId: z.string().uuid('recruiterId must be a UUID'),
+  talentId: z.string().uuid('talentId must be a UUID'),
+  decision: swipeDecisionSchema,
 });
 
 /**
@@ -24,3 +38,4 @@ export const reviewSubmittedPayloadSchema = z.object({
 export type WalletQueryInput = z.infer<typeof walletQuerySchema>;
 export type UnlockTier3Input = z.infer<typeof unlockTier3Schema>;
 export type ReviewSubmittedPayloadInput = z.infer<typeof reviewSubmittedPayloadSchema>;
+export type SwipeRecordedPayloadInput = z.infer<typeof swipeRecordedPayloadSchema>;

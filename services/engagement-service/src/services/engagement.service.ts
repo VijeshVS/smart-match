@@ -23,6 +23,7 @@ import { AppError } from '../lib/errors.js';
 import { logger } from '../lib/logger.js';
 import { enqueueOutbox } from '../lib/outbox.js';
 import { prisma } from '../lib/prisma.js';
+import type { Prisma, Review as ReviewRow } from '../generated/prisma/client.js';
 import type { CreateReviewInput, CreateSwipeInput } from '../validation/engagement.schemas.js';
 
 /** Number of reviews returned per talent/recruiter read. */
@@ -134,19 +135,48 @@ export async function recordSwipe(
   }
 }
 
+export interface SubmitReviewResult {
+  review: CandidateReview;
+  created: boolean;
+  updated: boolean;
+}
+
+/** Publishes `review.submitted` inside the caller's transaction. */
+async function enqueueReviewEvent(tx: Prisma.TransactionClient, review: ReviewRow): Promise<void> {
+  const payload: ReviewSubmittedPayload = {
+    reviewId: review.id,
+    ...(review.swipeId ? { swipeId: review.swipeId } : {}),
+    recruiterId: review.recruiterId,
+    talentId: review.talentId,
+    decision: review.decision,
+    ...(review.feedbackText ? { feedbackText: review.feedbackText } : {}),
+    hasActionableFeedback: review.hasActionableFeedback,
+    timestamp: review.createdAt.toISOString(),
+  };
+
+  await enqueueOutbox(tx, {
+    eventType: 'review.submitted',
+    aggregateId: review.id,
+    correlationId: correlationId(),
+    payload: { ...payload },
+  });
+}
+
 /**
  * Submits a recruiter review. When `swipeId` is supplied the swipe must belong
- * to the same recruiter and candidate, and a swipe can have at most one review.
+ * to the same recruiter and candidate. A swipe can have at most one review:
+ * retrying (or updating) the same submission updates the existing row and
+ * reuses its review id, so downstream credit consumers never double-award.
  */
 export async function submitReview(
   input: CreateReviewInput,
   principal: EngagementPrincipal,
-): Promise<CandidateReview> {
+): Promise<SubmitReviewResult> {
   const recruiterId = resolveRecruiterId(input.recruiterId, principal);
   const feedbackText = normalizeOptionalText(input.feedbackText);
   const actionableAdvice = normalizeOptionalText(input.actionableAdvice);
 
-  const review = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     if (input.swipeId) {
       const swipe = await tx.swipe.findUnique({ where: { id: input.swipeId } });
 
@@ -176,8 +206,45 @@ export async function submitReview(
       }
 
       const existing = await tx.review.findUnique({ where: { swipeId: input.swipeId } });
+
       if (existing) {
-        throw new AppError(409, 'REVIEW_EXISTS', 'A review already exists for this swipe');
+        // Retry/update path: keep the review id stable so the rewards ledger's
+        // `(type, referenceId)` idempotency key absorbs the repeated event.
+        const nextRating = input.rating === undefined ? existing.rating : input.rating;
+        const nextFeedback =
+          input.feedbackText === undefined ? existing.feedbackText : (feedbackText ?? null);
+        const nextAdvice =
+          input.actionableAdvice === undefined
+            ? existing.actionableAdvice
+            : (actionableAdvice ?? null);
+        const nextHasActionable =
+          input.actionableAdvice === undefined
+            ? existing.hasActionableFeedback
+            : hasActionableFeedback(actionableAdvice);
+
+        const changed =
+          nextRating !== existing.rating ||
+          nextFeedback !== existing.feedbackText ||
+          nextAdvice !== existing.actionableAdvice ||
+          nextHasActionable !== existing.hasActionableFeedback;
+
+        if (!changed) {
+          return { row: existing, created: false, updated: false };
+        }
+
+        const updated = await tx.review.update({
+          where: { id: existing.id },
+          data: {
+            rating: nextRating,
+            feedbackText: nextFeedback,
+            actionableAdvice: nextAdvice,
+            hasActionableFeedback: nextHasActionable,
+          },
+        });
+
+        await enqueueReviewEvent(tx, updated);
+
+        return { row: updated, created: false, updated: true };
       }
     }
 
@@ -194,26 +261,12 @@ export async function submitReview(
       },
     });
 
-    const payload: ReviewSubmittedPayload = {
-      reviewId: created.id,
-      ...(created.swipeId ? { swipeId: created.swipeId } : {}),
-      recruiterId: created.recruiterId,
-      talentId: created.talentId,
-      decision: created.decision,
-      ...(created.feedbackText ? { feedbackText: created.feedbackText } : {}),
-      hasActionableFeedback: created.hasActionableFeedback,
-      timestamp: created.createdAt.toISOString(),
-    };
+    await enqueueReviewEvent(tx, created);
 
-    await enqueueOutbox(tx, {
-      eventType: 'review.submitted',
-      aggregateId: created.id,
-      correlationId: correlationId(),
-      payload: { ...payload },
-    });
-
-    return created;
+    return { row: created, created: true, updated: false };
   });
+
+  const review = result.row;
 
   logger.info(
     {
@@ -222,11 +275,17 @@ export async function submitReview(
       talentId: review.talentId,
       decision: review.decision,
       hasActionableFeedback: review.hasActionableFeedback,
+      created: result.created,
+      updated: result.updated,
     },
-    'review submitted',
+    result.created ? 'review submitted' : result.updated ? 'review updated' : 'review unchanged',
   );
 
-  return toReview(review);
+  return {
+    review: toReview(review),
+    created: result.created,
+    updated: result.updated,
+  };
 }
 
 /** Candidate dashboard aggregate: swipe counts plus recent review feedback. */

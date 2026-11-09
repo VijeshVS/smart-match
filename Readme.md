@@ -22,12 +22,13 @@ talent search, and quality signals that replace manual screening.
 
 ### For recruiters
 
-- Review candidates quickly with **TalentSwipe™** — accept, reject, or defer with
-  structured feedback.
+- Review candidates quickly with **TalentSwipe™** — a blind review flow where
+  names, contact details, and Elite status stay hidden while you accept, reject,
+  or defer with structured feedback.
 - Describe a role in plain language and let **TalentLens™** surface the most
   relevant verified profiles.
-- Earn **TalentCredits (TC)** for actionable reviews and spend them on Elite
-  Principal profile unlocks or platform access.
+- Earn **TalentCredits (TC)** for review decisions and candidate feedback, and
+  spend them on Elite Principal profile unlocks or platform access.
 - Reach high-signal talent without manual filter construction or noisy inbound
   pipelines.
 
@@ -35,10 +36,10 @@ talent search, and quality signals that replace manual screening.
 
 | Concept | Description |
 | :--- | :--- |
-| **TalentSwipe™** | Swipe-based candidate review with structured feedback. |
+| **TalentSwipe™** | Blind swipe-based candidate review with structured feedback. |
 | **TalentLens™** | Natural-language semantic search over the verified talent pool. |
 | **Verified Talent Tiers** | Junior Fellow, Pro Engineer, and Elite Principal proficiency bands. |
-| **TalentCredits (TC)** | Participation currency earned through reviews and spent on profile unlocks. |
+| **TalentCredits (TC)** | Participation currency earned through review decisions and feedback, spent on profile unlocks. |
 
 ---
 

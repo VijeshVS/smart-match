@@ -10,12 +10,13 @@ Recruiter swipe, review and candidate-feedback aggregate for talent.ai.
 
 ## Responsibilities
 
-- Owns `Swipe` decisions (`APPROVE` / `REJECT`) and `Review` feedback. Candidate
-  profiles and recruiter organizations stay in their own services.
+- Owns `Swipe` decisions (`APPROVE` / `REJECT` / `DEFER`) and `Review` feedback.
+  Candidate profiles and recruiter organizations stay in their own services.
 - Enforces one swipe per `(recruiterId, talentId)` pair. Repeating the same
   decision is idempotent; changing it updates the row and republishes the event.
-- Links an optional review to the swipe it belongs to. A swipe can have at most
-  one review.
+- Links a review to the swipe it belongs to. A swipe has at most one review:
+  retrying or updating the same submission updates that row and reuses its
+  review id instead of creating a duplicate.
 - Publishes `swipe.recorded` and `review.submitted` through a PostgreSQL
   transactional outbox.
 - Verifies the caller's identity from gateway `x-user-*` headers, or directly
@@ -26,7 +27,7 @@ Recruiter swipe, review and candidate-feedback aggregate for talent.ai.
 | Method | Path | Access | Description |
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/v1/engagement/swipes` | Recruiter, Admin | Record or change a swipe. `201` on first record, `200` on an idempotent repeat. |
-| `POST` | `/api/v1/engagement/reviews` | Recruiter, Admin | Submit a review with a rating and/or feedback. `201` on creation. |
+| `POST` | `/api/v1/engagement/reviews` | Recruiter, Admin | Submit a review with a rating and/or feedback. `201` on creation, `200` when an existing review is updated or unchanged. |
 | `GET` | `/api/v1/engagement/talent/:talentId/summary` | Authenticated | Swipe counts plus recent reviews for the candidate dashboard. |
 | `GET` | `/api/v1/engagement/recruiter/:recruiterId/history` | Owner, Admin | The recruiter's swipe and review history. |
 
@@ -59,14 +60,17 @@ recruiter id. Sending a different id as a recruiter returns `403`.
 At least one of `rating`, `feedbackText` or `actionableAdvice` is required.
 Blank optional text is dropped, and `hasActionableFeedback` is derived from
 non-blank `actionableAdvice`. When `swipeId` is supplied, the swipe must belong
-to the same recruiter and candidate and the decision must match.
+to the same recruiter and candidate and the decision must match. Repeating the
+same submission returns the existing review; changing its content updates that
+review in place and re-emits `review.submitted` with the same `reviewId`, so
+downstream reward consumers stay idempotent.
 
 ## Events
 
 | Routing key | When | Payload |
 | :--- | :--- | :--- |
 | `swipe.recorded` | A swipe is created or its decision changes | `swipeId`, `recruiterId`, `talentId`, `decision`, `timestamp` |
-| `review.submitted` | A review transaction commits | `reviewId`, optional `swipeId`, `recruiterId`, `talentId`, `decision`, optional `feedbackText`, `hasActionableFeedback`, `timestamp` |
+| `review.submitted` | A review is created or its content changes | `reviewId`, optional `swipeId`, `recruiterId`, `talentId`, `decision`, optional `feedbackText`, `hasActionableFeedback`, `timestamp` |
 
 Both events follow the shared CloudEvents envelope from `@talent-ai/shared-types`.
 An idempotent repeat of the same swipe decision emits no event.

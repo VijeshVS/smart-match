@@ -2,6 +2,7 @@ import {
   PERMISSIONS,
   type LedgerTransaction,
   type Permission,
+  type SwipeDecision,
   type TalentAccessGrant,
   type TalentLevel,
   type UserRole,
@@ -111,4 +112,12 @@ export function isGrantActive(
   now: Date = new Date(),
 ): boolean {
   return grant.expiresAt === null || grant.expiresAt.getTime() > now.getTime();
+}
+
+/**
+ * Only a terminal accept/reject decision earns the swipe reward. Deferring
+ * keeps the candidate in the pipeline and is intentionally unrewarded.
+ */
+export function isRewardingSwipeDecision(decision: SwipeDecision): boolean {
+  return decision === 'APPROVE' || decision === 'REJECT';
 }

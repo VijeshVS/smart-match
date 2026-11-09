@@ -13,6 +13,17 @@ interface Envelope<T> {
   data: T;
 }
 
+interface EnvelopeMeta {
+  created?: boolean;
+  updated?: boolean;
+}
+
+export interface SubmitReviewResult {
+  review: CandidateReview;
+  created: boolean;
+  updated: boolean;
+}
+
 export const engagementApi = {
   recordSwipe: async (input: CreateSwipeRequest): Promise<SwipeInteraction> => {
     const { data } = await api.post<Envelope<SwipeInteraction>>(
@@ -22,12 +33,16 @@ export const engagementApi = {
     return data.data;
   },
 
-  submitReview: async (input: CreateReviewRequest): Promise<CandidateReview> => {
-    const { data } = await api.post<Envelope<CandidateReview>>(
+  submitReview: async (input: CreateReviewRequest): Promise<SubmitReviewResult> => {
+    const { data } = await api.post<Envelope<CandidateReview> & { meta?: EnvelopeMeta }>(
       `${API_PREFIXES.engagement}/reviews`,
       input,
     );
-    return data.data;
+    return {
+      review: data.data,
+      created: data.meta?.created ?? true,
+      updated: data.meta?.updated ?? false,
+    };
   },
 
   getTalentSummary: async (talentId: string): Promise<TalentEngagementSummary> => {

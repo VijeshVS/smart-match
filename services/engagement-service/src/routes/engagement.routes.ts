@@ -48,8 +48,11 @@ engagementRouter.post(
   requireRoles('RECRUITER', 'ADMIN'),
   asyncHandler(async (req, res) => {
     const input = createReviewSchema.parse(req.body);
-    const review = await submitReview(input, req.auth!);
-    res.status(201).json({ data: review });
+    const result = await submitReview(input, req.auth!);
+    res.status(result.created ? 201 : 200).json({
+      data: result.review,
+      meta: { created: result.created, updated: result.updated },
+    });
   }),
 );
 

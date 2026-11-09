@@ -5,11 +5,13 @@ import {
   createTalentProfile,
   getMyTalentProfile,
   getTalentProfile,
+  listBlindTalentProfiles,
   listTalentProfiles,
   updateTalentLevel,
   updateTalentProfile,
 } from '../services/talent.service.js';
 import {
+  blindTalentQuerySchema,
   createTalentProfileSchema,
   talentQuerySchema,
   updateTalentLevelSchema,
@@ -47,6 +49,20 @@ talentRouter.get(
   asyncHandler(async (req, res) => {
     const profile = await getMyTalentProfile(req.auth!);
     res.status(200).json({ data: profile });
+  }),
+);
+
+/**
+ * Blind review queue for Talent Swipe. Registered before `/:id` so the literal
+ * path is never treated as a talent identifier.
+ */
+talentRouter.get(
+  '/blind',
+  requireRoles('RECRUITER', 'ADMIN'),
+  asyncHandler(async (req, res) => {
+    const query = blindTalentQuerySchema.parse(req.query);
+    const result = await listBlindTalentProfiles(query);
+    res.status(200).json(result);
   }),
 );
 
