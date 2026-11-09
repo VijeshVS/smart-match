@@ -14,9 +14,10 @@ Recruiter swipe, review and candidate-feedback aggregate for talent.ai.
   Candidate profiles and recruiter organizations stay in their own services.
 - Enforces one swipe per `(recruiterId, talentId)` pair. Repeating the same
   decision is idempotent; changing it updates the row and republishes the event.
-- Links a review to the swipe it belongs to. A swipe has at most one review:
-  retrying or updating the same submission updates that row and reuses its
-  review id instead of creating a duplicate.
+- Enforces one review per `(recruiterId, talentId)` pair, linked to the swipe it
+  belongs to. Retrying or updating the same submission updates that row and
+  reuses its review id instead of creating a duplicate, even when the retry
+  omits `swipeId`.
 - Publishes `swipe.recorded` and `review.submitted` through a PostgreSQL
   transactional outbox.
 - Verifies the caller's identity from gateway `x-user-*` headers, or directly
@@ -30,6 +31,7 @@ Recruiter swipe, review and candidate-feedback aggregate for talent.ai.
 | `POST` | `/api/v1/engagement/reviews` | Recruiter, Admin | Submit a review with a rating and/or feedback. `201` on creation, `200` when an existing review is updated or unchanged. |
 | `GET` | `/api/v1/engagement/talent/:talentId/summary` | Authenticated | Swipe counts plus recent reviews for the candidate dashboard. |
 | `GET` | `/api/v1/engagement/recruiter/:recruiterId/history` | Owner, Admin | The recruiter's swipe and review history. |
+| `GET` | `/api/v1/engagement/recruiter/:recruiterId/exclusions` | Owner, Admin | Candidate ids already screened by the recruiter. Used to filter the blind Talent Swipe queue. |
 
 `recruiterId` is optional in request bodies and defaults to the authenticated
 user. Recruiters may only act as themselves; administrators may supply another
@@ -63,7 +65,14 @@ non-blank `actionableAdvice`. When `swipeId` is supplied, the swipe must belong
 to the same recruiter and candidate and the decision must match. Repeating the
 same submission returns the existing review; changing its content updates that
 review in place and re-emits `review.submitted` with the same `reviewId`, so
-downstream reward consumers stay idempotent.
+downstream reward consumers stay idempotent. A recruiter can review a candidate
+only once: a second submission for the same `(recruiterId, talentId)` updates
+the existing review instead of creating a duplicate, even without `swipeId`.
+
+The exclusions endpoint returns every reviewed candidate plus every candidate
+with a terminal `APPROVE`/`REJECT` swipe. Pure `DEFER` swipes without feedback
+are deliberately not excluded so the candidate remains available for a later
+review.
 
 ## Events
 

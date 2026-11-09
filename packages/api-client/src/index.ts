@@ -64,6 +64,7 @@ export type {
   RecruiterDashboard,
   RecruiterEngagementHistory,
   RecruiterLeaderboardEntry,
+  RecruiterQueueExclusions,
   RecruiterProfileContext,
   RegisterRequest,
   SkillAnalytics,

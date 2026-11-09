@@ -61,7 +61,11 @@ talentRouter.get(
   requireRoles('RECRUITER', 'ADMIN'),
   asyncHandler(async (req, res) => {
     const query = blindTalentQuerySchema.parse(req.query);
-    const result = await listBlindTalentProfiles(query);
+    const result = await listBlindTalentProfiles(
+      query,
+      req.auth!,
+      req.header('authorization') ?? undefined,
+    );
     res.status(200).json(result);
   }),
 );

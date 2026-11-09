@@ -172,6 +172,21 @@ describe('blind review', () => {
     expect(filter.$or).toHaveLength(2);
     expect(JSON.stringify(filter)).not.toContain('name');
   });
+
+  it('excludes candidates the recruiter already screened', () => {
+    const filter = buildBlindTalentFilter({}, [
+      '99999999-9999-4999-8999-999999999999',
+      '88888888-8888-4888-8888-888888888888',
+    ]);
+
+    expect(filter._id).toEqual({
+      $nin: ['99999999-9999-4999-8999-999999999999', '88888888-8888-4888-8888-888888888888'],
+    });
+  });
+
+  it('omits the exclusion clause when nothing has been screened', () => {
+    expect(buildBlindTalentFilter({})).not.toHaveProperty('_id');
+  });
 });
 
 describe('buildPaginationMeta', () => {

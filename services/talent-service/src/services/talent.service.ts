@@ -18,6 +18,7 @@ import {
   normalizeSkills,
   toBlindTalentProfile,
 } from '../domain/talent.js';
+import { fetchRecruiterQueueExclusions } from '../lib/engagement-client.js';
 import { AppError } from '../lib/errors.js';
 import { logger } from '../lib/logger.js';
 import { enqueueOutbox } from '../lib/outbox.js';
@@ -357,17 +358,21 @@ export async function listTalentProfiles(
 }
 
 /**
- * Recruiter-facing blind queue for Talent Swipe. Profiles are mapped through
+ * Recruiter-facing blind queue for Talent Swipe. Candidates the caller already
+ * screened are removed before pagination, and profiles are mapped through
  * `toBlindTalentProfile`, so identity, contact details and tier never leave the
  * service.
  */
 export async function listBlindTalentProfiles(
   params: BlindTalentQueryInput,
+  principal: TalentPrincipal,
+  authorization?: string,
 ): Promise<PaginatedResult<BlindTalentProfile>> {
   const page = params.page ?? 1;
   const limit = params.limit ?? 20;
 
-  const filter = buildBlindTalentFilter(params);
+  const excludedTalentIds = await fetchRecruiterQueueExclusions(principal, authorization);
+  const filter = buildBlindTalentFilter(params, excludedTalentIds);
 
   const [documents, total] = await Promise.all([
     TalentProfileModel.find(filter)

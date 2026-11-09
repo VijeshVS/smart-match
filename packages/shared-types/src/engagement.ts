@@ -54,6 +54,16 @@ export interface RecruiterEngagementHistory {
   reviews: CandidateReview[];
 }
 
+/**
+ * Candidate ids a recruiter should no longer see in the Talent Swipe deck:
+ * anyone they reviewed or gave a terminal approve/reject decision. Deferred
+ * candidates without feedback stay eligible for a later review.
+ */
+export interface RecruiterQueueExclusions {
+  recruiterId: UUID;
+  talentIds: UUID[];
+}
+
 export interface SwipeRecordedPayload {
   swipeId: UUID;
   recruiterId: UUID;

@@ -94,8 +94,13 @@ export function buildTalentFilter(params: TalentQueryParams): FilterQuery<Talent
  */
 export function buildBlindTalentFilter(
   params: BlindTalentQueryParams,
+  excludedTalentIds: readonly string[] = [],
 ): FilterQuery<TalentProfileRecord> {
   const filter: FilterQuery<TalentProfileRecord> = {};
+
+  if (excludedTalentIds.length > 0) {
+    filter._id = { $nin: [...excludedTalentIds] };
+  }
 
   if (params.field) {
     filter.field = caseInsensitiveExact(params.field);

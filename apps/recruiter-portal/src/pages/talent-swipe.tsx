@@ -49,7 +49,7 @@ import { formatNumber } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 const SWIPE_THRESHOLD = 110;
-const QUEUE_SIZE = 25;
+const QUEUE_PAGE_SIZE = 100;
 const CREDIT_POLL_ATTEMPTS = 6;
 const CREDIT_POLL_INTERVAL_MS = 700;
 
@@ -81,7 +81,7 @@ export function TalentSwipePage() {
   const { reload: reloadWallet } = useWallet();
 
   const [queue, setQueue] = useState<BlindTalentProfile[]>([]);
-  const [index, setIndex] = useState(0);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -97,15 +97,25 @@ export function TalentSwipePage() {
   const [sessionCredits, setSessionCredits] = useState(0);
   const creditedReferences = useRef(new Set<string>());
 
-  const current = queue[index] ?? null;
+  const current = queue[0] ?? null;
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await talentApi.listBlindProfiles({ limit: QUEUE_SIZE });
-      setQueue(result.data);
-      setIndex(0);
+      // The API already excludes candidates this recruiter has screened. Walk
+      // every page so the deck contains the full remaining pool, not just the
+      // first batch.
+      const profiles: BlindTalentProfile[] = [];
+      let page = 1;
+      for (;;) {
+        const result = await talentApi.listBlindProfiles({ page, limit: QUEUE_PAGE_SIZE });
+        profiles.push(...result.data);
+        if (!result.meta.hasNextPage) break;
+        page += 1;
+      }
+      setQueue(profiles);
+      setTotal(profiles.length);
     } catch (cause) {
       setError(toApiClientError(cause).message);
     } finally {
@@ -120,7 +130,9 @@ export function TalentSwipePage() {
   const advance = useCallback(() => {
     setDrag(NO_DRAG);
     pointerOrigin.current = null;
-    setIndex((value) => value + 1);
+    // Remove the handled candidate from the in-memory deck immediately. The
+    // next profile slides into the front of the queue.
+    setQueue((items) => items.slice(1));
   }, []);
 
   /**
@@ -300,7 +312,8 @@ export function TalentSwipePage() {
     pointerOrigin.current = null;
   };
 
-  const progress = queue.length > 0 ? Math.min(100, Math.round((index / queue.length) * 100)) : 0;
+  const completed = Math.max(0, total - queue.length);
+  const progress = total > 0 ? Math.min(100, Math.round((completed / total) * 100)) : 0;
   const intent = drag.x > 40 ? 'APPROVE' : drag.x < -40 ? 'REJECT' : null;
 
   return (
@@ -326,7 +339,7 @@ export function TalentSwipePage() {
             <div className="flex items-center gap-3">
               <Progress value={progress} className="flex-1" />
               <span className="text-xs text-muted-foreground">
-                {Math.min(index + (current ? 1 : 0), queue.length)} / {queue.length}
+                {Math.min(completed + (current ? 1 : 0), total)} / {total}
               </span>
             </div>
 
@@ -346,11 +359,11 @@ export function TalentSwipePage() {
                   <EmptyMedia variant="icon">
                     <CheckCircle2 />
                   </EmptyMedia>
-                  <EmptyTitle>You cleared the queue</EmptyTitle>
+                  <EmptyTitle>All caught up</EmptyTitle>
                   <EmptyDescription>
                     {reviewed > 0
-                      ? `You reviewed ${reviewed} candidate${reviewed === 1 ? '' : 's'} in this session. Reload for a fresh batch or search the directory.`
-                      : 'No verified candidates are waiting right now. Reload for a fresh batch or browse the directory.'}
+                      ? `You reviewed ${reviewed} candidate${reviewed === 1 ? '' : 's'} in this session. New profiles will appear here as they join the platform.`
+                      : 'You have reviewed every available candidate. New profiles will appear here as they join the platform.'}
                   </EmptyDescription>
                 </EmptyHeader>
                 <div className="flex flex-wrap justify-center gap-2">
@@ -584,7 +597,7 @@ export function TalentSwipePage() {
             <CardContent className="flex flex-col gap-3">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Decisions</span>
-                <span className="font-medium">{index}</span>
+                <span className="font-medium">{completed}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Reviews submitted</span>

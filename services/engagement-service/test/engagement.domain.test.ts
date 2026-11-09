@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   assertRecruiterAccess,
   buildRecruiterHistory,
+  buildRecruiterQueueExclusions,
   buildTalentSummary,
   hasActionableFeedback,
   normalizeOptionalText,
@@ -169,6 +170,33 @@ describe('engagement domain', () => {
     expect(history.reviews[0]?.actionableAdvice).toBe('Practice system design fundamentals.');
     expect(history.reviews[0]?.rating).toBeUndefined();
     expect(history.reviews[0]?.feedbackText).toBeUndefined();
+  });
+
+  it('excludes reviewed candidates and terminal swipes but keeps pure deferrals', () => {
+    const exclusions = buildRecruiterQueueExclusions(
+      recruiter.userId,
+      [
+        { talentId: 'talent-approved', decision: 'APPROVE' as const },
+        { talentId: 'talent-rejected', decision: 'REJECT' as const },
+        { talentId: 'talent-deferred', decision: 'DEFER' as const },
+      ],
+      [{ talentId: 'talent-reviewed' }, { talentId: 'talent-deferred' }],
+    );
+
+    expect(exclusions.recruiterId).toBe(recruiter.userId);
+    expect(exclusions.talentIds).toEqual([
+      'talent-approved',
+      'talent-deferred',
+      'talent-rejected',
+      'talent-reviewed',
+    ]);
+  });
+
+  it('returns no exclusions for a fresh recruiter', () => {
+    expect(buildRecruiterQueueExclusions(recruiter.userId, [], [])).toEqual({
+      recruiterId: recruiter.userId,
+      talentIds: [],
+    });
   });
 });
 
