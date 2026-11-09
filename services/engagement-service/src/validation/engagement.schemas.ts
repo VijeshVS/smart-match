@@ -37,6 +37,13 @@ export const createReviewSchema = z
     { message: 'Provide a rating, feedback text or actionable advice' },
   );
 
+/** Subset of `talent.profile.updated` needed to decide whether to reset. */
+export const talentProfileUpdatedSchema = z.object({
+  talentId: z.string().min(1).max(120),
+  changedFields: z.array(z.string().min(1).max(120)).default([]),
+  qualificationsChanged: z.boolean().optional(),
+});
+
 export const talentIdParamSchema = z.object({
   talentId: z.string().uuid('talentId must be a UUID'),
 });

@@ -2,13 +2,14 @@ import { randomUUID } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
 import mongoose from 'mongoose';
 import { getCorrelationId } from '@talent-ai/logger';
-import type {
-  BlindTalentProfile,
-  PaginatedResult,
-  TalentProfile,
-  TalentProfileCreatedPayload,
-  TalentProfileUpdatedPayload,
-  TalentQueryParams,
+import {
+  hasTalentQualificationChanges,
+  type BlindTalentProfile,
+  type PaginatedResult,
+  type TalentProfile,
+  type TalentProfileCreatedPayload,
+  type TalentProfileUpdatedPayload,
+  type TalentQueryParams,
 } from '@talent-ai/shared-types';
 import {
   buildBlindTalentFilter,
@@ -259,9 +260,11 @@ export async function updateTalentProfile(
       document.set(update);
       await document.save({ session });
 
+      const qualificationsChanged = hasTalentQualificationChanges(changedFields);
       const payload: TalentProfileUpdatedPayload = {
         ...profileEventPayload(document),
         changedFields,
+        qualificationsChanged,
       };
 
       await enqueueOutbox(session, {
@@ -273,7 +276,10 @@ export async function updateTalentProfile(
 
       updated = document;
 
-      logger.info({ talentId: document._id.toString(), changedFields }, 'talent profile updated');
+      logger.info(
+        { talentId: document._id.toString(), changedFields, qualificationsChanged },
+        'talent profile updated',
+      );
     });
   } catch (error) {
     if (isDuplicateKeyError(error)) {

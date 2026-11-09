@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { TalentProfile } from '@talent-ai/shared-types';
+import { hasTalentQualificationChanges, type TalentProfile } from '@talent-ai/shared-types';
 import {
   blindCandidateRef,
   buildBlindTalentFilter,
@@ -186,6 +186,22 @@ describe('blind review', () => {
 
   it('omits the exclusion clause when nothing has been screened', () => {
     expect(buildBlindTalentFilter({})).not.toHaveProperty('_id');
+  });
+});
+
+describe('qualification update detection', () => {
+  it('treats evaluation-relevant fields as qualification changes', () => {
+    expect(hasTalentQualificationChanges(['skills'])).toBe(true);
+    expect(hasTalentQualificationChanges(['previousExperience'])).toBe(true);
+    expect(hasTalentQualificationChanges(['education', 'name'])).toBe(true);
+    expect(hasTalentQualificationChanges(['portfolioUrl', 'githubUrl'])).toBe(true);
+  });
+
+  it('ignores identity and contact-only edits', () => {
+    expect(hasTalentQualificationChanges(['name'])).toBe(false);
+    expect(hasTalentQualificationChanges(['email', 'phone'])).toBe(false);
+    expect(hasTalentQualificationChanges(['linkedinUrl'])).toBe(false);
+    expect(hasTalentQualificationChanges([])).toBe(false);
   });
 });
 

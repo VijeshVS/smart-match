@@ -20,6 +20,9 @@ Recruiter swipe, review and candidate-feedback aggregate for talent.ai.
   omits `swipeId`.
 - Publishes `swipe.recorded` and `review.submitted` through a PostgreSQL
   transactional outbox.
+- Consumes `talent.profile.updated` and resets a candidate's active engagement
+  when their qualifications change: prior swipes and reviews are archived, then
+  removed so recruiters can evaluate the refreshed profile again.
 - Verifies the caller's identity from gateway `x-user-*` headers, or directly
   from the bearer JWT when the gateway is bypassed in local development.
 
@@ -74,14 +77,32 @@ with a terminal `APPROVE`/`REJECT` swipe. Pure `DEFER` swipes without feedback
 are deliberately not excluded so the candidate remains available for a later
 review.
 
+## Profile update reset
+
+The service consumes `talent.profile.updated` on the durable
+`engagement-service.talent-profile-consumer` queue. When
+`qualificationsChanged` is `true` (or, for older producers, `changedFields`
+contains a qualification field), one transaction:
+
+1. copies the candidate's swipes and reviews into
+   `profile_reset_archives` (`eventId` unique, full JSON snapshot),
+2. deletes the candidate's active reviews and swipes.
+
+The candidate summary then reports zero approvals, rejections and reviews, the
+recruiter exclusion list no longer contains them, and the unique
+`(recruiterId, talentId)` keys are free for a fresh decision. The archive keeps
+the previous history for audit. Redelivery is idempotent through the unique
+`eventId`, and an event older than the latest recorded reset is ignored.
+
 ## Events
 
-| Routing key | When | Payload |
-| :--- | :--- | :--- |
-| `swipe.recorded` | A swipe is created or its decision changes | `swipeId`, `recruiterId`, `talentId`, `decision`, `timestamp` |
-| `review.submitted` | A review is created or its content changes | `reviewId`, optional `swipeId`, `recruiterId`, `talentId`, `decision`, optional `feedbackText`, `hasActionableFeedback`, `timestamp` |
+| Routing key | Direction | When | Payload |
+| :--- | :--- | :--- | :--- |
+| `talent.profile.updated` | Consume | Candidate changes qualification fields | `talentId`, `changedFields`, optional `qualificationsChanged` |
+| `swipe.recorded` | Publish | A swipe is created or its decision changes | `swipeId`, `recruiterId`, `talentId`, `decision`, `timestamp` |
+| `review.submitted` | Publish | A review is created or its content changes | `reviewId`, optional `swipeId`, `recruiterId`, `talentId`, `decision`, optional `feedbackText`, `hasActionableFeedback`, `timestamp` |
 
-Both events follow the shared CloudEvents envelope from `@talent-ai/shared-types`.
+All events follow the shared CloudEvents envelope from `@talent-ai/shared-types`.
 An idempotent repeat of the same swipe decision emits no event.
 
 ## Transactional outbox
@@ -98,6 +119,10 @@ The service owns the `talent_engagement` database created by the infrastructure
 PostgreSQL init script. Prisma uses the `prisma-client` generator with ESM
 output under `src/generated/prisma`, so it never clobbers another service's
 generated client.
+
+Tables: `swipes`, `reviews`, `outbox_events` and `profile_reset_archives` (the
+immutable pre-reset snapshots used by the profile-update consumer). Apply the
+migration with `pnpm db:engagement:deploy`.
 
 ```bash
 pnpm --filter @talent-ai/engagement-service db:deploy

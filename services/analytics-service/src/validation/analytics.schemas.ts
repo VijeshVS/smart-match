@@ -10,6 +10,10 @@ export const talentProfileEventSchema = z.object({
   skills: z.array(z.string().max(80)).max(40).default([]),
   experienceYears: z.number().min(0).max(60),
   level: z.string().min(1).max(40),
+  /** Present on `talent.profile.updated`; empty for created events. */
+  changedFields: z.array(z.string().max(120)).max(50).default([]),
+  /** Producer-computed hint; older producers only send `changedFields`. */
+  qualificationsChanged: z.boolean().optional(),
 });
 
 export const recruiterRegisteredSchema = z.object({
