@@ -62,6 +62,10 @@ const envSchema = z.object({
   QDRANT_API_KEY: optionalSecret('QDRANT_API_KEY'),
   REDIS_URL: z.string().min(1).default('redis://localhost:6379'),
 
+  // TalentLens charges TalentCredits through rewards-service before searching.
+  REWARDS_SERVICE_URL: z.string().url().default('http://localhost:5005'),
+  REWARDS_TIMEOUT_MS: z.coerce.number().int().positive().max(30_000).default(3_000),
+
   RABBITMQ_URL: z.string().min(1).default('amqp://talent:talent@localhost:5672'),
   RABBITMQ_EXCHANGE: z.string().min(1).default('talent.events.topic'),
 
@@ -169,6 +173,10 @@ export const config = Object.freeze({
     apiKey: raw.QDRANT_API_KEY,
   }),
   redisUrl: raw.REDIS_URL,
+  rewards: Object.freeze({
+    url: raw.REWARDS_SERVICE_URL.replace(/\/+$/, ''),
+    timeoutMs: raw.REWARDS_TIMEOUT_MS,
+  }),
   rabbitmq: Object.freeze({
     url: raw.RABBITMQ_URL,
     exchange: raw.RABBITMQ_EXCHANGE,

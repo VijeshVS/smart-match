@@ -1,17 +1,12 @@
 import { useState, type FormEvent } from 'react';
-import {
-  ArrowUpRight,
-  Crown,
-  LockKeyhole,
-  ScanSearch,
-  Sparkles,
-  Wand2,
-} from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowUpRight, Coins, Crown, LockKeyhole, ScanSearch, Sparkles, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   aiApi,
   talentApi,
   toApiClientError,
+  TALENT_CREDIT_RULES,
   TALENT_LEVELS,
   TALENT_LEVEL_LABELS,
   type TalentLevel,
@@ -22,14 +17,14 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty';
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field';
 import {
   Select,
@@ -47,6 +42,7 @@ import { CandidateDialog } from '@/components/candidate-dialog';
 import { UnlockDialog } from '@/components/unlock-dialog';
 import { useAuth } from '@/lib/auth';
 import { useUnlockedTalent } from '@/lib/unlocked';
+import { useWallet } from '@/lib/wallet';
 import { formatNumber, formatPercent } from '@/lib/format';
 
 const ALL = 'ALL';
@@ -62,6 +58,11 @@ export function TalentLensPage() {
   const { org } = useAuth();
   const recruiterId = org?.profile.id ?? null;
   const { unlocked, markUnlocked } = useUnlockedTalent(recruiterId);
+  const { wallet, setWallet, reload: reloadWallet } = useWallet();
+
+  const queryCost = TALENT_CREDIT_RULES.TALENT_LENS_QUERY_COST;
+  const balance = wallet?.balance ?? null;
+  const belowCost = balance !== null && balance < queryCost;
 
   const [query, setQuery] = useState('');
   const [limit, setLimit] = useState('10');
@@ -76,9 +77,15 @@ export function TalentLensPage() {
   const [unlockTarget, setUnlockTarget] = useState<TalentProfile | null>(null);
   const [unlockOpen, setUnlockOpen] = useState(false);
 
+  // `belowCost` also clears itself once the wallet is topped up elsewhere (for
+  // example after earning credits in TalentSwipe).
+  const blocked = belowCost;
+
   const runSearch = async (event?: FormEvent<HTMLFormElement>) => {
     event?.preventDefault();
     const trimmed = query.trim();
+
+    if (blocked) return;
 
     if (trimmed.length < 3) {
       setError('Describe the hire you need in at least 3 characters.');
@@ -93,13 +100,25 @@ export function TalentLensPage() {
         query: trimmed,
         limit: Number(limit),
         ...(level !== ALL ? { filters: { level } } : {}),
+        requestId: crypto.randomUUID(),
       });
       setResponse(result);
+      // Reflect the debit immediately, then refresh the ledger in the
+      // background so the sidebar and history stay in sync.
+      setWallet(result.wallet);
+      void reloadWallet();
       if (result.results.length === 0) {
         toast.info('No matches yet — try a broader description.');
       }
     } catch (cause) {
-      setError(toApiClientError(cause).message);
+      const apiError = toApiClientError(cause);
+      if (apiError.code === 'INSUFFICIENT_CREDITS' || apiError.status === 402) {
+        setError(null);
+        void reloadWallet();
+        toast.error(`A TalentLens search costs ${queryCost} TC. Earn credits in TalentSwipe.`);
+      } else {
+        setError(apiError.message);
+      }
     } finally {
       setPending(false);
     }
@@ -136,7 +155,7 @@ export function TalentLensPage() {
           </CardTitle>
           <CardDescription>
             Describe the hire in plain language. TalentLens ranks the talent graph with explainable
-            scores.
+            scores. Each search costs {queryCost} TalentCredits.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -151,6 +170,7 @@ export function TalentLensPage() {
                   placeholder="e.g. Staff backend engineer with Go, Kubernetes and a track record of scaling payments infrastructure"
                   className="min-h-24 resize-y bg-background/40"
                   maxLength={2000}
+                  disabled={blocked}
                 />
                 <FieldDescription>
                   Mention skills, seniority and domain. Add a tier filter to narrow the search.
@@ -192,10 +212,25 @@ export function TalentLensPage() {
                   </Select>
                 </Field>
 
-                <Button type="submit" disabled={pending} className="sm:w-40">
-                  {pending ? <Spinner data-icon="inline-start" /> : <Wand2 data-icon="inline-start" />}
-                  {pending ? 'Searching…' : 'Find matches'}
-                </Button>
+                <div className="flex flex-col gap-2 sm:w-48">
+                  <Button type="submit" disabled={pending || blocked} className="w-full">
+                    {pending ? (
+                      <Spinner data-icon="inline-start" />
+                    ) : (
+                      <Wand2 data-icon="inline-start" />
+                    )}
+                    {pending ? 'Searching…' : 'Find matches'}
+                  </Button>
+                  <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                    <span className="inline-flex items-center gap-1">
+                      <Coins className="size-3 text-brand-cyan" />
+                      {queryCost} TC
+                    </span>
+                    <span className={belowCost ? 'font-medium text-destructive' : undefined}>
+                      Balance: {wallet ? `${formatNumber(wallet.balance)} TC` : '—'}
+                    </span>
+                  </div>
+                </div>
               </div>
             </FieldGroup>
           </form>
@@ -215,7 +250,27 @@ export function TalentLensPage() {
         </CardContent>
       </Card>
 
-      {error ? (
+      {blocked ? (
+        <Alert>
+          <Coins />
+          <AlertTitle>Not enough TalentCredits</AlertTitle>
+          <AlertDescription>
+            A TalentLens search costs {queryCost} TC and your balance is{' '}
+            {balance !== null ? `${formatNumber(balance)} TC` : 'still loading'}. Evaluate
+            candidates in TalentSwipe to earn credits.
+            <div className="mt-3">
+              <Button asChild size="sm">
+                <Link to="/swipe">
+                  <Coins data-icon="inline-start" />
+                  Earn credits in TalentSwipe
+                </Link>
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      {error && !blocked ? (
         <Alert variant="destructive">
           <ScanSearch />
           <AlertTitle>Search failed</AlertTitle>
@@ -264,9 +319,7 @@ export function TalentLensPage() {
             </p>
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="outline">engine: {response.provider}</Badge>
-              {response.fallback ? (
-                <Badge variant="secondary">deterministic fallback</Badge>
-              ) : null}
+              {response.fallback ? <Badge variant="secondary">deterministic fallback</Badge> : null}
               {response.cached ? <Badge variant="secondary">cached</Badge> : null}
             </div>
           </div>
@@ -287,8 +340,8 @@ export function TalentLensPage() {
                         <div className="min-w-0">
                           <p className="truncate font-semibold">{match.profile.name}</p>
                           <p className="truncate text-xs text-muted-foreground">
-                            {match.profile.field} ·{' '}
-                            {formatNumber(match.profile.experienceYears)} yrs
+                            {match.profile.field} · {formatNumber(match.profile.experienceYears)}{' '}
+                            yrs
                           </p>
                         </div>
                       </div>
@@ -342,7 +395,9 @@ export function TalentLensPage() {
                     ) : null}
 
                     {match.rationale ? (
-                      <p className="line-clamp-3 text-xs text-muted-foreground">{match.rationale}</p>
+                      <p className="line-clamp-3 text-xs text-muted-foreground">
+                        {match.rationale}
+                      </p>
                     ) : null}
 
                     <Separator />
@@ -389,9 +444,7 @@ export function TalentLensPage() {
 
       <CandidateDialog
         profile={selected}
-        locked={
-          selected ? selected.level === 'LEVEL_3_LEAD' && !unlocked.has(selected.id) : false
-        }
+        locked={selected ? selected.level === 'LEVEL_3_LEAD' && !unlocked.has(selected.id) : false}
         open={detailOpen}
         onOpenChange={setDetailOpen}
         onUnlock={() => {

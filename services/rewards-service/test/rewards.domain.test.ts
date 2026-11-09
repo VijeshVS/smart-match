@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { LEDGER_TRANSACTION_TYPES, TALENT_CREDIT_RULES } from '@talent-ai/shared-types';
 import {
   assertRecruiterAccess,
   isGrantActive,
@@ -34,6 +35,12 @@ const admin: RewardsPrincipal = {
 const now = new Date('2026-11-05T00:00:00.000Z');
 
 describe('rewards domain', () => {
+  it('prices TalentLens at 15 TC and records the debit type', () => {
+    expect(TALENT_CREDIT_RULES.TALENT_LENS_QUERY_COST).toBe(15);
+    expect(LEDGER_TRANSACTION_TYPES).toContain('DEBIT_TALENT_LENS_QUERY');
+    expect(LEDGER_TRANSACTION_TYPES).toContain('CREDIT_TALENT_LENS_REFUND');
+  });
+
   it('grants rewards permissions by role', () => {
     expect(permissionsForRole('RECRUITER')).toContain('rewards:read');
     expect(permissionsForRole('RECRUITER')).toContain('rewards:spend');

@@ -41,7 +41,7 @@ aiRouter.post(
   requireRoles('RECRUITER', 'ADMIN'),
   asyncHandler(async (req, res) => {
     const input = talentLensRequestSchema.parse(req.body);
-    const result = await talentLens(input, req.auth!);
+    const result = await talentLens(input, req.auth!, req.header('authorization'));
     res.status(200).json({ data: result });
   }),
 );

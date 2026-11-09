@@ -1,4 +1,5 @@
 import type { ISODateString, UUID } from './common.js';
+import type { Wallet } from './rewards.js';
 import type { TalentLevel, TalentProfile } from './talent.js';
 
 export const LLM_PROVIDERS = ['groq', 'gemini', 'openai'] as const;
@@ -61,6 +62,11 @@ export interface TalentLensRequest {
   query: string;
   limit?: number;
   filters?: TalentLensFilters;
+  /**
+   * Client-generated idempotency key. A retried request that reuses this value
+   * reuses the original debit instead of charging the recruiter twice.
+   */
+  requestId?: UUID;
 }
 
 export interface TalentLensMatch {
@@ -80,6 +86,10 @@ export interface TalentLensResponse {
   provider: AiEngine;
   /** True when the deterministic local engine produced the answer. */
   fallback: boolean;
+  /** TalentCredits debited by this request (0 for an idempotent replay). */
+  chargedCredits: number;
+  /** Recruiter wallet after the query debit. */
+  wallet: Wallet;
 }
 
 export interface MatchEvaluation {

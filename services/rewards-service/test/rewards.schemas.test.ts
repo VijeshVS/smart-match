@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   reviewSubmittedPayloadSchema,
   swipeRecordedPayloadSchema,
+  talentLensQuerySchema,
   unlockTier3Schema,
   walletQuerySchema,
 } from '../src/validation/rewards.schemas.js';
@@ -30,6 +31,12 @@ describe('rewards validation', () => {
     expect(walletQuerySchema.parse({})).toEqual({});
     expect(walletQuerySchema.parse({ recruiterId })).toEqual({ recruiterId });
     expect(() => walletQuerySchema.parse({ recruiterId: 'not-a-uuid' })).toThrow();
+  });
+
+  it('validates the TalentLens query idempotency key', () => {
+    expect(talentLensQuerySchema.parse({ queryId: reviewId })).toEqual({ queryId: reviewId });
+    expect(() => talentLensQuerySchema.parse({ queryId: 'query-1' })).toThrow();
+    expect(() => talentLensQuerySchema.parse({})).toThrow();
   });
 
   it('validates the swipe.recorded payload', () => {

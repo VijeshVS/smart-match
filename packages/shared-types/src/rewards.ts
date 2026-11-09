@@ -6,7 +6,9 @@ export const LEDGER_TRANSACTION_TYPES = [
   'CREDIT_REVIEW_FEEDBACK',
   'CREDIT_PURCHASE',
   'CREDIT_WELCOME_BONUS',
+  'CREDIT_TALENT_LENS_REFUND',
   'DEBIT_TIER3_UNLOCK',
+  'DEBIT_TALENT_LENS_QUERY',
   'ADJUSTMENT',
 ] as const;
 export type LedgerTransactionType = (typeof LEDGER_TRANSACTION_TYPES)[number];
@@ -58,6 +60,21 @@ export interface UnlockTier3Response {
   chargedCredits: number;
 }
 
+export interface TalentLensChargeResult {
+  wallet: Wallet;
+  transaction: LedgerTransaction | null;
+  /** True when this request created the debit; false for an idempotent replay. */
+  charged: boolean;
+  chargedCredits: number;
+}
+
+export interface TalentLensRefundResult {
+  wallet: Wallet;
+  /** True when this request reversed a debit. */
+  refunded: boolean;
+  refundedCredits: number;
+}
+
 /** Business rules for the TalentCredits economy. */
 export const TALENT_CREDIT_RULES = {
   /** Accepting or rejecting a candidate earns this once per swipe. */
@@ -65,6 +82,8 @@ export const TALENT_CREDIT_RULES = {
   /** Submitting candidate feedback earns this once per review. */
   REVIEW_FEEDBACK_REWARD: 5,
   TIER3_UNLOCK_COST: 50,
+  /** Each TalentLens search prompt costs this much. */
+  TALENT_LENS_QUERY_COST: 15,
   WELCOME_BONUS: 20,
 } as const;
 
