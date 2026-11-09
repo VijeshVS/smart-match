@@ -3,6 +3,7 @@ import {
   type CandidateReview,
   type Permission,
   type RecruiterEngagementHistory,
+  type RecruiterQueueExclusions,
   type SwipeDecision,
   type SwipeInteraction,
   type TalentEngagementSummary,
@@ -137,5 +138,34 @@ export function buildRecruiterHistory(
     recruiterId,
     swipes: swipes.map(toSwipe),
     reviews: reviews.map(toReview),
+  };
+}
+
+/**
+ * Builds the candidate ids that must be hidden from a recruiter's Talent Swipe
+ * deck. A review always counts as screened. A swipe only counts once it is a
+ * terminal approve/reject decision: deferring intentionally keeps the candidate
+ * in the pool for a later review.
+ */
+export function buildRecruiterQueueExclusions(
+  recruiterId: string,
+  swipes: readonly Pick<SwipeRow, 'talentId' | 'decision'>[],
+  reviews: readonly Pick<ReviewRow, 'talentId'>[],
+): RecruiterQueueExclusions {
+  const talentIds = new Set<string>();
+
+  for (const review of reviews) {
+    talentIds.add(review.talentId);
+  }
+
+  for (const swipe of swipes) {
+    if (swipe.decision === 'APPROVE' || swipe.decision === 'REJECT') {
+      talentIds.add(swipe.talentId);
+    }
+  }
+
+  return {
+    recruiterId,
+    talentIds: [...talentIds].sort(),
   };
 }

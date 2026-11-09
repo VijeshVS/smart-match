@@ -3,6 +3,7 @@ import { asyncHandler } from '../lib/errors.js';
 import { requireAuth, requireRoles } from '../middleware/auth.js';
 import {
   getRecruiterEngagementHistory,
+  getRecruiterQueueExclusions,
   getTalentEngagementSummary,
   recordSwipe,
   submitReview,
@@ -74,5 +75,21 @@ engagementRouter.get(
     });
     const history = await getRecruiterEngagementHistory(recruiterId, req.auth!);
     res.status(200).json({ data: history });
+  }),
+);
+
+/**
+ * Candidate ids already screened by the recruiter. The talent service uses
+ * this to filter the blind Talent Swipe queue.
+ */
+engagementRouter.get(
+  '/recruiter/:recruiterId/exclusions',
+  requireRoles('RECRUITER', 'ADMIN'),
+  asyncHandler(async (req, res) => {
+    const { recruiterId } = recruiterIdParamSchema.parse({
+      recruiterId: param(req, 'recruiterId'),
+    });
+    const exclusions = await getRecruiterQueueExclusions(recruiterId, req.auth!);
+    res.status(200).json({ data: exclusions });
   }),
 );

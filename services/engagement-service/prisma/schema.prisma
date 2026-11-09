@@ -62,6 +62,7 @@ model Review {
 
   swipe Swipe? @relation(fields: [swipeId], references: [id], onDelete: SetNull)
 
+  @@unique([recruiterId, talentId])
   @@index([talentId, createdAt])
   @@index([recruiterId, createdAt])
   @@map("reviews")

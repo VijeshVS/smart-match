@@ -62,6 +62,11 @@ const envSchema = z.object({
   RABBITMQ_URL: z.string().min(1).default('amqp://talent:talent@localhost:5672'),
   RABBITMQ_EXCHANGE: z.string().min(1).default('talent.events.topic'),
 
+  // Synchronous dependency used to hide already-screened candidates from the
+  // blind Talent Swipe queue.
+  ENGAGEMENT_SERVICE_URL: z.string().url().default('http://localhost:5004'),
+  ENGAGEMENT_TIMEOUT_MS: z.coerce.number().int().positive().max(30_000).default(3_000),
+
   // Access tokens are verified when a service is called directly (bypassing
   // the gateway). The gateway injects identity headers after verification.
   JWT_ACCESS_SECRET: secretFromEnv('JWT_ACCESS_SECRET'),
@@ -118,6 +123,10 @@ export const config = Object.freeze({
   rabbitmq: Object.freeze({
     url: raw.RABBITMQ_URL,
     exchange: raw.RABBITMQ_EXCHANGE,
+  }),
+  engagement: Object.freeze({
+    url: raw.ENGAGEMENT_SERVICE_URL.replace(/\/+$/, ''),
+    timeoutMs: raw.ENGAGEMENT_TIMEOUT_MS,
   }),
   jwt: Object.freeze({
     accessSecret: raw.JWT_ACCESS_SECRET,

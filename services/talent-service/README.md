@@ -25,7 +25,7 @@ Candidate profile aggregate for talent.ai.
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/v1/talent` | Candidate, Admin | Create the caller's profile. |
 | `GET` | `/api/v1/talent/me` | Authenticated | Fetch the caller's profile. |
-| `GET` | `/api/v1/talent/blind` | Recruiter, Admin | Blind Talent Swipe queue. Omits identity, contact details, tier and profile links; keeps qualifications and work samples. |
+| `GET` | `/api/v1/talent/blind` | Recruiter, Admin | Blind Talent Swipe queue. Excludes candidates the caller already reviewed or gave a terminal approve/reject decision. Omits identity, contact details, tier and profile links; keeps qualifications and work samples. |
 | `GET` | `/api/v1/talent/:id` | Owner, Recruiter, Admin | Fetch one profile. |
 | `GET` | `/api/v1/talent` | Recruiter, Admin | Paginated directory with search, skill, tier, field and experience filters. |
 | `PUT` | `/api/v1/talent/:id` | Owner, Admin | Partial update; emits `talent.profile.updated` only when values change. |
@@ -42,7 +42,13 @@ Query parameters for `GET /api/v1/talent`:
 
 `GET /api/v1/talent/blind` accepts the same pagination, `field`, `skills` and
 experience parameters, but deliberately drops `level` and searches only field
-and skills so a recruiter cannot probe for identity or Elite status.
+and skills so a recruiter cannot probe for identity or Elite status. Before
+querying MongoDB it fetches the caller's screened candidate ids from
+`GET /api/v1/engagement/recruiter/:recruiterId/exclusions`; a candidate is
+screened when they have a review or an `APPROVE`/`REJECT` swipe. A pure `DEFER`
+swipe stays in the pool so “defer for later” still works. If engagement is
+unavailable the queue fails closed with `503 ENGAGEMENT_UNAVAILABLE` rather than
+risk showing already-screened candidates.
 
 When `level` is omitted on creation it is derived from `experienceYears`:
 `>= 8` → Elite Principal, `>= 3` → Pro Engineer, otherwise Junior Fellow.
@@ -79,6 +85,8 @@ Copy `.env.example` to `.env`, or rely on the repository root `.env`.
 | `JWT_ACCESS_SECRET` | — | Must match `auth-service` / `api-gateway`. |
 | `TRUST_GATEWAY_HEADERS` | `true` | Trust `x-user-*` headers injected at the edge. |
 | `RABBITMQ_URL` | `amqp://talent:talent@localhost:5672` | Outbox relay broker. |
+| `ENGAGEMENT_SERVICE_URL` | `http://localhost:5004` | Used to load the caller's screened candidate ids. |
+| `ENGAGEMENT_TIMEOUT_MS` | `3000` | Timeout for the exclusion lookup. |
 | `OUTBOX_POLL_INTERVAL_MS` | `2000` | Relay cadence. |
 | `OUTBOX_MAX_ATTEMPTS` | `10` | Attempts before a row is marked `FAILED`. |
 

@@ -3,6 +3,7 @@ import { getCorrelationId } from '@talent-ai/logger';
 import type {
   CandidateReview,
   RecruiterEngagementHistory,
+  RecruiterQueueExclusions,
   ReviewSubmittedPayload,
   SwipeInteraction,
   SwipeRecordedPayload,
@@ -11,6 +12,7 @@ import type {
 import {
   assertRecruiterAccess,
   buildRecruiterHistory,
+  buildRecruiterQueueExclusions,
   buildTalentSummary,
   hasActionableFeedback,
   normalizeOptionalText,
@@ -164,52 +166,65 @@ async function enqueueReviewEvent(tx: Prisma.TransactionClient, review: ReviewRo
 
 /**
  * Submits a recruiter review. When `swipeId` is supplied the swipe must belong
- * to the same recruiter and candidate. A swipe can have at most one review:
- * retrying (or updating) the same submission updates the existing row and
- * reuses its review id, so downstream credit consumers never double-award.
+ * to the same recruiter and candidate. A recruiter can review a candidate at
+ * most once: retrying (or updating) the same submission updates the existing
+ * row and reuses its review id, so downstream credit consumers never
+ * double-award. This holds even when the retry omits `swipeId`.
  */
 export async function submitReview(
   input: CreateReviewInput,
   principal: EngagementPrincipal,
+  attempt = 0,
 ): Promise<SubmitReviewResult> {
   const recruiterId = resolveRecruiterId(input.recruiterId, principal);
   const feedbackText = normalizeOptionalText(input.feedbackText);
   const actionableAdvice = normalizeOptionalText(input.actionableAdvice);
 
-  const result = await prisma.$transaction(async (tx) => {
-    if (input.swipeId) {
-      const swipe = await tx.swipe.findUnique({ where: { id: input.swipeId } });
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      if (input.swipeId) {
+        const swipe = await tx.swipe.findUnique({ where: { id: input.swipeId } });
 
-      if (!swipe) {
-        throw new AppError(404, 'SWIPE_NOT_FOUND', 'The referenced swipe was not found');
-      }
-      if (swipe.recruiterId !== recruiterId) {
-        throw new AppError(
-          403,
-          'SWIPE_OWNERSHIP_MISMATCH',
-          'The referenced swipe belongs to another recruiter',
-        );
-      }
-      if (swipe.talentId !== input.talentId) {
-        throw new AppError(
-          400,
-          'SWIPE_TALENT_MISMATCH',
-          'The referenced swipe belongs to a different candidate',
-        );
-      }
-      if (swipe.decision !== input.decision) {
-        throw new AppError(
-          400,
-          'DECISION_MISMATCH',
-          'The review decision must match the referenced swipe',
-        );
+        if (!swipe) {
+          throw new AppError(404, 'SWIPE_NOT_FOUND', 'The referenced swipe was not found');
+        }
+        if (swipe.recruiterId !== recruiterId) {
+          throw new AppError(
+            403,
+            'SWIPE_OWNERSHIP_MISMATCH',
+            'The referenced swipe belongs to another recruiter',
+          );
+        }
+        if (swipe.talentId !== input.talentId) {
+          throw new AppError(
+            400,
+            'SWIPE_TALENT_MISMATCH',
+            'The referenced swipe belongs to a different candidate',
+          );
+        }
+        if (swipe.decision !== input.decision) {
+          throw new AppError(
+            400,
+            'DECISION_MISMATCH',
+            'The review decision must match the referenced swipe',
+          );
+        }
       }
 
-      const existing = await tx.review.findUnique({ where: { swipeId: input.swipeId } });
+      const existing =
+        (input.swipeId
+          ? await tx.review.findUnique({ where: { swipeId: input.swipeId } })
+          : null) ??
+        (await tx.review.findUnique({
+          where: {
+            recruiterId_talentId: { recruiterId, talentId: input.talentId },
+          },
+        }));
 
       if (existing) {
         // Retry/update path: keep the review id stable so the rewards ledger's
         // `(type, referenceId)` idempotency key absorbs the repeated event.
+        const nextSwipeId = existing.swipeId ?? input.swipeId ?? null;
         const nextRating = input.rating === undefined ? existing.rating : input.rating;
         const nextFeedback =
           input.feedbackText === undefined ? existing.feedbackText : (feedbackText ?? null);
@@ -223,6 +238,8 @@ export async function submitReview(
             : hasActionableFeedback(actionableAdvice);
 
         const changed =
+          nextSwipeId !== existing.swipeId ||
+          input.decision !== existing.decision ||
           nextRating !== existing.rating ||
           nextFeedback !== existing.feedbackText ||
           nextAdvice !== existing.actionableAdvice ||
@@ -235,6 +252,8 @@ export async function submitReview(
         const updated = await tx.review.update({
           where: { id: existing.id },
           data: {
+            swipeId: nextSwipeId,
+            decision: input.decision,
             rating: nextRating,
             feedbackText: nextFeedback,
             actionableAdvice: nextAdvice,
@@ -246,46 +265,52 @@ export async function submitReview(
 
         return { row: updated, created: false, updated: true };
       }
-    }
 
-    const created = await tx.review.create({
-      data: {
-        ...(input.swipeId ? { swipeId: input.swipeId } : {}),
-        recruiterId,
-        talentId: input.talentId,
-        decision: input.decision,
-        ...(input.rating === undefined ? {} : { rating: input.rating }),
-        ...(feedbackText ? { feedbackText } : {}),
-        ...(actionableAdvice ? { actionableAdvice } : {}),
-        hasActionableFeedback: hasActionableFeedback(actionableAdvice),
-      },
+      const created = await tx.review.create({
+        data: {
+          ...(input.swipeId ? { swipeId: input.swipeId } : {}),
+          recruiterId,
+          talentId: input.talentId,
+          decision: input.decision,
+          ...(input.rating === undefined ? {} : { rating: input.rating }),
+          ...(feedbackText ? { feedbackText } : {}),
+          ...(actionableAdvice ? { actionableAdvice } : {}),
+          hasActionableFeedback: hasActionableFeedback(actionableAdvice),
+        },
+      });
+
+      await enqueueReviewEvent(tx, created);
+
+      return { row: created, created: true, updated: false };
     });
+    const review = result.row;
 
-    await enqueueReviewEvent(tx, created);
+    logger.info(
+      {
+        reviewId: review.id,
+        recruiterId,
+        talentId: review.talentId,
+        decision: review.decision,
+        hasActionableFeedback: review.hasActionableFeedback,
+        created: result.created,
+        updated: result.updated,
+      },
+      result.created ? 'review submitted' : result.updated ? 'review updated' : 'review unchanged',
+    );
 
-    return { row: created, created: true, updated: false };
-  });
-
-  const review = result.row;
-
-  logger.info(
-    {
-      reviewId: review.id,
-      recruiterId,
-      talentId: review.talentId,
-      decision: review.decision,
-      hasActionableFeedback: review.hasActionableFeedback,
+    return {
+      review: toReview(review),
       created: result.created,
       updated: result.updated,
-    },
-    result.created ? 'review submitted' : result.updated ? 'review updated' : 'review unchanged',
-  );
-
-  return {
-    review: toReview(review),
-    created: result.created,
-    updated: result.updated,
-  };
+    };
+  } catch (error) {
+    // Concurrent first reviews race on the `(recruiterId, talentId)` unique
+    // key; retry once so the caller observes the idempotent update path.
+    if (attempt === 0 && isPrismaError(error, 'P2002')) {
+      return submitReview(input, principal, 1);
+    }
+    throw error;
+  }
 }
 
 /** Candidate dashboard aggregate: swipe counts plus recent review feedback. */
@@ -325,4 +350,32 @@ export async function getRecruiterEngagementHistory(
   ]);
 
   return buildRecruiterHistory(recruiterId, swipes, reviews);
+}
+
+/**
+ * Candidate ids that should be removed from the recruiter's Talent Swipe deck.
+ * Reads every matching row (unlike the paged history endpoint) so the blind
+ * queue filter never lets an old review resurface.
+ */
+export async function getRecruiterQueueExclusions(
+  recruiterId: string,
+  principal: EngagementPrincipal,
+): Promise<RecruiterQueueExclusions> {
+  assertRecruiterAccess(principal, recruiterId);
+
+  const [swipes, reviews] = await Promise.all([
+    prisma.swipe.findMany({
+      where: {
+        recruiterId,
+        decision: { in: ['APPROVE', 'REJECT'] },
+      },
+      select: { talentId: true, decision: true },
+    }),
+    prisma.review.findMany({
+      where: { recruiterId },
+      select: { talentId: true },
+    }),
+  ]);
+
+  return buildRecruiterQueueExclusions(recruiterId, swipes, reviews);
 }
