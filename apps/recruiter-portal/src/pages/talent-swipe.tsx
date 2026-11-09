@@ -248,32 +248,28 @@ export function TalentSwipePage() {
   const handleReviewSubmit = async (submission: ReviewSubmission) => {
     if (!reviewTarget) return;
 
-    try {
-      const requestedAt = new Date().toISOString();
-      const result = await engagementApi.submitReview({
-        talentId: reviewTarget.id,
-        decision: reviewDecision,
-        ...(reviewSwipeId ? { swipeId: reviewSwipeId } : {}),
-        ...submission,
-      });
+    const requestedAt = new Date().toISOString();
+    const result = await engagementApi.submitReview({
+      talentId: reviewTarget.id,
+      decision: reviewDecision,
+      ...(reviewSwipeId ? { swipeId: reviewSwipeId } : {}),
+      ...submission,
+    });
 
-      if (result.created) setReviewed((value) => value + 1);
+    if (result.created) setReviewed((value) => value + 1);
 
-      toast.success(result.updated ? 'Review updated' : 'Review submitted', {
-        description: `Candidate feedback earns +${TALENT_CREDIT_RULES.REVIEW_FEEDBACK_REWARD} TalentCredits.`,
-      });
-      void confirmCredit(
-        'CREDIT_REVIEW_FEEDBACK',
-        result.review.id,
-        'Candidate feedback confirmed.',
-        requestedAt,
-      );
-    } catch (cause) {
-      // The dialog owns the inline error state and surfaces the message.
-      throw cause;
-    }
-    // The dialog closes itself after a successful submit; `onOpenChange`
-    // advances the queue exactly once for both submit and skip.
+    toast.success(result.updated ? 'Review updated' : 'Review submitted', {
+      description: `Candidate feedback earns +${TALENT_CREDIT_RULES.REVIEW_FEEDBACK_REWARD} TalentCredits.`,
+    });
+    void confirmCredit(
+      'CREDIT_REVIEW_FEEDBACK',
+      result.review.id,
+      'Candidate feedback confirmed.',
+      requestedAt,
+    );
+    // The dialog owns the inline error state and closes itself after a
+    // successful submit; `onOpenChange` advances the queue exactly once for
+    // both submit and skip.
   };
 
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
