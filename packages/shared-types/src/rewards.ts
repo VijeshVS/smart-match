@@ -9,6 +9,7 @@ export const LEDGER_TRANSACTION_TYPES = [
   'CREDIT_TALENT_LENS_REFUND',
   'DEBIT_TIER3_UNLOCK',
   'DEBIT_TALENT_LENS_QUERY',
+  'DEBIT_REWARD_REDEMPTION',
   'ADJUSTMENT',
 ] as const;
 export type LedgerTransactionType = (typeof LEDGER_TRANSACTION_TYPES)[number];
@@ -47,6 +48,51 @@ export interface TalentAccessGrant {
 export interface WalletSummary {
   wallet: Wallet;
   transactions: LedgerTransaction[];
+}
+
+export const REWARD_CATEGORIES = ['FOOD', 'SHOPPING', 'TRAVEL', 'ENTERTAINMENT', 'ALL'] as const;
+export type RewardCategory = (typeof REWARD_CATEGORIES)[number];
+
+export interface RewardCatalogItem {
+  id: UUID;
+  brand: string;
+  category: Exclude<RewardCategory, 'ALL'>;
+  title: string;
+  description: string;
+  discount: string;
+  cost: number;
+  terms: string[];
+  expiresAt?: ISODateString;
+  available: boolean;
+}
+
+export interface RewardRedemption {
+  id: UUID;
+  rewardId: UUID;
+  reward: RewardCatalogItem;
+  couponCode: string;
+  recruiterId: UUID;
+  redeemedAt: ISODateString;
+  expiresAt?: ISODateString;
+}
+
+export interface RedeemRewardRequest {
+  rewardId: UUID;
+  requestId: UUID;
+}
+
+export interface RedeemRewardResponse {
+  redemption: RewardRedemption;
+  wallet: Wallet;
+  chargedCredits: number;
+}
+
+export interface RewardRedeemedPayload {
+  redemptionId: UUID;
+  recruiterId: UUID;
+  rewardId: UUID;
+  transactionId: UUID;
+  chargedCredits: number;
 }
 
 export interface UnlockTier3Request {

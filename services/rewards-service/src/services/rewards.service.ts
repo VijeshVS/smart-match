@@ -12,6 +12,9 @@ import {
   type UnlockTier3Response,
   type Wallet,
   type WalletSummary,
+  type RewardCatalogItem,
+  type RewardRedemption,
+  type RedeemRewardResponse,
 } from '@talent-ai/shared-types';
 import type {
   LedgerTransaction as LedgerTransactionRow,
@@ -31,7 +34,12 @@ import { AppError } from '../lib/errors.js';
 import { logger } from '../lib/logger.js';
 import { enqueueOutbox } from '../lib/outbox.js';
 import { prisma } from '../lib/prisma.js';
-import type { TalentLensQueryInput, UnlockTier3Input } from '../validation/rewards.schemas.js';
+import type {
+  RewardCatalogQueryInput,
+  RedeemRewardInput,
+  TalentLensQueryInput,
+  UnlockTier3Input,
+} from '../validation/rewards.schemas.js';
 
 const { domain } = getServiceMetrics(config.serviceName);
 
@@ -43,6 +51,54 @@ const WALLET_HISTORY_LIMIT = 100;
 
 /** Retries for optimistic-lock conflicts and unique-key races. */
 const MAX_TRANSACTION_ATTEMPTS = 8;
+
+type RewardWithBrand = {
+  id: string;
+  category: string;
+  title: string;
+  description: string;
+  discount: string;
+  cost: number;
+  terms: string[];
+  expiresAt: Date | null;
+  active: boolean;
+  brand: { name: string };
+};
+
+function toReward(row: RewardWithBrand, available: boolean): RewardCatalogItem {
+  return {
+    id: row.id,
+    brand: row.brand.name,
+    category: row.category as RewardCatalogItem['category'],
+    title: row.title,
+    description: row.description,
+    discount: row.discount,
+    cost: row.cost,
+    terms: row.terms,
+    ...(row.expiresAt ? { expiresAt: row.expiresAt.toISOString() } : {}),
+    available,
+  };
+}
+
+function toRedemption(row: {
+  id: string;
+  rewardId: string;
+  recruiterId: string;
+  redeemedAt: Date;
+  expiresAt: Date | null;
+  reward: RewardWithBrand;
+  voucher: { code: string };
+}): RewardRedemption {
+  return {
+    id: row.id,
+    rewardId: row.rewardId,
+    reward: toReward(row.reward, false),
+    couponCode: row.voucher.code,
+    recruiterId: row.recruiterId,
+    redeemedAt: row.redeemedAt.toISOString(),
+    ...(row.expiresAt ? { expiresAt: row.expiresAt.toISOString() } : {}),
+  };
+}
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
@@ -760,4 +816,148 @@ export async function creditSwipeDecision(input: {
     wallet: toWallet(result.wallet),
     transaction: toLedgerTransaction(result.transaction),
   };
+}
+
+/** Lists active partner rewards and hides inventory details from clients. */
+export async function getRewardCatalog(
+  input: RewardCatalogQueryInput,
+): Promise<RewardCatalogItem[]> {
+  const rows = await prisma.reward.findMany({
+    where: {
+      active: true,
+      category: input.category && input.category !== 'ALL' ? input.category : undefined,
+      codes: input.available ? { some: { claimedAt: null } } : undefined,
+    },
+    include: { brand: true, _count: { select: { codes: { where: { claimedAt: null } } } } },
+    orderBy: [{ brand: { name: 'asc' } }, { cost: 'asc' }],
+  });
+
+  return rows.map((row) => toReward(row, row._count.codes > 0));
+}
+
+/**
+ * Redeems one inventory code. The code row is locked before the wallet debit,
+ * so concurrent claims cannot receive the same voucher. The request id makes
+ * retries idempotent and every mutation commits in the same transaction.
+ */
+export async function redeemReward(
+  input: RedeemRewardInput,
+  principal: RewardsPrincipal,
+): Promise<RedeemRewardResponse> {
+  const recruiterId = resolveRecruiterId(undefined, principal);
+  const correlationId = getCorrelationId() ?? undefined;
+
+  const result = await withRetry(() =>
+    prisma.$transaction(async (tx) => {
+      const existing = await tx.rewardRedemption.findUnique({
+        where: { requestId: input.requestId },
+        include: { reward: { include: { brand: true } }, voucher: true },
+      });
+      if (existing) {
+        if (existing.recruiterId !== recruiterId) {
+          throw new AppError(403, 'FORBIDDEN', 'This redemption belongs to another recruiter');
+        }
+        const wallet = await tx.wallet.findUniqueOrThrow({ where: { recruiterId } });
+        return { redemption: toRedemption(existing), wallet: toWallet(wallet), chargedCredits: 0 };
+      }
+
+      const reward = await tx.reward.findUnique({
+        where: { id: input.rewardId },
+        include: { brand: true, _count: { select: { codes: { where: { claimedAt: null } } } } },
+      });
+      if (!reward || !reward.active) {
+        throw new AppError(404, 'REWARD_NOT_FOUND', 'This reward is no longer available');
+      }
+      if (reward.expiresAt && reward.expiresAt <= new Date()) {
+        throw new AppError(409, 'REWARD_EXPIRED', 'This reward has expired');
+      }
+
+      const wallet = await ensureWallet(tx, recruiterId, correlationId);
+      if (wallet.balance < reward.cost) {
+        throw new AppError(
+          402,
+          'INSUFFICIENT_CREDITS',
+          `This reward requires ${reward.cost} TalentCredits. Earn more by reviewing candidates in TalentSwipe.`,
+          { details: { requiredCredits: reward.cost, balance: wallet.balance } },
+        );
+      }
+
+      const [codeRow] = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT id FROM voucher_codes
+        WHERE reward_id = ${reward.id}::uuid AND claimed_at IS NULL
+        ORDER BY id FOR UPDATE SKIP LOCKED LIMIT 1
+      `;
+      if (!codeRow)
+        throw new AppError(409, 'REWARD_SOLD_OUT', 'This reward is currently out of stock');
+
+      const balanceAfter = wallet.balance - reward.cost;
+      const debited = await tx.wallet.updateMany({
+        where: { id: wallet.id, version: wallet.version },
+        data: { balance: { decrement: reward.cost }, version: { increment: 1 } },
+      });
+      if (debited.count === 0) throw new OptimisticLockError();
+
+      const now = new Date();
+      await tx.voucherCode.update({ where: { id: codeRow.id }, data: { claimedAt: now } });
+      const transaction = await tx.ledgerTransaction.create({
+        data: {
+          walletId: wallet.id,
+          amount: -reward.cost,
+          type: 'DEBIT_REWARD_REDEMPTION',
+          referenceId: input.requestId,
+          description: `Redeemed ${reward.brand.name} reward`,
+          balanceAfter,
+        },
+      });
+      domain.ledgerTransactions.inc({ type: 'DEBIT_REWARD_REDEMPTION' });
+
+      const redemption = await tx.rewardRedemption.create({
+        data: {
+          recruiterId,
+          rewardId: reward.id,
+          voucherId: codeRow.id,
+          requestId: input.requestId,
+          expiresAt: reward.expiresAt,
+        },
+        include: { reward: { include: { brand: true } }, voucher: true },
+      });
+      const updatedWallet = await tx.wallet.findUniqueOrThrow({ where: { id: wallet.id } });
+
+      await enqueueOutbox(tx, {
+        eventType: 'rewards.reward_redeemed',
+        aggregateId: redemption.id,
+        correlationId,
+        payload: {
+          redemptionId: redemption.id,
+          recruiterId,
+          rewardId: reward.id,
+          transactionId: transaction.id,
+          chargedCredits: reward.cost,
+        },
+      });
+
+      return {
+        redemption: toRedemption(redemption),
+        wallet: toWallet(updatedWallet),
+        chargedCredits: reward.cost,
+      };
+    }),
+  );
+
+  logger.info(
+    { recruiterId, rewardId: input.rewardId, redemptionId: result.redemption.id },
+    'reward redeemed',
+  );
+  return result;
+}
+
+export async function getRewardRedemptions(
+  principal: RewardsPrincipal,
+): Promise<RewardRedemption[]> {
+  const rows = await prisma.rewardRedemption.findMany({
+    where: { recruiterId: principal.userId },
+    include: { reward: { include: { brand: true } }, voucher: true },
+    orderBy: { redeemedAt: 'desc' },
+  });
+  return rows.map(toRedemption);
 }

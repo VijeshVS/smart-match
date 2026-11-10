@@ -3,7 +3,11 @@ import type { AuthUserRegisteredPayload } from './auth.js';
 import type { TalentProfileCreatedPayload, TalentProfileUpdatedPayload } from './talent.js';
 import type { RecruiterJobPostedPayload, RecruiterRegisteredPayload } from './recruiter.js';
 import type { ReviewSubmittedPayload, SwipeRecordedPayload } from './engagement.js';
-import type { CoinsAwardedPayload, Tier3UnlockedPayload } from './rewards.js';
+import type {
+  CoinsAwardedPayload,
+  RewardRedeemedPayload,
+  Tier3UnlockedPayload,
+} from './rewards.js';
 import type { AiEvaluationCompletedPayload } from './ai.js';
 import type { NotificationSentPayload } from './notification.js';
 
@@ -18,6 +22,7 @@ export const EVENT_ROUTING_KEYS = [
   'review.submitted',
   'rewards.coins_awarded',
   'rewards.tier3_unlocked',
+  'rewards.reward_redeemed',
   'ai.evaluation.completed',
   'notification.sent',
 ] as const;
@@ -38,6 +43,7 @@ export interface EventDataMap {
   'review.submitted': ReviewSubmittedPayload;
   'rewards.coins_awarded': CoinsAwardedPayload;
   'rewards.tier3_unlocked': Tier3UnlockedPayload;
+  'rewards.reward_redeemed': RewardRedeemedPayload;
   'ai.evaluation.completed': AiEvaluationCompletedPayload;
   'notification.sent': NotificationSentPayload;
 }

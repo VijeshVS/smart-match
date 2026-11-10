@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  redeemRewardSchema,
+  rewardCatalogQuerySchema,
   reviewSubmittedPayloadSchema,
   swipeRecordedPayloadSchema,
   talentLensQuerySchema,
@@ -13,6 +15,17 @@ const reviewId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const swipeId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 
 describe('rewards validation', () => {
+  it('validates reward filters and redemption idempotency keys', () => {
+    expect(rewardCatalogQuerySchema.parse({ category: 'FOOD' })).toEqual({
+      category: 'FOOD',
+      available: true,
+    });
+    expect(rewardCatalogQuerySchema.parse({ category: 'ALL', available: false })).toEqual({
+      category: 'ALL',
+      available: false,
+    });
+    expect(() => redeemRewardSchema.parse({ rewardId: 'bad', requestId: 'bad' })).toThrow();
+  });
   it('parses an unlock request and keeps recruiterId optional', () => {
     expect(unlockTier3Schema.parse({ talentId })).toEqual({ talentId });
     expect(unlockTier3Schema.parse({ talentId, recruiterId })).toEqual({
