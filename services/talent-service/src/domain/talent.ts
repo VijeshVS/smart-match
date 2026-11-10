@@ -60,6 +60,12 @@ export function caseInsensitiveExact(value: string): RegExp {
 export function buildTalentFilter(params: TalentQueryParams): FilterQuery<TalentProfileRecord> {
   const filter: FilterQuery<TalentProfileRecord> = {};
 
+  // Recruiter pipeline reads pass an explicit inclusion boundary. An empty
+  // array is intentional and yields zero results instead of the global pool.
+  if (params.talentIds !== undefined) {
+    filter._id = { $in: [...params.talentIds] };
+  }
+
   if (params.field) {
     filter.field = caseInsensitiveExact(params.field);
   }

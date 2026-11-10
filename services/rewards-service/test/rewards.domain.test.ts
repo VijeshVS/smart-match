@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { LEDGER_TRANSACTION_TYPES, TALENT_CREDIT_RULES } from '@talent-ai/shared-types';
 import {
   assertRecruiterAccess,
+  filterActiveAccessGrants,
   isGrantActive,
   isRewardingSwipeDecision,
   permissionsForRole,
@@ -135,5 +136,18 @@ describe('rewards domain', () => {
       createdAt: now.toISOString(),
     });
     expect(grant.expiresAt).toBeUndefined();
+  });
+
+  it('keeps only active grants for the recruiter pipeline', () => {
+    const grants = [
+      { talentId: 'talent-active', expiresAt: null },
+      { talentId: 'talent-future', expiresAt: new Date('2026-11-06T00:00:00.000Z') },
+      { talentId: 'talent-expired', expiresAt: new Date('2026-11-04T00:00:00.000Z') },
+    ];
+
+    expect(filterActiveAccessGrants(grants, now).map((grant) => grant.talentId)).toEqual([
+      'talent-active',
+      'talent-future',
+    ]);
   });
 });

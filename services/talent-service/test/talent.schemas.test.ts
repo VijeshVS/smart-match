@@ -106,6 +106,26 @@ describe('talentQuerySchema', () => {
     expect(talentQuerySchema.parse({ skills: ' , ' }).skills).toBeUndefined();
   });
 
+  it('accepts comma-separated pipeline talent ids and preserves an empty scope', () => {
+    const parsed = talentQuerySchema.parse({
+      talentIds: '99999999-9999-4999-8999-999999999999,88888888-8888-4888-8888-888888888888',
+    });
+    expect(parsed.talentIds).toEqual([
+      '99999999-9999-4999-8999-999999999999',
+      '88888888-8888-4888-8888-888888888888',
+    ]);
+
+    expect(
+      talentQuerySchema.parse({ talentIds: ['99999999-9999-4999-8999-999999999999'] }).talentIds,
+    ).toEqual(['99999999-9999-4999-8999-999999999999']);
+    expect(talentQuerySchema.parse({ talentIds: '' }).talentIds).toEqual([]);
+    expect(talentQuerySchema.parse({}).talentIds).toBeUndefined();
+  });
+
+  it('rejects non-UUID pipeline talent ids', () => {
+    expect(talentQuerySchema.safeParse({ talentIds: 'talent-1' }).success).toBe(false);
+  });
+
   it('rejects an inverted experience range', () => {
     const result = talentQuerySchema.safeParse({
       minExperienceYears: '10',

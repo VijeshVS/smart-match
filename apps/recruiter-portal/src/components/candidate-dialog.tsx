@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
+  Bookmark,
+  BookmarkCheck,
   BriefcaseBusiness,
   Clock3,
   Crown,
@@ -37,15 +39,21 @@ import { formatDate, formatNumber, initials } from '@/lib/format';
 export function CandidateDialog({
   profile,
   locked,
+  interested = false,
+  interestPending = false,
   open,
   onOpenChange,
   onUnlock,
+  onToggleInterest,
 }: {
   profile: TalentProfile | null;
   locked: boolean;
+  interested?: boolean;
+  interestPending?: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onUnlock: () => void;
+  onToggleInterest?: () => void;
 }) {
   const [summary, setSummary] = useState<TalentEngagementSummary | null>(null);
   const [loading, setLoading] = useState(false);
@@ -106,12 +114,32 @@ export function CandidateDialog({
                 </div>
               </div>
             </div>
-            {locked ? (
-              <Button className="gap-1.5" onClick={onUnlock}>
-                <Crown className="size-4" />
-                Unlock · {TALENT_CREDIT_RULES.TIER3_UNLOCK_COST} TC
-              </Button>
-            ) : null}
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {onToggleInterest ? (
+                <Button
+                  variant={interested ? 'secondary' : 'outline'}
+                  size="sm"
+                  className="gap-1.5"
+                  disabled={interestPending}
+                  onClick={onToggleInterest}
+                >
+                  {interestPending ? (
+                    <Spinner className="size-4" />
+                  ) : interested ? (
+                    <BookmarkCheck className="size-4" />
+                  ) : (
+                    <Bookmark className="size-4" />
+                  )}
+                  {interested ? 'Interested' : 'Mark interested'}
+                </Button>
+              ) : null}
+              {locked ? (
+                <Button className="gap-1.5" onClick={onUnlock}>
+                  <Crown className="size-4" />
+                  Unlock · {TALENT_CREDIT_RULES.TIER3_UNLOCK_COST} TC
+                </Button>
+              ) : null}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-2 rounded-xl border bg-muted/30 p-3 text-sm sm:grid-cols-2">

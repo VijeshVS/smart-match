@@ -109,10 +109,15 @@ export interface TalentQueryParams extends PaginationParams {
   level?: TalentLevel;
   minExperienceYears?: number;
   maxExperienceYears?: number;
+  /**
+   * Inclusion boundary for recruiter-scoped pipeline reads. When present the
+   * result set is limited to these talent ids; an empty array yields no rows.
+   */
+  talentIds?: string[];
 }
 
-/** Blind review queries cannot filter by tier or search identity fields. */
-export type BlindTalentQueryParams = Omit<TalentQueryParams, 'level'>;
+/** Blind review queries cannot filter by tier, identity or an explicit id list. */
+export type BlindTalentQueryParams = Omit<TalentQueryParams, 'level' | 'talentIds'>;
 
 /**
  * Profile fields that change the substance of a candidate's evaluation. Updates

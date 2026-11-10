@@ -8,6 +8,7 @@ import {
   normalizeOptionalText,
   permissionsForRole,
   resolveRecruiterId,
+  toRecruiterInterest,
   toReview,
   toSwipe,
 } from '../src/domain/engagement.js';
@@ -196,6 +197,23 @@ describe('engagement domain', () => {
     expect(buildRecruiterQueueExclusions(recruiter.userId, [], [])).toEqual({
       recruiterId: recruiter.userId,
       talentIds: [],
+    });
+  });
+
+  it('maps recruiter interests to the shared pipeline contract', () => {
+    const createdAt = new Date('2026-11-10T05:30:00.000Z');
+    const interest = toRecruiterInterest({
+      id: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+      recruiterId: recruiter.userId,
+      talentId: '99999999-9999-4999-8999-999999999999',
+      createdAt,
+    });
+
+    expect(interest).toEqual({
+      id: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+      recruiterId: recruiter.userId,
+      talentId: '99999999-9999-4999-8999-999999999999',
+      createdAt: createdAt.toISOString(),
     });
   });
 });

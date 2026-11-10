@@ -1,4 +1,6 @@
 import {
+  Bookmark,
+  BookmarkCheck,
   BriefcaseBusiness,
   Crown,
   GraduationCap,
@@ -13,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Spinner } from '@/components/ui/spinner';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { formatNumber, initials, levelLabel } from '@/lib/format';
@@ -38,13 +41,19 @@ export function LevelBadge({ level }: { level: TalentProfile['level'] }) {
 export function CandidateCard({
   profile,
   locked,
+  interested = false,
+  interestPending = false,
   onView,
   onUnlock,
+  onToggleInterest,
 }: {
   profile: TalentProfile;
   locked: boolean;
+  interested?: boolean;
+  interestPending?: boolean;
   onView: () => void;
   onUnlock: () => void;
+  onToggleInterest?: () => void;
 }) {
   const topSkills = profile.skills.slice(0, 5);
   const remaining = profile.skills.length - topSkills.length;
@@ -95,6 +104,25 @@ export function CandidateCard({
 
         {profile.bio ? (
           <p className="line-clamp-2 text-sm text-muted-foreground">{profile.bio}</p>
+        ) : null}
+
+        {onToggleInterest ? (
+          <Button
+            variant={interested ? 'secondary' : 'outline'}
+            size="sm"
+            className="w-fit gap-1.5"
+            disabled={interestPending}
+            onClick={onToggleInterest}
+          >
+            {interestPending ? (
+              <Spinner data-icon="inline-start" />
+            ) : interested ? (
+              <BookmarkCheck data-icon="inline-start" />
+            ) : (
+              <Bookmark data-icon="inline-start" />
+            )}
+            {interested ? 'Interested' : 'Mark as interested'}
+          </Button>
         ) : null}
 
         <Separator />

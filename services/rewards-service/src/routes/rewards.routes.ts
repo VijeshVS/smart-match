@@ -6,11 +6,13 @@ import {
   getWalletSummary,
   getRewardCatalog,
   getRewardRedemptions,
+  listRecruiterAccessGrants,
   redeemReward,
   refundTalentLensQuery,
   unlockTier3,
 } from '../services/rewards.service.js';
 import {
+  accessGrantQuerySchema,
   talentLensQuerySchema,
   rewardCatalogQuerySchema,
   redeemRewardSchema,
@@ -60,6 +62,16 @@ rewardsRouter.get(
     const query = walletQuerySchema.parse(req.query);
     const summary = await getWalletSummary(query.recruiterId, req.auth!);
     res.status(200).json({ data: summary });
+  }),
+);
+
+rewardsRouter.get(
+  '/access-grants',
+  requireRoles('RECRUITER', 'ADMIN'),
+  asyncHandler(async (req, res) => {
+    const query = accessGrantQuerySchema.parse(req.query);
+    const grants = await listRecruiterAccessGrants(query.recruiterId, req.auth!);
+    res.status(200).json({ data: grants });
   }),
 );
 

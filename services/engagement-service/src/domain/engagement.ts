@@ -4,12 +4,17 @@ import {
   type Permission,
   type RecruiterEngagementHistory,
   type RecruiterQueueExclusions,
+  type RecruiterTalentInterest,
   type SwipeDecision,
   type SwipeInteraction,
   type TalentEngagementSummary,
   type UserRole,
 } from '@talent-ai/shared-types';
-import type { Review as ReviewRow, Swipe as SwipeRow } from '../generated/prisma/client.js';
+import type {
+  RecruiterInterest as RecruiterInterestRow,
+  Review as ReviewRow,
+  Swipe as SwipeRow,
+} from '../generated/prisma/client.js';
 import type { EngagementPrincipal } from '../middleware/auth.js';
 import { AppError } from '../lib/errors.js';
 
@@ -84,6 +89,15 @@ export function toSwipe(row: SwipeRow): SwipeInteraction {
     recruiterId: row.recruiterId,
     talentId: row.talentId,
     decision: row.decision as SwipeDecision,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+export function toRecruiterInterest(row: RecruiterInterestRow): RecruiterTalentInterest {
+  return {
+    id: row.id,
+    recruiterId: row.recruiterId,
+    talentId: row.talentId,
     createdAt: row.createdAt.toISOString(),
   };
 }
