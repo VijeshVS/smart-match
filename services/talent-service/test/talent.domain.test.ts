@@ -94,6 +94,23 @@ describe('buildTalentFilter', () => {
       $gte: 5,
     });
   });
+
+  it('limits a recruiter pipeline query to the supplied talent ids', () => {
+    const filter = buildTalentFilter({
+      talentIds: ['99999999-9999-4999-8999-999999999999', '88888888-8888-4888-8888-888888888888'],
+      field: 'Backend',
+    });
+
+    expect(filter._id).toEqual({
+      $in: ['99999999-9999-4999-8999-999999999999', '88888888-8888-4888-8888-888888888888'],
+    });
+    expect((filter.field as RegExp).test('backend')).toBe(true);
+  });
+
+  it('returns no rows for an explicitly empty pipeline scope', () => {
+    expect(buildTalentFilter({ talentIds: [] })._id).toEqual({ $in: [] });
+    expect(buildTalentFilter({})).not.toHaveProperty('_id');
+  });
 });
 
 describe('blind review', () => {

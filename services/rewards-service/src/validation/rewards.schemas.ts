@@ -16,6 +16,10 @@ export const walletQuerySchema = z.object({
   recruiterId: z.string().uuid('recruiterId must be a UUID').optional(),
 });
 
+export const accessGrantQuerySchema = z.object({
+  recruiterId: z.string().uuid('recruiterId must be a UUID').optional(),
+});
+
 export const unlockTier3Schema = z.object({
   recruiterId: z.string().uuid('recruiterId must be a UUID').optional(),
   talentId: z.string().uuid('talentId must be a UUID'),
@@ -55,6 +59,7 @@ export const reviewSubmittedPayloadSchema = z.object({
 });
 
 export type WalletQueryInput = z.infer<typeof walletQuerySchema>;
+export type AccessGrantQueryInput = z.infer<typeof accessGrantQuerySchema>;
 export type UnlockTier3Input = z.infer<typeof unlockTier3Schema>;
 export type TalentLensQueryInput = z.infer<typeof talentLensQuerySchema>;
 export type ReviewSubmittedPayloadInput = z.infer<typeof reviewSubmittedPayloadSchema>;

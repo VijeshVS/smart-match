@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  createRecruiterInterestSchema,
   createReviewSchema,
   createSwipeSchema,
   recruiterIdParamSchema,
@@ -60,6 +61,16 @@ describe('engagement validation', () => {
         rating: 0,
       }),
     ).toThrow();
+  });
+
+  it('validates recruiter interest payloads', () => {
+    expect(createRecruiterInterestSchema.parse({ talentId })).toEqual({ talentId });
+    expect(createRecruiterInterestSchema.parse({ talentId, recruiterId })).toEqual({
+      talentId,
+      recruiterId,
+    });
+    expect(() => createRecruiterInterestSchema.parse({ talentId: 'nope' })).toThrow();
+    expect(() => createRecruiterInterestSchema.parse({ talentId, recruiterId: 'acme' })).toThrow();
   });
 
   it('validates path identifiers', () => {

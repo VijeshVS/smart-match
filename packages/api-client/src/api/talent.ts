@@ -36,6 +36,9 @@ export const talentApi = {
       params: {
         ...query,
         skills: query.skills?.length ? query.skills.join(',') : undefined,
+        // An explicit empty scope must be preserved so the server never falls
+        // back to the global directory.
+        talentIds: query.talentIds === undefined ? undefined : query.talentIds.join(','),
       },
     });
     return data;

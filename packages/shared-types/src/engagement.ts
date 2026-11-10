@@ -64,6 +64,17 @@ export interface RecruiterQueueExclusions {
   talentIds: UUID[];
 }
 
+/**
+ * A candidate a recruiter explicitly bookmarked from TalentLens. Interests form
+ * the recruiter's engaged pipeline alongside candidates unlocked with credits.
+ */
+export interface RecruiterTalentInterest {
+  id: UUID;
+  recruiterId: UUID;
+  talentId: UUID;
+  createdAt: ISODateString;
+}
+
 export interface SwipeRecordedPayload {
   swipeId: UUID;
   recruiterId: UUID;

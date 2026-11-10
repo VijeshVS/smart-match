@@ -114,6 +114,14 @@ export function isGrantActive(
   return grant.expiresAt === null || grant.expiresAt.getTime() > now.getTime();
 }
 
+/** Keeps only grants that still grant access at the supplied instant. */
+export function filterActiveAccessGrants<T extends Pick<TalentAccessGrantRow, 'expiresAt'>>(
+  grants: readonly T[],
+  now: Date = new Date(),
+): T[] {
+  return grants.filter((grant) => isGrantActive(grant, now));
+}
+
 /**
  * Only a terminal accept/reject decision earns the swipe reward. Deferring
  * keeps the candidate in the pipeline and is intentionally unrewarded.

@@ -89,6 +89,16 @@ function toSkillArray(value: unknown): string[] | undefined {
   return skills.length > 0 ? skills : undefined;
 }
 
+function toUuidArray(value: unknown): string[] | undefined {
+  if (value === undefined) return undefined;
+
+  const entries = Array.isArray(value) ? value : [value];
+  return entries
+    .flatMap((entry) => String(entry).split(','))
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
 const talentQueryBaseSchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
@@ -111,7 +121,18 @@ function hasValidExperienceRange(value: {
 }
 
 export const talentQuerySchema = talentQueryBaseSchema
-  .extend({ level: talentLevelSchema.optional() })
+  .extend({
+    level: talentLevelSchema.optional(),
+    /**
+     * Recruiter-scoped pipeline boundary. An explicitly empty value produces an
+     * empty clause so a caller can never accidentally fall back to the global
+     * directory.
+     */
+    talentIds: z.preprocess(
+      toUuidArray,
+      z.array(z.string().uuid('talentIds must contain UUIDs')).max(500).optional(),
+    ),
+  })
   .refine(hasValidExperienceRange, {
     message: 'minExperienceYears must be less than or equal to maxExperienceYears',
   });

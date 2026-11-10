@@ -5,10 +5,14 @@ import {
   getRecruiterEngagementHistory,
   getRecruiterQueueExclusions,
   getTalentEngagementSummary,
+  listRecruiterInterests,
+  markRecruiterInterest,
   recordSwipe,
+  removeRecruiterInterest,
   submitReview,
 } from '../services/engagement.service.js';
 import {
+  createRecruiterInterestSchema,
   createReviewSchema,
   createSwipeSchema,
   recruiterIdParamSchema,
@@ -54,6 +58,38 @@ engagementRouter.post(
       data: result.review,
       meta: { created: result.created, updated: result.updated },
     });
+  }),
+);
+
+engagementRouter.get(
+  '/interests',
+  requireRoles('RECRUITER', 'ADMIN'),
+  asyncHandler(async (req, res) => {
+    const interests = await listRecruiterInterests(req.auth!.userId, req.auth!);
+    res.status(200).json({ data: interests });
+  }),
+);
+
+engagementRouter.post(
+  '/interests',
+  requireRoles('RECRUITER', 'ADMIN'),
+  asyncHandler(async (req, res) => {
+    const input = createRecruiterInterestSchema.parse(req.body);
+    const result = await markRecruiterInterest(input, req.auth!);
+    res.status(result.created ? 201 : 200).json({
+      data: result.interest,
+      meta: { created: result.created },
+    });
+  }),
+);
+
+engagementRouter.delete(
+  '/interests/:talentId',
+  requireRoles('RECRUITER', 'ADMIN'),
+  asyncHandler(async (req, res) => {
+    const { talentId } = talentIdParamSchema.parse({ talentId: param(req, 'talentId') });
+    const result = await removeRecruiterInterest(talentId, req.auth!);
+    res.status(200).json({ data: result });
   }),
 );
 

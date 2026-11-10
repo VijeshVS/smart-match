@@ -68,6 +68,20 @@ model Review {
   @@map("reviews")
 }
 
+/// Candidates a recruiter explicitly marked as interested from TalentLens.
+/// Together with rewards-service access grants this forms the recruiter's
+/// scoped candidate pipeline.
+model RecruiterInterest {
+  id          String   @id @default(uuid()) @db.Uuid
+  recruiterId String   @map("recruiter_id") @db.Uuid
+  talentId    String   @map("talent_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@unique([recruiterId, talentId])
+  @@index([recruiterId, createdAt])
+  @@map("recruiter_interests")
+}
+
 /// Immutable snapshot of a candidate's engagement before a qualification update
 /// reset it. Also doubles as the consumer idempotency guard: one row per
 /// `talent.profile.updated` event id.

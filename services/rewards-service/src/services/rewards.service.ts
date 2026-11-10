@@ -6,6 +6,7 @@ import {
   type CoinsAwardedPayload,
   type LedgerTransaction,
   type LedgerTransactionType,
+  type TalentAccessGrant,
   type TalentLensChargeResult,
   type TalentLensRefundResult,
   type Tier3UnlockedPayload,
@@ -22,6 +23,7 @@ import type {
   Wallet as WalletRow,
 } from '../generated/prisma/client.js';
 import {
+  filterActiveAccessGrants,
   isGrantActive,
   resolveRecruiterId,
   toAccessGrant,
@@ -370,6 +372,24 @@ export async function getWalletSummary(
     wallet: toWallet(wallet),
     transactions: transactions.map(toLedgerTransaction),
   };
+}
+
+/**
+ * Lists the recruiter's currently active Level-3 access grants. The candidates
+ * page combines these with TalentLens interests to build the scoped pipeline.
+ */
+export async function listRecruiterAccessGrants(
+  requestedRecruiterId: string | undefined,
+  principal: RewardsPrincipal,
+): Promise<TalentAccessGrant[]> {
+  const recruiterId = resolveRecruiterId(requestedRecruiterId, principal);
+
+  const rows = await prisma.talentAccessGrant.findMany({
+    where: { recruiterId, tierUnlocked: TIER3 },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return filterActiveAccessGrants(rows).map(toAccessGrant);
 }
 
 /**

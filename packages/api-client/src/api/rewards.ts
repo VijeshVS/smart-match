@@ -1,4 +1,5 @@
 import type {
+  TalentAccessGrant,
   UnlockTier3Request,
   UnlockTier3Response,
   WalletSummary,
@@ -52,6 +53,14 @@ export const rewardsApi = {
     const { data } = await api.post<Envelope<UnlockTier3Response>>(
       `${API_PREFIXES.rewards}/unlock-tier3`,
       input,
+    );
+    return data.data;
+  },
+
+  /** Active Elite access grants for the signed-in recruiter's pipeline. */
+  listAccessGrants: async (): Promise<TalentAccessGrant[]> => {
+    const { data } = await api.get<Envelope<TalentAccessGrant[]>>(
+      `${API_PREFIXES.rewards}/access-grants`,
     );
     return data.data;
   },

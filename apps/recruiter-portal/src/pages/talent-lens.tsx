@@ -1,6 +1,16 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, Coins, Crown, LockKeyhole, ScanSearch, Sparkles, Wand2 } from 'lucide-react';
+import {
+  ArrowUpRight,
+  Bookmark,
+  BookmarkCheck,
+  Coins,
+  Crown,
+  LockKeyhole,
+  ScanSearch,
+  Sparkles,
+  Wand2,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import {
   aiApi,
@@ -41,7 +51,7 @@ import { LevelBadge } from '@/components/candidate-card';
 import { CandidateDialog } from '@/components/candidate-dialog';
 import { UnlockDialog } from '@/components/unlock-dialog';
 import { useAuth } from '@/lib/auth';
-import { useUnlockedTalent } from '@/lib/unlocked';
+import { useRecruiterPipeline } from '@/lib/recruiter-pipeline';
 import { useWallet } from '@/lib/wallet';
 import { formatNumber, formatPercent } from '@/lib/format';
 
@@ -57,7 +67,8 @@ const EXAMPLE_QUERIES = [
 export function TalentLensPage() {
   const { org } = useAuth();
   const recruiterId = org?.profile.id ?? null;
-  const { unlocked, markUnlocked } = useUnlockedTalent(recruiterId);
+  const { unlockedIds, isInterested, isInterestPending, toggleInterest, markUnlocked } =
+    useRecruiterPipeline(recruiterId);
   const { wallet, setWallet, reload: reloadWallet } = useWallet();
 
   const queryCost = TALENT_CREDIT_RULES.TALENT_LENS_QUERY_COST;
@@ -125,7 +136,7 @@ export function TalentLensPage() {
   };
 
   const isLocked = (match: TalentLensMatch) =>
-    match.profile.level === 'LEVEL_3_LEAD' && !unlocked.has(match.talentId);
+    match.profile.level === 'LEVEL_3_LEAD' && !unlockedIds.has(match.talentId);
 
   const openProfile = async (match: TalentLensMatch, intent: 'view' | 'unlock' = 'view') => {
     setLoadingProfileId(match.talentId);
@@ -400,6 +411,24 @@ export function TalentLensPage() {
                       </p>
                     ) : null}
 
+                    <Button
+                      variant={isInterested(match.talentId) ? 'secondary' : 'outline'}
+                      className="w-full justify-center gap-1.5"
+                      disabled={isInterestPending(match.talentId)}
+                      onClick={() => void toggleInterest(match.talentId)}
+                    >
+                      {isInterestPending(match.talentId) ? (
+                        <Spinner data-icon="inline-start" />
+                      ) : isInterested(match.talentId) ? (
+                        <BookmarkCheck data-icon="inline-start" />
+                      ) : (
+                        <Bookmark data-icon="inline-start" />
+                      )}
+                      {isInterested(match.talentId)
+                        ? 'Interested · In your pipeline'
+                        : 'Mark as interested'}
+                    </Button>
+
                     <Separator />
 
                     {locked ? (
@@ -444,7 +473,11 @@ export function TalentLensPage() {
 
       <CandidateDialog
         profile={selected}
-        locked={selected ? selected.level === 'LEVEL_3_LEAD' && !unlocked.has(selected.id) : false}
+        locked={
+          selected ? selected.level === 'LEVEL_3_LEAD' && !unlockedIds.has(selected.id) : false
+        }
+        interested={selected ? isInterested(selected.id) : false}
+        interestPending={selected ? isInterestPending(selected.id) : false}
         open={detailOpen}
         onOpenChange={setDetailOpen}
         onUnlock={() => {
@@ -453,6 +486,9 @@ export function TalentLensPage() {
             setUnlockOpen(true);
             setDetailOpen(false);
           }
+        }}
+        onToggleInterest={() => {
+          if (selected) void toggleInterest(selected.id);
         }}
       />
 

@@ -19,6 +19,11 @@ export const createSwipeSchema = z.object({
   decision: swipeDecisionSchema,
 });
 
+export const createRecruiterInterestSchema = z.object({
+  recruiterId: z.string().uuid('recruiterId must be a UUID').optional(),
+  talentId: z.string().uuid('talentId must be a UUID'),
+});
+
 export const createReviewSchema = z
   .object({
     recruiterId: z.string().uuid('recruiterId must be a UUID').optional(),
@@ -54,3 +59,4 @@ export const recruiterIdParamSchema = z.object({
 
 export type CreateSwipeInput = z.infer<typeof createSwipeSchema>;
 export type CreateReviewInput = z.infer<typeof createReviewSchema>;
+export type CreateRecruiterInterestInput = z.infer<typeof createRecruiterInterestSchema>;

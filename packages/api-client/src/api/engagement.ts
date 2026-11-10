@@ -3,6 +3,7 @@ import type {
   CreateReviewRequest,
   CreateSwipeRequest,
   RecruiterEngagementHistory,
+  RecruiterTalentInterest,
   SwipeInteraction,
   TalentEngagementSummary,
 } from '@talent-ai/shared-types';
@@ -55,6 +56,29 @@ export const engagementApi = {
   getRecruiterHistory: async (recruiterId: string): Promise<RecruiterEngagementHistory> => {
     const { data } = await api.get<Envelope<RecruiterEngagementHistory>>(
       `${API_PREFIXES.engagement}/recruiter/${recruiterId}/history`,
+    );
+    return data.data;
+  },
+
+  /** Candidates the signed-in recruiter marked as interested in TalentLens. */
+  listInterests: async (): Promise<RecruiterTalentInterest[]> => {
+    const { data } = await api.get<Envelope<RecruiterTalentInterest[]>>(
+      `${API_PREFIXES.engagement}/interests`,
+    );
+    return data.data;
+  },
+
+  markInterest: async (talentId: string): Promise<RecruiterTalentInterest> => {
+    const { data } = await api.post<Envelope<RecruiterTalentInterest>>(
+      `${API_PREFIXES.engagement}/interests`,
+      { talentId },
+    );
+    return data.data;
+  },
+
+  removeInterest: async (talentId: string): Promise<{ removed: boolean }> => {
+    const { data } = await api.delete<Envelope<{ removed: boolean }>>(
+      `${API_PREFIXES.engagement}/interests/${talentId}`,
     );
     return data.data;
   },

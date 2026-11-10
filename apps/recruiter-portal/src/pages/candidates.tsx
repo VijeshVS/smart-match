@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
+  BookmarkCheck,
   ChevronLeft,
   ChevronRight,
+  Compass,
+  Crown,
   Filter,
   Search,
   SlidersHorizontal,
@@ -19,14 +23,14 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Pagination, PaginationContent, PaginationItem } from '@/components/ui/pagination';
@@ -42,7 +46,7 @@ import { CandidateCard } from '@/components/candidate-card';
 import { CandidateDialog } from '@/components/candidate-dialog';
 import { UnlockDialog } from '@/components/unlock-dialog';
 import { useAuth } from '@/lib/auth';
-import { useUnlockedTalent } from '@/lib/unlocked';
+import { useRecruiterPipeline, type PipelineTab } from '@/lib/recruiter-pipeline';
 import { formatNumber } from '@/lib/format';
 
 const PAGE_SIZE = 9;
@@ -62,17 +66,53 @@ const EMPTY_FILTERS: Filters = {
   minExperienceYears: '',
 };
 
+const EMPTY_STATE_COPY: Record<
+  PipelineTab,
+  { title: string; description: string; action: string }
+> = {
+  ALL: {
+    title: 'Your candidate pipeline is empty',
+    description:
+      'Candidates appear here when you mark them as interested in TalentLens or unlock an Elite Principal profile with TalentCredits.',
+    action: 'Discover talent in TalentLens',
+  },
+  INTERESTED: {
+    title: 'No interested candidates yet',
+    description:
+      'Search the talent graph in TalentLens and bookmark the profiles you want to track.',
+    action: 'Find candidates in TalentLens',
+  },
+  UNLOCKED: {
+    title: 'No unlocked Elite profiles yet',
+    description:
+      'Elite Principal profiles you unlock with TalentCredits land here automatically for follow-up.',
+    action: 'Explore Elite talent',
+  },
+};
+
 export function CandidatesPage() {
   const { org } = useAuth();
   const recruiterId = org?.profile.id ?? null;
-  const { unlocked, markUnlocked } = useUnlockedTalent(recruiterId);
+  const {
+    interestedIds,
+    unlockedIds,
+    allScopedIds,
+    loading: pipelineLoading,
+    error: pipelineError,
+    isInterested,
+    isInterestPending,
+    toggleInterest,
+    markUnlocked,
+  } = useRecruiterPipeline(recruiterId);
 
+  const [pipeline, setPipeline] = useState<PipelineTab>('ALL');
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
 
   const [profiles, setProfiles] = useState<TalentProfile[]>([]);
   const [meta, setMeta] = useState<PaginationMeta | null>(null);
+  const [loadedScopeKey, setLoadedScopeKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -81,6 +121,14 @@ export function CandidatesPage() {
   const [unlockTarget, setUnlockTarget] = useState<TalentProfile | null>(null);
   const [unlockOpen, setUnlockOpen] = useState(false);
 
+  const scopedTalentIds = useMemo(() => {
+    if (pipeline === 'INTERESTED') return [...interestedIds].sort();
+    if (pipeline === 'UNLOCKED') return [...unlockedIds].sort();
+    return allScopedIds;
+  }, [pipeline, interestedIds, unlockedIds, allScopedIds]);
+
+  const scopeKey = useMemo(() => scopedTalentIds.join('|'), [scopedTalentIds]);
+
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(filters.search.trim()), 350);
     return () => window.clearTimeout(timer);
@@ -88,9 +136,27 @@ export function CandidatesPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, filters.level, filters.field, filters.minExperienceYears]);
+  }, [
+    debouncedSearch,
+    filters.level,
+    filters.field,
+    filters.minExperienceYears,
+    pipeline,
+    scopeKey,
+  ]);
 
   const load = useCallback(async () => {
+    if (pipelineLoading) return;
+
+    if (scopedTalentIds.length === 0) {
+      setProfiles([]);
+      setMeta(null);
+      setLoadedScopeKey(scopeKey);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -100,6 +166,7 @@ export function CandidatesPage() {
       const result = await talentApi.listProfiles({
         page,
         limit: PAGE_SIZE,
+        talentIds: scopedTalentIds,
         ...(debouncedSearch ? { search: debouncedSearch } : {}),
         ...(filters.level !== ALL ? { level: filters.level } : {}),
         ...(filters.field.trim() ? { field: filters.field.trim() } : {}),
@@ -109,27 +176,45 @@ export function CandidatesPage() {
       });
       setProfiles(result.data);
       setMeta(result.meta);
+      setLoadedScopeKey(scopeKey);
     } catch (cause) {
+      setProfiles([]);
+      setMeta(null);
+      setLoadedScopeKey(scopeKey);
       setError(toApiClientError(cause).message);
     } finally {
       setLoading(false);
     }
-  }, [page, debouncedSearch, filters.level, filters.field, filters.minExperienceYears]);
+  }, [
+    pipelineLoading,
+    scopedTalentIds,
+    scopeKey,
+    page,
+    debouncedSearch,
+    filters.level,
+    filters.field,
+    filters.minExperienceYears,
+  ]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
   const isLocked = useCallback(
-    (profile: TalentProfile) =>
-      profile.level === 'LEVEL_3_LEAD' && !unlocked.has(profile.id),
-    [unlocked],
+    (profile: TalentProfile) => profile.level === 'LEVEL_3_LEAD' && !unlockedIds.has(profile.id),
+    [unlockedIds],
   );
 
+  const hasScope = scopedTalentIds.length > 0;
+  const profilesReady = loadedScopeKey === scopeKey;
+  const visibleProfiles = hasScope && profilesReady ? profiles : [];
+
   const lockedCount = useMemo(
-    () => profiles.filter((profile) => isLocked(profile)).length,
-    [profiles, isLocked],
+    () => visibleProfiles.filter((profile) => isLocked(profile)).length,
+    [visibleProfiles, isLocked],
   );
+
+  const pageLoading = pipelineLoading || (hasScope && (loading || !profilesReady));
 
   const openDetail = (profile: TalentProfile) => {
     setSelected(profile);
@@ -149,6 +234,12 @@ export function CandidatesPage() {
     Number(Boolean(filters.minExperienceYears));
 
   const totalPages = meta?.totalPages ?? 1;
+  const pipelineTabs: Array<{ value: PipelineTab; label: string; count: number }> = [
+    { value: 'ALL', label: 'All pipeline', count: allScopedIds.length },
+    { value: 'INTERESTED', label: 'Interested', count: interestedIds.size },
+    { value: 'UNLOCKED', label: 'Unlocked Elite', count: unlockedIds.size },
+  ];
+  const emptyCopy = EMPTY_STATE_COPY[pipeline];
 
   return (
     <div className="flex flex-col gap-6">
@@ -156,11 +247,11 @@ export function CandidatesPage() {
         <CardHeader className="gap-1">
           <CardTitle className="flex items-center gap-2 text-base">
             <Filter className="size-4 text-brand-cyan" />
-            Find verified talent
+            Your candidate pipeline
           </CardTitle>
           <CardDescription>
-            Filter by tier, field and experience. Elite Principal profiles reveal contacts after a
-            TalentCredits unlock.
+            Only candidates you marked as interested in TalentLens or unlocked with TalentCredits
+            appear here. Filters and search apply within that scoped list.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -262,6 +353,14 @@ export function CandidatesPage() {
         </CardContent>
       </Card>
 
+      {pipelineError ? (
+        <Alert>
+          <Compass />
+          <AlertTitle>Part of your pipeline could not be loaded</AlertTitle>
+          <AlertDescription>{pipelineError}</AlertDescription>
+        </Alert>
+      ) : null}
+
       {error ? (
         <Alert variant="destructive">
           <Users />
@@ -271,39 +370,84 @@ export function CandidatesPage() {
       ) : null}
 
       <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {pipelineTabs.map((tab) => (
+            <Button
+              key={tab.value}
+              size="sm"
+              variant={pipeline === tab.value ? 'default' : 'outline'}
+              onClick={() => setPipeline(tab.value)}
+            >
+              {tab.label}
+              <Badge variant="secondary" className="ml-1.5">
+                {formatNumber(tab.count)}
+              </Badge>
+            </Button>
+          ))}
+        </div>
+        <Button asChild variant="ghost" size="sm">
+          <Link to="/lens">
+            <Compass data-icon="inline-start" />
+            Find more talent
+          </Link>
+        </Button>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
-          {meta ? (
+          {hasScope && meta ? (
             <>
-              Showing <span className="font-medium text-foreground">{profiles.length}</span> of{' '}
-              <span className="font-medium text-foreground">{formatNumber(meta.total)}</span>{' '}
-              verified profiles
+              Showing <span className="font-medium text-foreground">{visibleProfiles.length}</span>{' '}
+              of <span className="font-medium text-foreground">{formatNumber(meta.total)}</span>{' '}
+              pipeline candidates
             </>
+          ) : pipelineLoading ? (
+            'Loading your pipeline…'
           ) : (
-            'Loading talent directory…'
+            'No candidates in this pipeline view yet'
           )}
         </p>
-        {meta && meta.totalPages > 1 ? (
+        {hasScope && meta && meta.totalPages > 1 ? (
           <p className="text-xs text-muted-foreground">
             Page {meta.page} of {meta.totalPages}
           </p>
         ) : null}
       </div>
 
-      {loading ? (
+      {pageLoading ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 6 }).map((_, index) => (
             <Skeleton key={index} className="h-72" />
           ))}
         </div>
-      ) : profiles.length === 0 ? (
+      ) : error ? null : !hasScope ? (
+        <Empty className="glass">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              {pipeline === 'UNLOCKED' ? (
+                <Crown />
+              ) : pipeline === 'INTERESTED' ? (
+                <BookmarkCheck />
+              ) : (
+                <Compass />
+              )}
+            </EmptyMedia>
+            <EmptyTitle>{emptyCopy.title}</EmptyTitle>
+            <EmptyDescription>{emptyCopy.description}</EmptyDescription>
+          </EmptyHeader>
+          <Button asChild size="sm">
+            <Link to="/lens">{emptyCopy.action}</Link>
+          </Button>
+        </Empty>
+      ) : visibleProfiles.length === 0 ? (
         <Empty className="glass">
           <EmptyHeader>
             <EmptyMedia variant="icon">
               <Users />
             </EmptyMedia>
-            <EmptyTitle>No candidates match those filters</EmptyTitle>
+            <EmptyTitle>No pipeline candidates match those filters</EmptyTitle>
             <EmptyDescription>
-              Widen the tier or experience range, or clear the search to see the full directory.
+              Widen the tier or experience range, or clear the search to see your full pipeline.
             </EmptyDescription>
           </EmptyHeader>
           <Button variant="outline" size="sm" onClick={() => setFilters(EMPTY_FILTERS)}>
@@ -312,19 +456,22 @@ export function CandidatesPage() {
         </Empty>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {profiles.map((profile) => (
+          {visibleProfiles.map((profile) => (
             <CandidateCard
               key={profile.id}
               profile={profile}
               locked={isLocked(profile)}
+              interested={isInterested(profile.id)}
+              interestPending={isInterestPending(profile.id)}
               onView={() => openDetail(profile)}
               onUnlock={() => openUnlock(profile)}
+              onToggleInterest={() => void toggleInterest(profile.id)}
             />
           ))}
         </div>
       )}
 
-      {totalPages > 1 ? (
+      {hasScope && totalPages > 1 ? (
         <Pagination>
           <PaginationContent>
             <PaginationItem>
@@ -361,10 +508,15 @@ export function CandidatesPage() {
       <CandidateDialog
         profile={selected}
         locked={selected ? isLocked(selected) : false}
+        interested={selected ? isInterested(selected.id) : false}
+        interestPending={selected ? isInterestPending(selected.id) : false}
         open={detailOpen}
         onOpenChange={setDetailOpen}
         onUnlock={() => {
           if (selected) openUnlock(selected);
+        }}
+        onToggleInterest={() => {
+          if (selected) void toggleInterest(selected.id);
         }}
       />
 

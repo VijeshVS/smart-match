@@ -4,6 +4,7 @@ import type {
   CandidateReview,
   RecruiterEngagementHistory,
   RecruiterQueueExclusions,
+  RecruiterTalentInterest,
   ReviewSubmittedPayload,
   SwipeInteraction,
   SwipeRecordedPayload,
@@ -17,6 +18,7 @@ import {
   hasActionableFeedback,
   normalizeOptionalText,
   resolveRecruiterId,
+  toRecruiterInterest,
   toReview,
   toSwipe,
 } from '../domain/engagement.js';
@@ -26,7 +28,11 @@ import { logger } from '../lib/logger.js';
 import { enqueueOutbox } from '../lib/outbox.js';
 import { prisma } from '../lib/prisma.js';
 import type { Prisma, Review as ReviewRow } from '../generated/prisma/client.js';
-import type { CreateReviewInput, CreateSwipeInput } from '../validation/engagement.schemas.js';
+import type {
+  CreateRecruiterInterestInput,
+  CreateReviewInput,
+  CreateSwipeInput,
+} from '../validation/engagement.schemas.js';
 
 /** Number of reviews returned per talent/recruiter read. */
 const READ_PAGE_SIZE = 100;
@@ -378,4 +384,83 @@ export async function getRecruiterQueueExclusions(
   ]);
 
   return buildRecruiterQueueExclusions(recruiterId, swipes, reviews);
+}
+
+export interface MarkRecruiterInterestResult {
+  interest: RecruiterTalentInterest;
+  created: boolean;
+}
+
+/**
+ * Marks a candidate as interested for the recruiter. The unique
+ * `(recruiterId, talentId)` key makes this idempotent: repeat clicks return the
+ * existing row instead of creating duplicate pipeline entries.
+ */
+export async function markRecruiterInterest(
+  input: CreateRecruiterInterestInput,
+  principal: EngagementPrincipal,
+  attempt = 0,
+): Promise<MarkRecruiterInterestResult> {
+  const recruiterId = resolveRecruiterId(input.recruiterId, principal);
+
+  try {
+    const existing = await prisma.recruiterInterest.findUnique({
+      where: { recruiterId_talentId: { recruiterId, talentId: input.talentId } },
+    });
+
+    if (existing) {
+      return { interest: toRecruiterInterest(existing), created: false };
+    }
+
+    const row = await prisma.recruiterInterest.create({
+      data: { recruiterId, talentId: input.talentId },
+    });
+
+    logger.info(
+      { interestId: row.id, recruiterId, talentId: row.talentId },
+      'recruiter marked candidate interested',
+    );
+
+    return { interest: toRecruiterInterest(row), created: true };
+  } catch (error) {
+    // Concurrent first clicks race on the unique key; retry once so the caller
+    // observes the idempotent existing row instead of a 409.
+    if (attempt === 0 && isPrismaError(error, 'P2002')) {
+      return markRecruiterInterest(input, principal, 1);
+    }
+    throw error;
+  }
+}
+
+/** Removes a candidate from the caller's interested pipeline. */
+export async function removeRecruiterInterest(
+  talentId: string,
+  principal: EngagementPrincipal,
+): Promise<{ removed: boolean }> {
+  const recruiterId = resolveRecruiterId(undefined, principal);
+
+  const result = await prisma.recruiterInterest.deleteMany({
+    where: { recruiterId, talentId },
+  });
+
+  if (result.count > 0) {
+    logger.info({ recruiterId, talentId }, 'recruiter removed candidate interest');
+  }
+
+  return { removed: result.count > 0 };
+}
+
+/** Lists every candidate the recruiter has explicitly marked as interested. */
+export async function listRecruiterInterests(
+  recruiterId: string,
+  principal: EngagementPrincipal,
+): Promise<RecruiterTalentInterest[]> {
+  assertRecruiterAccess(principal, recruiterId);
+
+  const rows = await prisma.recruiterInterest.findMany({
+    where: { recruiterId },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return rows.map(toRecruiterInterest);
 }
