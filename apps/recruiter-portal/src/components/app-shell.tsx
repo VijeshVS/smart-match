@@ -8,9 +8,23 @@ import {
   ScanSearch,
   Shuffle,
   Users,
+  Gift,
 } from 'lucide-react';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
-import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarRail, SidebarSeparator } from '@/components/ui/sidebar';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarRail,
+  SidebarSeparator,
+} from '@/components/ui/sidebar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -38,6 +52,7 @@ const NAV_ITEMS = [
   { to: '/candidates', label: 'Candidates', icon: Users, end: false },
   { to: '/swipe', label: 'TalentSwipe', icon: Shuffle, end: false },
   { to: '/lens', label: 'TalentLens', icon: ScanSearch, end: false },
+  { to: '/rewards', label: 'Rewards', icon: Gift, end: false },
 ] as const;
 
 const TITLES: Record<string, { title: string; subtitle: string }> = {
@@ -45,6 +60,7 @@ const TITLES: Record<string, { title: string; subtitle: string }> = {
   '/candidates': { title: 'Candidate Directory', subtitle: 'Verified talent across every tier' },
   '/swipe': { title: 'TalentSwipe', subtitle: 'Review candidates one decision at a time' },
   '/lens': { title: 'TalentLens', subtitle: 'Natural-language search over the talent graph' },
+  '/rewards': { title: 'Rewards Store', subtitle: 'Redeem TalentCredits for partner vouchers' },
 };
 
 function NotificationsMenu() {
@@ -234,9 +250,7 @@ export function AppShell() {
           </Badge>
 
           <NotificationsMenu />
-          {snapshot.user?.role === 'ADMIN' ? (
-            <Badge variant="secondary">Admin</Badge>
-          ) : null}
+          {snapshot.user?.role === 'ADMIN' ? <Badge variant="secondary">Admin</Badge> : null}
           <UserMenu />
         </header>
 

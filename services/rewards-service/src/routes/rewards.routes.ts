@@ -4,11 +4,16 @@ import { requireAuth, requireRoles } from '../middleware/auth.js';
 import {
   chargeTalentLensQuery,
   getWalletSummary,
+  getRewardCatalog,
+  getRewardRedemptions,
+  redeemReward,
   refundTalentLensQuery,
   unlockTier3,
 } from '../services/rewards.service.js';
 import {
   talentLensQuerySchema,
+  rewardCatalogQuerySchema,
+  redeemRewardSchema,
   unlockTier3Schema,
   walletQuerySchema,
 } from '../validation/rewards.schemas.js';
@@ -18,6 +23,35 @@ export const rewardsRouter: Router = Router();
 // Every rewards route requires a verified identity, either injected by the API
 // Gateway or presented as a bearer token.
 rewardsRouter.use(requireAuth);
+
+rewardsRouter.get(
+  '/catalog',
+  requireRoles('RECRUITER', 'ADMIN'),
+  asyncHandler(async (req, res) => {
+    const query = rewardCatalogQuerySchema.parse(req.query);
+    const catalog = await getRewardCatalog(query);
+    res.status(200).json({ data: catalog });
+  }),
+);
+
+rewardsRouter.post(
+  '/redeem',
+  requireRoles('RECRUITER', 'ADMIN'),
+  asyncHandler(async (req, res) => {
+    const input = redeemRewardSchema.parse(req.body);
+    const result = await redeemReward(input, req.auth!);
+    res.status(200).json({ data: result });
+  }),
+);
+
+rewardsRouter.get(
+  '/redemptions',
+  requireRoles('RECRUITER', 'ADMIN'),
+  asyncHandler(async (req, res) => {
+    const redemptions = await getRewardRedemptions(req.auth!);
+    res.status(200).json({ data: redemptions });
+  }),
+);
 
 rewardsRouter.get(
   '/wallet',

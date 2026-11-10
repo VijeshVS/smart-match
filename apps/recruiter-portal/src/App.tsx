@@ -12,6 +12,7 @@ import { DashboardPage } from '@/pages/dashboard';
 import { CandidatesPage } from '@/pages/candidates';
 import { TalentSwipePage } from '@/pages/talent-swipe';
 import { TalentLensPage } from '@/pages/talent-lens';
+import { RewardsPage } from '@/pages/rewards';
 import { useAuth } from '@/lib/auth';
 import { WalletProvider } from '@/lib/wallet';
 
@@ -163,6 +164,7 @@ function App() {
             <Route path="candidates" element={<CandidatesPage />} />
             <Route path="swipe" element={<TalentSwipePage />} />
             <Route path="lens" element={<TalentLensPage />} />
+            <Route path="rewards" element={<RewardsPage />} />
             <Route path="jumble" element={<Navigate to="/swipe" replace />} />
             <Route path="filter" element={<Navigate to="/candidates" replace />} />
             <Route path="*" element={<NotFound />} />

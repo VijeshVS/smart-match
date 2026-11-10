@@ -2,6 +2,11 @@ import type {
   UnlockTier3Request,
   UnlockTier3Response,
   WalletSummary,
+  RewardCatalogItem,
+  RewardCategory,
+  RedeemRewardRequest,
+  RedeemRewardResponse,
+  RewardRedemption,
 } from '@talent-ai/shared-types';
 import { api } from '../http.js';
 import { API_PREFIXES } from '../env.js';
@@ -11,6 +16,31 @@ interface Envelope<T> {
 }
 
 export const rewardsApi = {
+  getCatalog: async (category?: RewardCategory): Promise<RewardCatalogItem[]> => {
+    const { data } = await api.get<Envelope<RewardCatalogItem[]>>(
+      `${API_PREFIXES.rewards}/catalog`,
+      {
+        params: category && category !== 'ALL' ? { category } : undefined,
+      },
+    );
+    return data.data;
+  },
+
+  redeem: async (input: RedeemRewardRequest): Promise<RedeemRewardResponse> => {
+    const { data } = await api.post<Envelope<RedeemRewardResponse>>(
+      `${API_PREFIXES.rewards}/redeem`,
+      input,
+    );
+    return data.data;
+  },
+
+  getRedemptions: async (): Promise<RewardRedemption[]> => {
+    const { data } = await api.get<Envelope<RewardRedemption[]>>(
+      `${API_PREFIXES.rewards}/redemptions`,
+    );
+    return data.data;
+  },
+
   getWallet: async (recruiterId?: string): Promise<WalletSummary> => {
     const { data } = await api.get<Envelope<WalletSummary>>(`${API_PREFIXES.rewards}/wallet`, {
       params: recruiterId ? { recruiterId } : undefined,

@@ -23,6 +23,7 @@ enum LedgerTransactionType {
   CREDIT_TALENT_LENS_REFUND
   DEBIT_TIER3_UNLOCK
   DEBIT_TALENT_LENS_QUERY
+  DEBIT_REWARD_REDEMPTION
   ADJUSTMENT
 }
 
@@ -37,6 +38,13 @@ enum OutboxStatus {
   PROCESSING
   PUBLISHED
   FAILED
+}
+
+enum RewardCategory {
+  FOOD
+  SHOPPING
+  TRAVEL
+  ENTERTAINMENT
 }
 
 model Wallet {
@@ -85,6 +93,63 @@ model TalentAccessGrant {
   @@unique([recruiterId, talentId, tierUnlocked])
   @@index([recruiterId, createdAt])
   @@map("talent_access_grants")
+}
+
+model PartnerBrand {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique @db.VarChar(80)
+  logoUrl   String?  @map("logo_url") @db.VarChar(500)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  rewards   Reward[]
+
+  @@map("partner_brands")
+}
+
+model Reward {
+  id          String        @id @default(uuid()) @db.Uuid
+  brandId     String        @map("brand_id") @db.Uuid
+  category    RewardCategory
+  title       String        @db.VarChar(160)
+  description String        @db.VarChar(500)
+  discount    String        @db.VarChar(120)
+  cost        Int
+  terms       String[]
+  expiresAt   DateTime?     @map("expires_at") @db.Timestamptz(3)
+  active      Boolean       @default(true)
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  brand       PartnerBrand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  codes       VoucherCode[]
+  redemptions RewardRedemption[]
+
+  @@index([category, active])
+  @@map("rewards")
+}
+
+model VoucherCode {
+  id          String             @id @default(uuid()) @db.Uuid
+  rewardId    String             @map("reward_id") @db.Uuid
+  code        String             @unique @db.VarChar(120)
+  claimedAt   DateTime?          @map("claimed_at") @db.Timestamptz(3)
+  reward      Reward             @relation(fields: [rewardId], references: [id], onDelete: Cascade)
+  redemption  RewardRedemption?
+
+  @@index([rewardId, claimedAt])
+  @@map("voucher_codes")
+}
+
+model RewardRedemption {
+  id          String      @id @default(uuid()) @db.Uuid
+  recruiterId String      @map("recruiter_id") @db.Uuid
+  rewardId    String      @map("reward_id") @db.Uuid
+  voucherId   String      @unique @map("voucher_id") @db.Uuid
+  requestId   String      @unique @map("request_id") @db.Uuid
+  redeemedAt  DateTime    @default(now()) @map("redeemed_at") @db.Timestamptz(3)
+  expiresAt   DateTime?   @map("expires_at") @db.Timestamptz(3)
+  reward      Reward      @relation(fields: [rewardId], references: [id], onDelete: Restrict)
+  voucher     VoucherCode @relation(fields: [voucherId], references: [id], onDelete: Restrict)
+
+  @@index([recruiterId, redeemedAt])
+  @@map("reward_redemptions")
 }
 
 /// Transactional outbox: written in the same transaction as the business

@@ -6,14 +6,14 @@
  */
 export { api, ApiClientError, toApiClientError, subscribeToAuth } from './http.js';
 export { authStore, type AuthSnapshot } from './auth-store.js';
-export {
-  API_PREFIXES,
-  gatewayBaseUrl,
-  notificationSocketUrl,
-  type ApiPrefix,
-} from './env.js';
+export { API_PREFIXES, gatewayBaseUrl, notificationSocketUrl, type ApiPrefix } from './env.js';
 
-export { authApi, bootstrapSession, type AuthSession, type CurrentUserResponse } from './api/auth.js';
+export {
+  authApi,
+  bootstrapSession,
+  type AuthSession,
+  type CurrentUserResponse,
+} from './api/auth.js';
 export { talentApi } from './api/talent.js';
 export { recruiterApi } from './api/recruiters.js';
 export { engagementApi, type SubmitReviewResult } from './api/engagement.js';
@@ -50,6 +50,11 @@ export type {
   FunnelAggregate,
   JobPosting,
   LedgerTransaction,
+  RewardCatalogItem,
+  RewardCategory,
+  RewardRedemption,
+  RedeemRewardRequest,
+  RedeemRewardResponse,
   LoginRequest,
   Notification,
   NotificationListResponse,

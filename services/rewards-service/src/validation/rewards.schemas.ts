@@ -1,5 +1,16 @@
 import { z } from 'zod';
 import { SWIPE_DECISIONS, type SwipeDecision } from '@talent-ai/shared-types';
+import { REWARD_CATEGORIES } from '@talent-ai/shared-types';
+
+export const rewardCatalogQuerySchema = z.object({
+  category: z.enum(REWARD_CATEGORIES).optional(),
+  available: z.coerce.boolean().default(true),
+});
+
+export const redeemRewardSchema = z.object({
+  rewardId: z.string().uuid('rewardId must be a UUID'),
+  requestId: z.string().uuid('requestId must be a UUID'),
+});
 
 export const walletQuerySchema = z.object({
   recruiterId: z.string().uuid('recruiterId must be a UUID').optional(),
@@ -48,3 +59,5 @@ export type UnlockTier3Input = z.infer<typeof unlockTier3Schema>;
 export type TalentLensQueryInput = z.infer<typeof talentLensQuerySchema>;
 export type ReviewSubmittedPayloadInput = z.infer<typeof reviewSubmittedPayloadSchema>;
 export type SwipeRecordedPayloadInput = z.infer<typeof swipeRecordedPayloadSchema>;
+export type RewardCatalogQueryInput = z.infer<typeof rewardCatalogQuerySchema>;
+export type RedeemRewardInput = z.infer<typeof redeemRewardSchema>;
