@@ -1,0 +1,11 @@
+Literature Review
+Name	Authors	About the paper
+A Bibliometric Perspective on AI Research for Job-Résumé Matching (2022)	Sergio Rojas-Galeano, Jorge Posada, Esteban Ordoñez	Maps AI/NLP résumé-job matching research, its machine-learning themes, influential work, and candidate-job compatibility. DOI ↗
+Person-Job Fit: Adapting the Right Talent for the Right Job with Joint Representation Learning (2018)	Chen Zhu, Hengshu Zhu, Hui Xiong, Chao Ma, Fang Xie, Pengliang Ding, Pan Li	Uses a CNN to learn joint candidate and job representations from past applications, predict fit, and identify matching job requirements. DOI ↗
+Mitigating Bias in Algorithmic Hiring: Evaluating Claims and Practices (2020)	Manish Raghavan, Solon Barocas, Jon Kleinberg, Karen Levy	Examines fairness claims and bias in automated hiring, emphasizing evidence-based evaluation and transparent practices. DOI ↗
+Enhancing Person-Job Fit for Talent Recruitment: An Ability-aware Neural Network Approach (2018)	Chuan Qin, Hengshu Zhu, Tong Xu, Chen Zhu, Liang Jiang, Enhong Chen, Hui Xiong	Uses an ability-aware neural model to compare candidate experience with job requirements and support fit prediction, talent sourcing, and recommendations. DOI ↗
+Name	Authors	About the paper
+Anonymous Résumés: An Effective Preselection Method? (2019 online; 2020 print)	Alain Lacroux, Christelle Martin-Lacroux	Tests anonymous versus standard applications. Finds context-dependent effects; anonymity neutralized discrimination toward overweight applicants in this study. DOI ↗
+Design and Development of Machine Learning Based Resume Ranking System (2021 online; 2022 issue)	K. Tejaswini, V. Umadevi, Shashank M. Kadiwal, Sanjay Revanna	Automates résumé parsing and classification, then ranks CVs against a job description using content similarity and KNN. DOI ↗
+Fairness and Bias in Algorithmic Hiring: A Multidisciplinary Survey (2025)	Alessandro Fabris et al. (8 authors)	Surveys bias, fairness measures, datasets, mitigation approaches, and legal considerations in algorithmic hiring. DOI ↗
+

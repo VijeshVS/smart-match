@@ -1,0 +1,15 @@
+introducing talent.ai platform which is built specifically for the candidates and the recuriters.
+recruiters:
+feature1: talentswipe: recruiters can come to the platform and review the candidates profile, it works kind of swiping profiles, personal information of the candidates are hidden to ensure unbiasing. The recuriter can also provide the feedback for the candidates. the recuriters will be awarded for the profiles they review. 1 tc for swipe. 5tc for giving the feedback. 
+feature2: talentlens: the recruiters can find the candidates with the help of a single prompt, just give the job description the candidates will be returned with the confidence scores of each candidates. the candidates are divided into junior, pro and elite candidates according to the experience that each candidate has. for the pro and elite candidates to be unlocked the recuriter can pay the relevant tc to unlock the candidate
+since the swipe is given to the candidate i.e (approve/reject) this will be a important parameter in the talentlens to determine the confidence score 
+feature3: talentrewards: in order to preserve the circular economy of the talent credits (tc) and ensure to incentivise and have recuriters come to the platform, the talent rewards section is introduced where collab with different brands is done and coupons can be redeemed for the same. this will motivate the recuriters to review more candidates
+feature4: the recuriter can see all his activities, statisitics, top skills, analytics, candidates all in the centralized dashboard giving the powerful insight
+
+candidates:
+the candidates can create profile fill in all the required details, once filled the dashboard will be created
+now the candidates profile will be ready for review by the recruiters. as the recruiters review the profiles the candidates will keep getting the feedback
+the ai will summarise the profile to see the standout from the profile
+the ai will also give improvements on how to improve the resume
+the candidates can also see the reviews or the feedbacks given by the recuriters
+the candidates can update their profile to reset the stats and send again for review
